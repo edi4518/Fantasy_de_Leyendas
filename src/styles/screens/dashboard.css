@@ -1,0 +1,2 @@
+/* Estilos del panel de control principal del DT y estado de temporada */
+.dashboard-overview { display: grid; gap: var(--space-md); }

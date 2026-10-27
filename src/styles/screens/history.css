@@ -1,0 +1,2 @@
+/* Estilos del historial de partidos y estadísticas históricas */
+.history-list { display: flex; flex-direction: column; gap: var(--space-sm); }

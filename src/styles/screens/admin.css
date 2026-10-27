@@ -1,0 +1,2 @@
+/* Estilos de la consola de administración de leyendas */
+.admin-panel { padding: var(--space-md); background: var(--color-surface-1); border-radius: var(--radius-md); }

@@ -1,0 +1,918 @@
+/**
+ * @file components.css
+ * @description Biblioteca de componentes UI reutilizables para Fantasy de Leyendas.
+ * Implementa la metodología BEM y consume estrictamente los tokens CSS declarados
+ * en design-tokens.css, garantizando consistencia, accesibilidad y cero valores mágicos.
+ */
+
+/* ==========================================================================
+   1. BOTONES (.btn)
+   ========================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+  gap: var(--space-2);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-md);
+  text-align: center;
+  border-radius: var(--radius-md);
+  border: var(--border-width-thin) solid transparent;
+  transition: background-color var(--transition-fast),
+              border-color var(--transition-fast),
+              color var(--transition-fast),
+              box-shadow var(--transition-fast),
+              transform var(--transition-fast);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+/* Variante Principal (CTA verde de cancha) */
+.btn--primary {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary);
+}
+
+.btn--primary:hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.btn--primary:active {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+/* Variante Secundaria */
+.btn--secondary {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn--secondary:hover {
+  background-color: var(--color-surface);
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.btn--secondary:active {
+  background-color: var(--color-primary-light);
+}
+
+/* Variante Fantasma (Ghost) */
+.btn--ghost {
+  background-color: transparent;
+  color: var(--color-text);
+  border-color: transparent;
+}
+
+.btn--ghost:hover {
+  background-color: var(--color-chart-neutral);
+  color: var(--color-text);
+}
+
+.btn--ghost:active {
+  background-color: var(--color-border);
+}
+
+/* Variante de Peligro / Destructiva */
+.btn--danger {
+  background-color: var(--color-error);
+  color: var(--color-text-inverse);
+  border-color: var(--color-error);
+}
+
+.btn--danger:hover {
+  background-color: var(--color-error-dark);
+  border-color: var(--color-error-dark);
+}
+
+/* Estados de Botón */
+.btn:disabled,
+.btn.is-disabled,
+.btn[aria-disabled="true"] {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Modificadores de Tamaño y Disposición */
+.btn--sm {
+  min-height: var(--space-8);
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+}
+
+.btn--lg {
+  min-height: var(--space-12);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+  font-size: var(--font-size-title-sm);
+  border-radius: var(--radius-lg);
+}
+
+.btn--full {
+  width: 100%;
+}
+
+
+/* ==========================================================================
+   2. FORMULARIOS Y CAMPOS (.form-group, .input, .select, .form-label)
+   ========================================================================== */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  width: 100%;
+}
+
+.form-label,
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-sm);
+  color: var(--color-text);
+}
+
+.form-helper {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  color: var(--color-text-muted);
+}
+
+.form-error {
+  display: none;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  color: var(--color-error);
+  font-weight: var(--font-weight-medium);
+}
+
+.input,
+.select {
+  display: block;
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-md);
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input:focus,
+.select:focus {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+  outline: var(--border-width-none);
+}
+
+/* Estado de Error */
+.input.has-error,
+.select.has-error,
+.form-group.has-error .input,
+.form-group.has-error .select {
+  border-color: var(--color-error);
+  box-shadow: var(--shadow-focus-error);
+}
+
+.form-group.has-error .form-error {
+  display: block;
+}
+
+
+/* ==========================================================================
+   3. TARJETAS (.card)
+   ========================================================================== */
+
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-thin) solid var(--color-border);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  padding-bottom: var(--space-2);
+}
+
+.card__title {
+  font-size: var(--font-size-title-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-title-sm);
+  color: var(--color-text);
+  margin: var(--space-0);
+}
+
+.card__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  padding-top: var(--space-2);
+}
+
+
+/* ==========================================================================
+   4. INSIGNIAS Y ETIQUETAS (.badge)
+   ========================================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.badge--success {
+  background-color: var(--color-success-light);
+  color: var(--color-success);
+  border: var(--border-width-thin) solid var(--color-success);
+}
+
+.badge--error {
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+  border: var(--border-width-thin) solid var(--color-error);
+}
+
+.badge--gold {
+  background-color: var(--color-gold-light);
+  color: var(--color-gold-dark);
+  border: var(--border-width-thin) solid var(--color-gold);
+}
+
+.badge--info {
+  background-color: var(--color-info-light);
+  color: var(--color-info);
+  border: var(--border-width-thin) solid var(--color-info);
+}
+
+/* Badges de Posición Táctica (POR, DEF, MED, DEL) */
+.badge--position {
+  background-color: var(--color-chart-neutral);
+  color: var(--color-text);
+  border: var(--border-width-thin) solid var(--color-border);
+}
+
+.badge--pos-por {
+  background-color: var(--color-pos-por-bg);
+  color: var(--color-pos-por);
+  border: var(--border-width-thin) solid var(--color-pos-por);
+}
+
+.badge--pos-def {
+  background-color: var(--color-pos-def-bg);
+  color: var(--color-pos-def);
+  border: var(--border-width-thin) solid var(--color-pos-def);
+}
+
+.badge--pos-med {
+  background-color: var(--color-pos-med-bg);
+  color: var(--color-pos-med);
+  border: var(--border-width-thin) solid var(--color-pos-med);
+}
+
+.badge--pos-del {
+  background-color: var(--color-pos-del-bg);
+  color: var(--color-pos-del);
+  border: var(--border-width-thin) solid var(--color-pos-del);
+}
+
+
+/* ==========================================================================
+   5. BARRA DE NAVEGACIÓN INFERIOR (.bottom-nav)
+   ========================================================================== */
+
+.bottom-nav {
+  position: relative;
+  width: 100%;
+  min-height: var(--touch-target-nav);
+  background-color: var(--color-surface);
+  border-top: var(--border-width-thin) solid var(--color-border);
+  box-shadow: var(--shadow-nav);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bottom-nav__item {
+  flex: 1 1 0;
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+  text-decoration: none;
+}
+
+.bottom-nav__item:hover {
+  color: var(--color-primary-hover);
+}
+
+.bottom-nav__item.is-active,
+.bottom-nav__item--active {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.bottom-nav__icon {
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-title-sm);
+}
+
+.bottom-nav__label {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: inherit;
+}
+
+
+/* ==========================================================================
+   6. TARJETA DE JUGADOR LEYENDA (.player-card)
+   ========================================================================== */
+
+.player-card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-thin) solid var(--color-border);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.player-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--color-primary);
+}
+
+.player-card__avatar {
+  width: var(--avatar-size-md);
+  height: var(--avatar-size-md);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-chart-neutral);
+  border: var(--border-width-thin) solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.player-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-card__info {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: var(--space-0);
+}
+
+.player-card__name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-md);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: var(--space-0);
+}
+
+.player-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.player-card__rating {
+  font-size: var(--font-size-title-sm);
+  font-weight: var(--font-weight-extrabold);
+  line-height: var(--line-height-title-sm);
+  color: var(--color-primary-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.player-card__price {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-sm);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.player-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+
+/* ==========================================================================
+   7. BARRA DE MÉTRICA Y PROGRESO (.metric-bar)
+   ========================================================================== */
+
+.metric-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.metric-bar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.metric-bar__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-xs);
+  color: var(--color-text-muted);
+}
+
+.metric-bar__value {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-xs);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-bar__track {
+  position: relative;
+  width: 100%;
+  height: var(--space-2);
+  background-color: var(--color-chart-neutral);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.metric-bar__fill {
+  height: 100%;
+  width: 0%;
+  background-color: var(--color-primary);
+  border-radius: var(--radius-pill);
+  transition: width var(--transition-normal);
+}
+
+.metric-bar__fill--error {
+  background-color: var(--color-error);
+}
+
+.metric-bar__fill--gold {
+  background-color: var(--color-gold);
+}
+
+.metric-bar__fill--success {
+  background-color: var(--color-success);
+}
+
+
+/* ==========================================================================
+   8. CANCHA TÁCTICA (.pitch)
+   ========================================================================== */
+
+.pitch {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  background-color: var(--color-pitch-grass);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-medium) solid var(--color-primary-hover);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Líneas tácticas del terreno de juego */
+.pitch__markings {
+  position: absolute;
+  inset: var(--space-0);
+  pointer-events: none;
+}
+
+.pitch__center-line {
+  position: absolute;
+  top: 50%;
+  left: var(--space-0);
+  right: var(--space-0);
+  height: var(--border-width-medium);
+  background-color: var(--color-pitch-line);
+  transform: translateY(-50%);
+}
+
+.pitch__center-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--space-16);
+  height: var(--space-16);
+  border: var(--border-width-medium) solid var(--color-pitch-line);
+  border-radius: var(--radius-pill);
+  transform: translate(-50%, -50%);
+}
+
+.pitch__penalty-area-top {
+  position: absolute;
+  top: var(--space-0);
+  left: 50%;
+  width: 50%;
+  height: 18%;
+  border: var(--border-width-medium) solid var(--color-pitch-line);
+  border-top: var(--border-width-none);
+  transform: translateX(-50%);
+}
+
+.pitch__penalty-area-bottom {
+  position: absolute;
+  bottom: var(--space-0);
+  left: 50%;
+  width: 50%;
+  height: 18%;
+  border: var(--border-width-medium) solid var(--color-pitch-line);
+  border-bottom: var(--border-width-none);
+  transform: translateX(-50%);
+}
+
+/* Filas tácticas y Slots posicionales */
+.pitch__row {
+  position: relative;
+  z-index: var(--z-base);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+}
+
+.pitch__slot {
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  padding: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-pill);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: pointer;
+  text-align: center;
+}
+
+.pitch__slot:hover {
+  transform: scale(1.08);
+}
+
+.pitch__slot--empty {
+  border: var(--border-width-medium) dashed var(--color-pitch-line);
+  background-color: var(--color-pitch-slot-empty);
+  color: var(--color-text-inverse);
+}
+
+.pitch__slot--occupied {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: var(--border-width-thin) solid var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.pitch__slot--penalty {
+  border: var(--border-width-medium) solid var(--color-error);
+  box-shadow: var(--shadow-focus-error);
+}
+
+.pitch__slot-name {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-xs);
+  color: inherit;
+  white-space: nowrap;
+}
+
+.pitch__slot-pos {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-xs);
+}
+
+
+/* ==========================================================================
+   9. VENTANAS MODALES Y OVERLAYS (.modal-backdrop, .modal)
+   ========================================================================== */
+
+.modal-backdrop {
+  position: fixed;
+  inset: var(--space-0);
+  background-color: var(--color-overlay);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: var(--z-modal-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  opacity: 1;
+  transition: opacity var(--transition-normal);
+}
+
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: var(--app-max-width);
+  max-height: calc(100vh - var(--space-10));
+  max-height: calc(100dvh - var(--space-10));
+  overflow-y: auto;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  z-index: var(--z-modal);
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.modal__title {
+  font-size: var(--font-size-title-md);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-title-md);
+  color: var(--color-text);
+  margin: var(--space-0);
+}
+
+.modal__close {
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-title-md);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.modal__close:hover {
+  background-color: var(--color-chart-neutral);
+  color: var(--color-text);
+}
+
+.modal__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+
+/* ==========================================================================
+   10. ESTADOS DE FEEDBACK (Empty, Loading, Spinner, Alert, Toast)
+   ========================================================================== */
+
+/* Estado Vacío */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding-top: var(--space-10);
+  padding-bottom: var(--space-10);
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.empty-state__icon {
+  font-size: var(--font-size-metric);
+  line-height: var(--line-height-metric);
+  color: var(--color-text-muted);
+}
+
+.empty-state__title {
+  font-size: var(--font-size-title-md);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-title-md);
+  color: var(--color-text);
+  margin: var(--space-0);
+}
+
+.empty-state__description {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-md);
+  color: var(--color-text-muted);
+  margin: var(--space-0);
+}
+
+/* Estado de Carga y Spinner */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: var(--space-10);
+  padding-bottom: var(--space-10);
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.spinner {
+  width: var(--spinner-size);
+  height: var(--spinner-size);
+  border: var(--border-width-thick) solid var(--color-chart-neutral);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-pill);
+  animation: spinner-spin 0.8s linear infinite;
+}
+
+@keyframes spinner-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Alertas Tácticas e Informativas */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+  border-radius: var(--radius-md);
+  border-left: var(--border-width-accent) solid var(--color-primary);
+  background-color: var(--color-primary-light);
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-md);
+}
+
+.alert--info {
+  border-left-color: var(--color-info);
+  background-color: var(--color-info-light);
+}
+
+.alert--success {
+  border-left-color: var(--color-success);
+  background-color: var(--color-success-light);
+}
+
+.alert--error {
+  border-left-color: var(--color-error);
+  background-color: var(--color-error-light);
+}
+
+.alert--gold {
+  border-left-color: var(--color-gold);
+  background-color: var(--color-gold-light);
+}
+
+.alert__icon {
+  font-size: var(--font-size-title-sm);
+  flex-shrink: 0;
+}
+
+.alert__content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.alert__title {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+}
+
+/* Notificación Flotante (Toast) */
+.toast {
+  position: fixed;
+  bottom: calc(var(--touch-target-nav) + var(--space-4) + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - var(--space-8));
+  max-width: var(--app-max-width);
+  z-index: var(--z-toast);
+  box-shadow: var(--shadow-modal);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+  background-color: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-md);
+}

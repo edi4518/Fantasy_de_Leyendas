@@ -1,0 +1,108 @@
+/**
+ * @file layout.css
+ * @description Estructura de layout y App Shell con enfoque Mobile-First para PWA.
+ * Gestiona safe-area-insets para dispositivos móviles modernos con notch o barra de gestos,
+ * centrado responsivo para pantallas grandes y reserva de espacio inferior para BottomNavigation.
+ */
+
+/* 1. Contenedor Raíz de la Aplicación (App Shell) */
+.app-layout,
+.app-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: var(--app-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  background-color: var(--color-background);
+  box-shadow: var(--shadow-card);
+}
+
+/* 2. Cabecera Fija Superior (App Header) */
+.app-header {
+  position: sticky;
+  top: var(--space-0);
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--touch-target-min);
+  padding-top: calc(var(--space-2) + env(safe-area-inset-top, 0px));
+  padding-bottom: var(--space-2);
+  padding-left: calc(var(--space-4) + env(safe-area-inset-left, 0px));
+  padding-right: calc(var(--space-4) + env(safe-area-inset-right, 0px));
+  background-color: var(--color-surface);
+  border-bottom: var(--border-width-thin) solid var(--color-border);
+}
+
+/* 3. Área de Contenido Principal (App Main) */
+.app-main,
+.layout-main {
+  flex: 1 1 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-4);
+  padding-left: calc(var(--space-4) + env(safe-area-inset-left, 0px));
+  padding-right: calc(var(--space-4) + env(safe-area-inset-right, 0px));
+  /* Reserva de padding inferior: Altura de BottomNav + espaciado de margen + safe-area */
+  padding-bottom: calc(var(--touch-target-nav) + var(--space-6) + env(safe-area-inset-bottom, 0px));
+}
+
+/* 4. Contenedor de Navegación Fija Inferior */
+.app-navigation {
+  position: fixed;
+  bottom: var(--space-0);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--app-max-width);
+  z-index: var(--z-nav);
+  background-color: var(--color-surface);
+}
+
+/* 5. Contenedor Global de Diálogos y Modales */
+#app-modal-container {
+  position: relative;
+  z-index: var(--z-modal);
+}
+
+/* 6. Grillas y Secciones Reutilizables de Layout */
+.layout-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.layout-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.layout-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+/* 7. Adaptación para Pantallas de Escritorio / Tablet */
+@media (min-width: 768px) {
+  .app-layout,
+  .app-container,
+  .app-navigation {
+    max-width: var(--app-desktop-max-width);
+  }
+
+  .app-main,
+  .layout-main {
+    padding-left: var(--space-6);
+    padding-right: var(--space-6);
+    padding-top: var(--space-6);
+  }
+}

@@ -1,0 +1,170 @@
+/**
+ * @file global.css
+ * @description Estilos globales y reglas base para Fantasy de Leyendas.
+ * Configura la tipografía del sistema, renderizado numérico tabular para estadísticas deportivas,
+ * indicadores de foco accesibles y clases utilitarias de accesibilidad y color.
+ */
+
+/* 1. Raíz de documento HTML */
+html {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-lg);
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+
+/* 2. Cuerpo de la aplicación */
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-lg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* 3. Renderizado de números tabulares para marcadores, estadísticas y presupuestos */
+body,
+table,
+.tabular-nums,
+.metric,
+.badge,
+.scoreboard,
+.price,
+.rating {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 4. Indicador de foco visible y accesible para navegación por teclado */
+:focus-visible {
+  outline: var(--outline-width) solid var(--color-primary);
+  outline-offset: var(--outline-offset);
+}
+
+/* 5. Jerarquía tipográfica accesible */
+h1 {
+  font-size: var(--font-size-title-lg);
+  line-height: var(--line-height-title-lg);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-text);
+}
+
+h2 {
+  font-size: var(--font-size-title-md);
+  line-height: var(--line-height-title-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+h3 {
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-title-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+p {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-md);
+  color: var(--color-text);
+}
+
+small {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  color: var(--color-text-muted);
+}
+
+strong,
+b {
+  font-weight: var(--font-weight-bold);
+}
+
+/* 6. Utilidades de Accesibilidad */
+
+/* Ocultación visual para lectores de pantalla */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: var(--space-0);
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: var(--border-width-none);
+}
+
+/* Evita que los lectores de pantalla omitan el elemento enfocado */
+.sr-only-focusable:focus-visible {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: var(--space-2) var(--space-4);
+  margin: var(--space-0);
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* 7. Clases Utilitarias de Texto y Color Semántico */
+.text-primary {
+  color: var(--color-primary);
+}
+
+.text-primary-dark {
+  color: var(--color-primary-dark);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-gold {
+  color: var(--color-gold);
+}
+
+.text-error {
+  color: var(--color-error);
+}
+
+.text-success {
+  color: var(--color-success);
+}
+
+.text-info {
+  color: var(--color-info);
+}
+
+.text-bold {
+  font-weight: var(--font-weight-bold);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

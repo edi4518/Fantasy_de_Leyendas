@@ -1,0 +1,2 @@
+/* Estilos del simulador de partido en vivo y marcador */
+.scoreboard { display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: bold; }

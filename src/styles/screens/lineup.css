@@ -1,0 +1,2 @@
+/* Estilos para el campo táctico y gestión de alineación de 11 jugadores */
+.pitch-container { position: relative; width: 100%; aspect-ratio: 2/3; background: var(--color-secondary); border-radius: var(--radius-md); }
