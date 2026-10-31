@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Fantasy de Leyendas - Detalles y Simulación de Partido en Directo. Estadísticas, cronología y eventos minuto a minuto.">
+  <meta name="theme-color" content="#2D6A4F">
+  <title>Partido en Directo | Fantasy de Leyendas</title>
+
+  <!-- Tipografía Oficial: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Estilos Base del Sistema de Diseño -->
+  <link rel="stylesheet" href="../styles/design-tokens.css">
+  <link rel="stylesheet" href="../styles/reset.css">
+  <link rel="stylesheet" href="../styles/global.css">
+  <link rel="stylesheet" href="../styles/components.css">
+
+  <!-- Estilos Específicos de la Vista de Detalle de Partido y Componentes -->
+  <link rel="stylesheet" href="../styles/views/match-detail.css">
+  <link rel="stylesheet" href="../styles/components/modal.css">
+</head>
+<body class="match-detail-body">
+  <!-- Contenedor Principal (Mobile-First Shell) -->
+  <div class="match-detail-container" id="match-view">
+
+    <!-- 1. HEADER SUPERIOR CON ACCIÓN DE SIMULACIÓN RÁPIDA -->
+    <header class="match-header" role="banner">
+      <div class="match-header__left">
+        <a href="home.html" class="match-header__back-btn" id="btn-back" aria-label="Volver a la pantalla de inicio">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </a>
+        <h1 class="match-header__title">Partido en Directo</h1>
+      </div>
+
+      <button type="button" class="btn btn--primary btn-quick-sim" id="btn-quick-sim" aria-label="Ejecutar simulación rápida del partido">
+        SIMULACIÓN RÁPIDA
+      </button>
+    </header>
+
+    <!-- 2. MARCADOR PRINCIPAL (Equipos, Escudos y Resultado) -->
+    <section class="match-scoreboard" aria-label="Marcador del partido">
+      <!-- Equipo Local -->
+      <div class="team-side team-side--home">
+        <div class="team-side__crest" id="home-team-crest" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+        </div>
+        <span class="team-side__name" id="home-team-name">Tu Equipo</span>
+      </div>
+
+      <!-- Centro: Marcador y Estado -->
+      <div class="scoreboard-center">
+        <div class="scoreboard-score" aria-label="Marcador: 2 a 1">
+          <span class="score-number" id="home-score">2</span>
+          <span class="score-divider">–</span>
+          <span class="score-number" id="away-score">1</span>
+        </div>
+
+        <div class="match-status-badge" id="match-status-badge" aria-label="Estado del partido: Finalizado">
+          <span class="status-indicator-dot" aria-hidden="true"></span>
+          <span class="status-text" id="match-status-text">FINAL</span>
+        </div>
+      </div>
+
+      <!-- Equipo Visitante -->
+      <div class="team-side team-side--away">
+        <div class="team-side__crest team-side__crest--away" id="away-team-crest" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+        </div>
+        <span class="team-side__name" id="away-team-name">Equipo Rival</span>
+      </div>
+    </section>
+
+    <!-- 3. CANCHA TÁCTICA ILUSTRADA CON OVERLAY DE JUGADA EN DIRECTO -->
+    <section class="match-pitch-section" aria-label="Visualización táctica del partido">
+      <div class="tactical-pitch">
+        <!-- Líneas Oficiales de la Cancha de Fútbol -->
+        <div class="pitch-marking pitch-marking--boundary"></div>
+        <div class="pitch-marking pitch-marking--halfway"></div>
+        <div class="pitch-marking pitch-marking--center-circle"></div>
+        <div class="pitch-marking pitch-marking--center-spot"></div>
+        <div class="pitch-marking pitch-marking--penalty-box-top"></div>
+        <div class="pitch-marking pitch-marking--goal-box-top"></div>
+        <div class="pitch-marking pitch-marking--penalty-box-bottom"></div>
+        <div class="pitch-marking pitch-marking--goal-box-bottom"></div>
+
+        <!-- Banner de Evento en Directo sobre el Césped -->
+        <div class="pitch-action-overlay" id="pitch-action-overlay">
+          <span class="pitch-action-team" id="pitch-action-team">Tu Equipo</span>
+          <span class="pitch-action-status" id="pitch-action-status">ATAQUE PELIGROSO</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. PESTAÑAS INTERNAS DE NAVEGACIÓN (Cronología / Estadísticas / Alineaciones) -->
+    <nav class="match-tabs" role="tablist" aria-label="Secciones del partido">
+      <button type="button" class="match-tab is-active" role="tab" id="tab-cronologia" data-target="panel-cronologia" aria-selected="true" aria-controls="panel-cronologia">
+        Cronología
+      </button>
+      <button type="button" class="match-tab" role="tab" id="tab-estadisticas" data-target="panel-estadisticas" aria-selected="false" aria-controls="panel-estadisticas">
+        Estadísticas
+      </button>
+      <button type="button" class="match-tab" role="tab" id="tab-alineaciones" data-target="panel-alineaciones" aria-selected="false" aria-controls="panel-alineaciones">
+        Alineaciones
+      </button>
+    </nav>
+
+    <!-- 5. CONTENIDO DE LAS PESTAÑAS -->
+    <main class="match-tab-panels" role="main">
+
+      <!-- PESTAÑA A: CRONOLOGÍA DE EVENTOS (TIMELINE) -->
+      <section class="tab-panel is-active" id="panel-cronologia" role="tabpanel" aria-labelledby="tab-cronologia">
+        <div class="timeline-container" id="timeline-events-list">
+
+          <!-- Evento 1: Minuto 72' - Gol de Tu Equipo (Izquierda) -->
+          <div class="timeline-entry timeline-entry--home" data-minute="72">
+            <div class="timeline-entry__content">
+              <span class="event-icon event-icon--goal" aria-hidden="true"></span>
+              <span class="event-player"><strong>L. Messi</strong> <span class="event-detail">(Gol)</span></span>
+            </div>
+            <div class="timeline-entry__minute">72'</div>
+          </div>
+
+          <!-- Evento 2: Minuto 64' - Tarjeta Roja Rival (Derecha) -->
+          <div class="timeline-entry timeline-entry--away" data-minute="64">
+            <div class="timeline-entry__minute">64'</div>
+            <div class="timeline-entry__content">
+              <span class="event-icon event-icon--red-card" aria-hidden="true"></span>
+              <span class="event-player"><strong>P. Maldini</strong> <span class="event-detail">(Tarjeta Roja)</span></span>
+            </div>
+          </div>
+
+          <!-- Evento Intermedio: DESCANSO 45' (Centro) -->
+          <div class="timeline-period-break" data-minute="45">
+            <div class="period-pill">DESCANSO</div>
+            <span class="period-minute">45'</span>
+          </div>
+
+          <!-- Evento 3: Minuto 28' - Gol Rival (Derecha) -->
+          <div class="timeline-entry timeline-entry--away" data-minute="28">
+            <div class="timeline-entry__minute">28'</div>
+            <div class="timeline-entry__content">
+              <span class="event-icon event-icon--goal-away" aria-hidden="true"></span>
+              <span class="event-player"><strong>Pelé</strong> <span class="event-detail">(Gol)</span></span>
+            </div>
+          </div>
+
+          <!-- Evento 4: Minuto 15' - Gol de Tu Equipo (Izquierda) -->
+          <div class="timeline-entry timeline-entry--home" data-minute="15">
+            <div class="timeline-entry__content">
+              <span class="event-icon event-icon--goal" aria-hidden="true"></span>
+              <span class="event-player"><strong>Z. Zidane</strong> <span class="event-detail">(Gol)</span></span>
+            </div>
+            <div class="timeline-entry__minute">15'</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- PESTAÑA B: DESGLOSE ESTADÍSTICO (Barras Comparativas) -->
+      <section class="tab-panel" id="panel-estadisticas" role="tabpanel" aria-labelledby="tab-estadisticas" hidden>
+        <div class="stats-container" id="match-stats-list">
+
+          <!-- 1. Posesión -->
+          <div class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-possession-home">58%</span>
+              <span class="stat-label">Posesión</span>
+              <span class="stat-value stat-value--away" id="stat-possession-away">42%</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill comparative-bar-fill--home" id="bar-possession-home" style="width: 58%;"></div>
+              <div class="comparative-bar-fill comparative-bar-fill--away" id="bar-possession-away" style="width: 42%;"></div>
+            </div>
+          </div>
+
+          <!-- 2. Tiros a Puerta / Totales -->
+          <div class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-shots-home">8 (14)</span>
+              <span class="stat-label">Tiros (a puerta)</span>
+              <span class="stat-value stat-value--away" id="stat-shots-away">4 (9)</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill comparative-bar-fill--home" id="bar-shots-home" style="width: 61%;"></div>
+              <div class="comparative-bar-fill comparative-bar-fill--away" id="bar-shots-away" style="width: 39%;"></div>
+            </div>
+          </div>
+
+          <!-- 3. Faltas -->
+          <div class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-fouls-home">7</span>
+              <span class="stat-label">Faltas</span>
+              <span class="stat-value stat-value--away" id="stat-fouls-away">12</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill comparative-bar-fill--home" id="bar-fouls-home" style="width: 37%;"></div>
+              <div class="comparative-bar-fill comparative-bar-fill--away" id="bar-fouls-away" style="width: 63%;"></div>
+            </div>
+          </div>
+
+          <!-- 4. Valoración Global / Media -->
+          <div class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-rating-home">8.4</span>
+              <span class="stat-label">Valoración Media</span>
+              <span class="stat-value stat-value--away" id="stat-rating-away">7.6</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill comparative-bar-fill--home" id="bar-rating-home" style="width: 53%;"></div>
+              <div class="comparative-bar-fill comparative-bar-fill--away" id="bar-rating-away" style="width: 47%;"></div>
+            </div>
+          </div>
+
+          <!-- 5. Córners -->
+          <div class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-corners-home">6</span>
+              <span class="stat-label">Córners</span>
+              <span class="stat-value stat-value--away" id="stat-corners-away">3</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill comparative-bar-fill--home" id="bar-corners-home" style="width: 67%;"></div>
+              <div class="comparative-bar-fill comparative-bar-fill--away" id="bar-corners-away" style="width: 33%;"></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- PESTAÑA C: ALINEACIONES (Formaciones y Jugadores) -->
+      <section class="tab-panel" id="panel-alineaciones" role="tabpanel" aria-labelledby="tab-alineaciones" hidden>
+        <div class="lineups-container" id="lineups-display">
+          <div class="lineup-column">
+            <h3 class="lineup-title" id="lineup-home-title">Tu Equipo (1-2-2-1)</h3>
+            <ul class="lineup-players-list" id="lineup-home-players">
+              <li class="lineup-player-item"><span class="badge badge--pos-por">POR</span> L. Yashin <strong class="player-rating">9.1</strong></li>
+              <li class="lineup-player-item"><span class="badge badge--pos-def">DEF</span> F. Baresi <strong class="player-rating">8.8</strong></li>
+              <li class="lineup-player-item"><span class="badge badge--pos-def">DEF</span> P. Maldini <strong class="player-rating">8.9</strong></li>
+              <li class="lineup-player-item"><span class="badge badge--pos-med">MC</span> Z. Zidane <strong class="player-rating">9.3</strong></li>
+              <li class="lineup-player-item"><span class="badge badge--pos-med">MC</span> Xavi <strong class="player-rating">8.9</strong></li>
+              <li class="lineup-player-item"><span class="badge badge--pos-del">DEL</span> L. Messi <strong class="player-rating">9.8</strong></li>
+            </ul>
+          </div>
+
+          <div class="lineup-column">
+            <h3 class="lineup-title" id="lineup-away-title">Equipo Rival (1-2-2-1)</h3>
+            <ul class="lineup-players-list" id="lineup-away-players">
+              <li class="lineup-player-item"><span class="badge badge--pos-por">POR</span> G. Buffon <strong class="player-rating">8.7</strong></li>
+              <li class="lineup-player-item"><span class="badge badge--pos-def">DEF</span> Beckenbauer <strong class="player-rating">9.4</strong></li>
+              <li class="lineup-player-item"><span class="badge badge--pos-def">DEF</span> R. Carlos <strong class="player-rating">8.5</strong></li>
+              <li class="lineup-player-item"><span class="badge badge--pos-med">MC</span> Maradona <strong class="player-rating">9.6</strong></li>
+              <li class="lineup-player-item"><span class="badge badge--pos-med">MC</span> A. Pirlo <strong class="player-rating">8.8</strong></li>
+              <li class="lineup-player-item"><span class="badge badge--pos-del">DEL</span> Pelé <strong class="player-rating">9.5</strong></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Contenedor para Modales Dinámicos -->
+  <div id="app-modal-container"></div>
+
+  <!-- Controlador Modular JS -->
+  <script type="module" src="../js/views/match-detail.js"></script>
+</body>
+</html>

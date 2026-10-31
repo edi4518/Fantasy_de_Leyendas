@@ -1,0 +1,800 @@
+/**
+ * @file home.css
+ * @description Estilos modulares para la pantalla principal (Home / Inicio) de Fantasy de Leyendas.
+ * Sigue la Fase 5 y 6 del proyecto, consumiendo estrictamente los tokens de diseño de design-tokens.css.
+ */
+
+@import "../design-tokens.css";
+
+/* ==========================================================================
+   1. CONTENEDOR RAÍZ Y ESTRUCTURA GENERAL (Mobile-First Shell)
+   ========================================================================== */
+
+.home-body {
+  background-color: var(--color-background, #F8F9FA);
+  color: var(--color-text, #212529);
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', system-ui, sans-serif);
+  margin: var(--space-0, 0);
+  padding: var(--space-0, 0);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.home-app-container {
+  width: 100%;
+  max-width: var(--app-max-width, 480px);
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-background, #F8F9FA);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: var(--shadow-card);
+  padding-bottom: calc(var(--touch-target-nav, 64px) + var(--space-6, 24px) + env(safe-area-inset-bottom, 0px));
+}
+
+/* ==========================================================================
+   2. HEADER SUPERIOR (Mánager y Clasificación)
+   ========================================================================== */
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: calc(var(--space-4, 16px) + env(safe-area-inset-top, 0px));
+  padding-bottom: var(--space-3, 12px);
+  padding-left: var(--space-4, 16px);
+  padding-right: var(--space-4, 16px);
+  background-color: transparent;
+}
+
+.manager-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.manager-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-pill, 999px);
+  background-color: var(--color-surface, #FFFFFF);
+  border: var(--border-width-thin, 1px) solid var(--color-border-subtle, #E9ECEF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted, #6B7280);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.manager-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-icon {
+  width: 24px;
+  height: 24px;
+  stroke: var(--color-text-muted, #6B7280);
+}
+
+.manager-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.manager-name {
+  font-size: var(--font-size-title-sm, 1.0625rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text, #212529);
+  line-height: var(--line-height-title-sm, 1.3);
+  margin: var(--space-0, 0);
+}
+
+.manager-season {
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-text-muted, #6B7280);
+  line-height: var(--line-height-sm, 1.4);
+}
+
+.ranking-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.ranking-label {
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.ranking-value {
+  font-size: var(--font-size-title-lg, 1.625rem);
+  font-weight: var(--font-weight-extrabold, 800);
+  color: var(--color-text, #212529);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   3. CONTENEDOR PRINCIPAL Y TARJETAS GENÉRICAS
+   ========================================================================== */
+
+.home-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  padding-left: var(--space-4, 16px);
+  padding-right: var(--space-4, 16px);
+}
+
+.home-card {
+  background-color: var(--color-surface, #FFFFFF);
+  border-radius: var(--radius-lg, 16px);
+  border: var(--border-width-thin, 1px) solid var(--color-border, #DEE2E6);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4, 16px);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+/* ==========================================================================
+   4. CARD: PRESUPUESTO DEL EQUIPO & VALORACIÓN GLOBAL
+   ========================================================================== */
+
+.budget-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.budget-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.budget-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.budget-icon {
+  width: 18px;
+  height: 18px;
+  stroke: var(--color-text-muted, #6B7280);
+}
+
+.budget-card__title {
+  font-size: var(--font-size-md, 0.875rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text, #212529);
+  margin: var(--space-0, 0);
+}
+
+.budget-percentage {
+  font-size: var(--font-size-md, 0.875rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text, #212529);
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-card__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+}
+
+.budget-metrics {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  min-width: 0;
+}
+
+.budget-figures {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.budget-spent-text {
+  font-size: var(--font-size-md, 0.875rem);
+  color: var(--color-text, #212529);
+}
+
+.budget-spent-text strong {
+  font-size: var(--font-size-lg, 0.9375rem);
+  font-weight: var(--font-weight-bold, 700);
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-available-text {
+  font-size: var(--font-size-xs, 0.6875rem);
+  color: var(--color-text-muted, #6B7280);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barra de Progreso de Presupuesto */
+.budget-progress-track {
+  width: 100%;
+  height: 8px;
+  background-color: var(--color-chart-neutral, #E9ECEF);
+  border-radius: var(--radius-pill, 999px);
+  overflow: hidden;
+  position: relative;
+}
+
+.budget-progress-bar {
+  height: 100%;
+  background-color: var(--color-primary, #2D6A4F);
+  border-radius: var(--radius-pill, 999px);
+  transition: width var(--transition-normal, 250ms ease);
+}
+
+.budget-limit-text {
+  font-size: var(--font-size-xs, 0.6875rem);
+  color: var(--color-text-muted, #6B7280);
+  line-height: var(--line-height-xs, 1.35);
+}
+
+/* Badge Circular de Valoración Global */
+.val-global-badge {
+  width: 66px;
+  height: 66px;
+  border-radius: var(--radius-pill, 999px);
+  border: 2.5px solid var(--color-primary, #2D6A4F);
+  background-color: var(--color-surface, #FFFFFF);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: var(--space-1, 4px);
+  user-select: none;
+}
+
+.val-global-badge__label {
+  font-size: 8px;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-primary, #2D6A4F);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.val-global-badge__value {
+  font-size: var(--font-size-title-lg, 1.625rem);
+  font-weight: var(--font-weight-extrabold, 800);
+  color: var(--color-primary, #2D6A4F);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   5. BOTÓN CTA: BUSCAR RIVAL
+   ========================================================================== */
+
+.btn-buscar-rival {
+  width: 100%;
+  min-height: 50px;
+  background-color: var(--color-primary, #2D6A4F);
+  color: var(--color-text-inverse, #FFFFFF);
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md, 0.875rem);
+  font-weight: var(--font-weight-bold, 700);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(45, 106, 79, 0.2);
+  transition: background-color var(--transition-fast),
+              box-shadow var(--transition-fast),
+              transform var(--transition-fast);
+  user-select: none;
+}
+
+.btn-buscar-rival:hover {
+  background-color: var(--color-primary-hover, #245640);
+  box-shadow: 0 4px 8px rgba(45, 106, 79, 0.3);
+}
+
+.btn-buscar-rival:active {
+  background-color: var(--color-primary-dark, #1B4130);
+  transform: translateY(1px);
+}
+
+.btn-buscar-rival__icon {
+  width: 18px;
+  height: 18px;
+  stroke: var(--color-text-inverse, #FFFFFF);
+}
+
+/* ==========================================================================
+   6. CARD DE MVP DE LA PLANTILLA
+   ========================================================================== */
+
+.mvp-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  background: linear-gradient(to right, #FFFFFF 75%, #F8FAF9 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.mvp-card__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.mvp-avatar-wrapper {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.mvp-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-pill, 999px);
+  border: 2px solid var(--color-primary, #2D6A4F);
+  background-color: var(--color-surface, #FFFFFF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.mvp-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mvp-avatar-icon {
+  width: 26px;
+  height: 26px;
+  stroke: var(--color-primary, #2D6A4F);
+}
+
+/* Insignia de Estrella MVP posicionada en el avatar */
+.mvp-star-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-pill, 999px);
+  background-color: var(--color-gold, #D4AC0D);
+  border: 2px solid var(--color-surface, #FFFFFF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.star-icon {
+  width: 11px;
+  height: 11px;
+  fill: var(--color-surface, #FFFFFF);
+}
+
+.mvp-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+
+.mvp-name {
+  font-size: var(--font-size-md, 0.875rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text, #212529);
+  line-height: var(--line-height-md, 1.45);
+  margin: var(--space-0, 0);
+}
+
+.mvp-tags {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+}
+
+.mvp-badge {
+  font-size: 9px;
+  font-weight: var(--font-weight-bold, 700);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: var(--color-gold-light, #FEF9E7);
+  color: var(--color-gold-dark, #7D6608);
+  border: 1px solid rgba(212, 172, 13, 0.3);
+  text-transform: uppercase;
+}
+
+.mvp-pos-badge {
+  font-size: 9px;
+  font-weight: var(--font-weight-semibold, 600);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: var(--color-background, #F8F9FA);
+  color: var(--color-text-muted, #6B7280);
+  border: 1px solid var(--color-border-subtle, #E9ECEF);
+  text-transform: uppercase;
+}
+
+.mvp-card__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1, 4px);
+}
+
+.mvp-score-label {
+  font-size: 9.5px;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mvp-score-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  background-color: var(--color-primary, #2D6A4F);
+  color: var(--color-text-inverse, #FFFFFF);
+  border-radius: var(--radius-pill, 999px);
+  padding: 4px 10px;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 3px rgba(45, 106, 79, 0.25);
+}
+
+.mvp-score-value {
+  font-size: var(--font-size-md, 0.875rem);
+  font-weight: var(--font-weight-extrabold, 800);
+}
+
+.mvp-score-max {
+  font-size: 10px;
+  font-weight: var(--font-weight-medium, 500);
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   7. SECCIÓN "MI EQUIPO" (Grid/Flex de 6 Jugadores)
+   ========================================================================== */
+
+.team-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  margin-top: var(--space-2, 8px);
+}
+
+.team-section__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.team-section__title {
+  font-size: var(--font-size-title-sm, 1.0625rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text, #212529);
+  margin: var(--space-0, 0);
+}
+
+.team-section__count {
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-text-muted, #6B7280);
+}
+
+.team-slots-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1, 4px);
+  padding: var(--space-1, 4px) 0;
+}
+
+.player-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  flex: 1 1 0;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.player-slot:hover {
+  transform: translateY(-2px);
+}
+
+.player-slot__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill, 999px);
+  background-color: var(--color-surface, #FFFFFF);
+  border: 1.5px solid var(--color-border, #DEE2E6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted, #6B7280);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.player-slot__avatar:hover {
+  border-color: var(--color-primary, #2D6A4F);
+  box-shadow: 0 2px 4px rgba(45, 106, 79, 0.15);
+}
+
+.player-slot__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-slot__icon {
+  width: 20px;
+  height: 20px;
+  stroke: #9CA3AF;
+}
+
+.player-slot__role {
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-muted, #6B7280);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+/* ==========================================================================
+   8. CARD: RACHA RECIENTE (Resultados circulares V, D, E)
+   ========================================================================== */
+
+.streak-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.streak-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.streak-card__title {
+  font-size: var(--font-size-md, 0.875rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text, #212529);
+  margin: var(--space-0, 0);
+}
+
+.streak-card__link {
+  font-size: 10px;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.streak-card__link:hover {
+  color: var(--color-primary, #2D6A4F);
+}
+
+.streak-card__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+}
+
+.streak-match-info {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2, 8px);
+  min-width: 0;
+}
+
+.streak-result-highlight {
+  font-size: var(--font-size-md, 0.875rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text, #212529);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.streak-opponent {
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-text-muted, #6B7280);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.streak-circles-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+/* Círculos individuales de resultado */
+.streak-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill, 999px);
+  color: var(--color-text-inverse, #FFFFFF);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold, 700);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Variante Victoria (Verde canónico) */
+.streak-circle--win {
+  background-color: var(--color-primary, #2D6A4F);
+}
+
+/* Variante Derrota (Rojo) */
+.streak-circle--loss {
+  background-color: var(--color-error, #C92A2A);
+}
+
+/* Variante Empate (Dorado) */
+.streak-circle--draw {
+  background-color: var(--color-gold, #D4AC0D);
+}
+
+/* ==========================================================================
+   9. NAVBAR INFERIOR FIJA (5 Secciones con Íconos)
+   ========================================================================== */
+
+.bottom-nav--fixed {
+  position: fixed;
+  bottom: var(--space-0, 0);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--app-max-width, 480px);
+  min-height: var(--touch-target-nav, 64px);
+  background-color: var(--color-surface, #FFFFFF);
+  border-top: var(--border-width-thin, 1px) solid var(--color-border, #DEE2E6);
+  box-shadow: var(--shadow-nav, 0 -1px 3px rgba(0, 0, 0, 0.05));
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: var(--z-nav, 200);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bottom-nav__item {
+  flex: 1 1 0;
+  min-height: var(--touch-target-nav, 64px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1, 4px);
+  padding-top: var(--space-1, 4px);
+  padding-bottom: var(--space-1, 4px);
+  color: var(--color-text-muted, #6B7280);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition-fast, 150ms ease);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav__item:hover {
+  color: var(--color-primary-hover, #245640);
+}
+
+.bottom-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav__icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+}
+
+.bottom-nav__label {
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-medium, 500);
+  line-height: 1;
+}
+
+/* Estado Activo para la Sección seleccionada (Inicio) */
+.bottom-nav__item.is-active,
+.bottom-nav__item--active {
+  color: var(--color-primary, #2D6A4F);
+}
+
+.bottom-nav__item.is-active .bottom-nav__label,
+.bottom-nav__item--active .bottom-nav__label {
+  font-weight: var(--font-weight-bold, 700);
+}
+
+/* ==========================================================================
+   10. RESPONSIVE Y ACCESIBILIDAD
+   ========================================================================== */
+
+/* Ajustes para dispositivos móviles compactos (≤ 360px) */
+@media (max-width: 360px) {
+  .player-slot__avatar {
+    width: 38px;
+    height: 38px;
+  }
+  .player-slot__icon {
+    width: 17px;
+    height: 17px;
+  }
+  .val-global-badge {
+    width: 58px;
+    height: 58px;
+  }
+  .val-global-badge__value {
+    font-size: 1.35rem;
+  }
+  .streak-circle {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+  }
+}
+
+/* Modos de accesibilidad: prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .budget-progress-bar,
+  .player-slot,
+  .btn-buscar-rival,
+  .bottom-nav__item {
+    transition: none !important;
+  }
+}

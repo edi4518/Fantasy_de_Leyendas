@@ -1,0 +1,729 @@
+/**
+ * @file match-detail.css
+ * @description Estilos modulares para la pantalla de Detalles de Partido (Partido en Directo) de Fantasy de Leyendas.
+ * Consume estrictamente los design tokens de design-tokens.css (verde canónico #2D6A4F, tipografía, bordes y sombras).
+ */
+
+@import "../design-tokens.css";
+
+/* ==========================================================================
+   1. CONTENEDOR RAÍZ Y ESTRUCTURA GENERAL
+   ========================================================================== */
+
+.match-detail-body {
+  background-color: var(--color-background, #F8F9FA);
+  color: var(--color-text, #212529);
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', system-ui, sans-serif);
+  margin: var(--space-0, 0);
+  padding: var(--space-0, 0);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.match-detail-container {
+  width: 100%;
+  max-width: var(--app-max-width, 480px);
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-surface, #FFFFFF);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: var(--shadow-card);
+  padding-bottom: calc(var(--space-8, 32px) + env(safe-area-inset-bottom, 0px));
+}
+
+/* ==========================================================================
+   2. HEADER SUPERIOR Y BOTÓN DE SIMULACIÓN RÁPIDA
+   ========================================================================== */
+
+.match-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: calc(var(--space-4, 16px) + env(safe-area-inset-top, 0px));
+  padding-bottom: var(--space-3, 12px);
+  padding-left: var(--space-4, 16px);
+  padding-right: var(--space-4, 16px);
+  border-bottom: var(--border-width-thin, 1px) solid var(--color-border-subtle, #E9ECEF);
+  background-color: var(--color-surface, #FFFFFF);
+}
+
+.match-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.match-header__back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill, 999px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text, #212529);
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+
+.match-header__back-btn:hover {
+  background-color: var(--color-surface-hover, #F1F3F5);
+}
+
+.match-header__back-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.match-header__title {
+  font-size: var(--font-size-title-sm, 1.0625rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text, #212529);
+  margin: var(--space-0, 0);
+  line-height: var(--line-height-title-sm, 1.3);
+}
+
+/* Botón de Acción Superior: Simulación Rápida */
+.btn-quick-sim {
+  background-color: var(--color-primary, #2D6A4F);
+  color: var(--color-text-inverse, #FFFFFF);
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  padding: 8px 14px;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-extrabold, 800);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(45, 106, 79, 0.2);
+  transition: background-color var(--transition-fast),
+              transform var(--transition-fast),
+              box-shadow var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-quick-sim:hover {
+  background-color: var(--color-primary-hover, #245640);
+  box-shadow: 0 2px 5px rgba(45, 106, 79, 0.3);
+}
+
+.btn-quick-sim:active {
+  background-color: var(--color-primary-dark, #1B4130);
+  transform: translateY(1px);
+}
+
+/* ==========================================================================
+   3. MARCADOR PRINCIPAL (Scoreboard)
+   ========================================================================== */
+
+.match-scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5, 20px) var(--space-4, 16px);
+  background-color: var(--color-surface, #FFFFFF);
+}
+
+.team-side {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-1, 4px);
+}
+
+.team-side__crest {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill, 999px);
+  background-color: var(--color-primary-light, #EAF3EE);
+  color: var(--color-primary, #2D6A4F);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-border-subtle, #E9ECEF);
+}
+
+.team-side__crest--away {
+  background-color: #F1F5F9;
+  color: #475569;
+}
+
+.team-side__crest svg {
+  width: 22px;
+  height: 22px;
+}
+
+.team-side__name {
+  font-size: var(--font-size-md, 0.875rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text, #212529);
+  line-height: var(--line-height-md, 1.45);
+}
+
+.scoreboard-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-3, 12px);
+}
+
+.scoreboard-score {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: 2.25rem;
+  font-weight: var(--font-weight-extrabold, 800);
+  color: var(--color-text, #212529);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: var(--space-2, 8px);
+}
+
+.score-divider {
+  color: var(--color-text-muted, #6B7280);
+  font-weight: var(--font-weight-regular, 400);
+}
+
+/* Badge del Estado del Partido (FINAL) */
+.match-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  border-radius: var(--radius-pill, 999px);
+  background-color: #F1F5F9;
+  border: 1px solid var(--color-border-subtle, #E9ECEF);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.status-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill, 999px);
+  background-color: var(--color-primary, #2D6A4F);
+}
+
+/* ==========================================================================
+   4. CANCHA TÁCTICA Y BANNER DE JUGADA EN DIRECTO
+   ========================================================================== */
+
+.match-pitch-section {
+  padding: 0 var(--space-4, 16px);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.tactical-pitch {
+  width: 100%;
+  height: 180px;
+  background: linear-gradient(180deg, #1E513A 0%, #2D6A4F 100%);
+  border-radius: var(--radius-lg, 16px);
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* Marcas Tácticas de la Cancha */
+.pitch-marking {
+  position: absolute;
+  pointer-events: none;
+  border-color: rgba(255, 255, 255, 0.45);
+  border-style: solid;
+}
+
+.pitch-marking--boundary {
+  inset: 10px;
+  border-width: 1.5px;
+}
+
+.pitch-marking--halfway {
+  top: 50%;
+  left: 10px;
+  right: 10px;
+  height: 1.5px;
+  background-color: rgba(255, 255, 255, 0.45);
+}
+
+.pitch-marking--center-circle {
+  top: 50%;
+  left: 50%;
+  width: 60px;
+  height: 60px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border-width: 1.5px;
+}
+
+.pitch-marking--center-spot {
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.65);
+}
+
+.pitch-marking--penalty-box-top {
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110px;
+  height: 42px;
+  border-width: 0 1.5px 1.5px 1.5px;
+}
+
+.pitch-marking--goal-box-top {
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58px;
+  height: 18px;
+  border-width: 0 1.5px 1.5px 1.5px;
+}
+
+.pitch-marking--penalty-box-bottom {
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110px;
+  height: 42px;
+  border-width: 1.5px 1.5px 0 1.5px;
+}
+
+.pitch-marking--goal-box-bottom {
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58px;
+  height: 18px;
+  border-width: 1.5px 1.5px 0 1.5px;
+}
+
+/* Banner Inferior de Jugada Táctica */
+.pitch-action-overlay {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  background-color: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius-md, 10px);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  z-index: var(--z-elevated, 10);
+}
+
+.pitch-action-team {
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-inverse, #FFFFFF);
+}
+
+.pitch-action-status {
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-extrabold, 800);
+  color: #FACC15; /* Amarillo táctico vibrante */
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   5. PESTAÑAS INTERNAS (Cronología / Estadísticas / Alineaciones)
+   ========================================================================== */
+
+.match-tabs {
+  display: flex;
+  align-items: center;
+  border-bottom: var(--border-width-thin, 1px) solid var(--color-border-subtle, #E9ECEF);
+  background-color: var(--color-surface, #FFFFFF);
+  padding: 0 var(--space-4, 16px);
+}
+
+.match-tab {
+  flex: 1 1 0;
+  padding: var(--space-3, 12px) var(--space-2, 8px);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text-muted, #6B7280);
+  cursor: pointer;
+  text-align: center;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.match-tab:hover {
+  color: var(--color-text, #212529);
+}
+
+.match-tab.is-active {
+  color: var(--color-primary, #2D6A4F);
+  font-weight: var(--font-weight-bold, 700);
+  border-bottom-color: var(--color-primary, #2D6A4F);
+}
+
+/* ==========================================================================
+   6. CONTENEDOR DE PANELES DE PESTAÑAS
+   ========================================================================== */
+
+.match-tab-panels {
+  flex: 1 1 auto;
+  padding: var(--space-4, 16px);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.is-active {
+  display: block;
+  animation: fadeIn 200ms ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   7. PESTAÑA A: CRONOLOGÍA DE EVENTOS (Timeline Estilizado)
+   ========================================================================== */
+
+.timeline-container {
+  position: relative;
+  max-width: 420px;
+  margin: var(--space-2, 8px) auto;
+  padding: var(--space-4, 16px) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+}
+
+/* Línea Central del Timeline */
+.timeline-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background-color: var(--color-border-subtle, #E9ECEF);
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.timeline-entry {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+/* Entrada de Evento: Equipo Local (Izquierda) */
+.timeline-entry--home {
+  justify-content: flex-end;
+  padding-right: 50%;
+}
+
+.timeline-entry--home .timeline-entry__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin-right: var(--space-3, 12px);
+  text-align: right;
+}
+
+.timeline-entry--home .timeline-entry__minute {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-surface, #FFFFFF);
+  padding: 0 4px;
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-muted, #6B7280);
+}
+
+/* Entrada de Evento: Equipo Rival (Derecha) */
+.timeline-entry--away {
+  justify-content: flex-start;
+  padding-left: 50%;
+}
+
+.timeline-entry--away .timeline-entry__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin-left: var(--space-3, 12px);
+  text-align: left;
+}
+
+.timeline-entry--away .timeline-entry__minute {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-surface, #FFFFFF);
+  padding: 0 4px;
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-muted, #6B7280);
+}
+
+/* Íconos de Evento */
+.event-icon {
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Gol: Círculo verde sólido */
+.event-icon--goal {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill, 999px);
+  background-color: var(--color-primary, #2D6A4F);
+  box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.2);
+}
+
+.event-icon--goal-away {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill, 999px);
+  background-color: #475569;
+}
+
+/* Tarjeta Roja: Rectángulo estilizado */
+.event-icon--red-card {
+  width: 10px;
+  height: 14px;
+  border-radius: 2px;
+  background-color: var(--color-error, #C92A2A);
+  box-shadow: 0 1px 2px rgba(201, 42, 42, 0.3);
+}
+
+/* Tarjeta Amarilla */
+.event-icon--yellow-card {
+  width: 10px;
+  height: 14px;
+  border-radius: 2px;
+  background-color: var(--color-gold, #D4AC0D);
+  box-shadow: 0 1px 2px rgba(212, 172, 13, 0.3);
+}
+
+.event-player {
+  font-size: var(--font-size-sm, 0.75rem);
+  color: var(--color-text, #212529);
+  white-space: nowrap;
+}
+
+.event-player strong {
+  font-weight: var(--font-weight-bold, 700);
+}
+
+.event-detail {
+  font-size: var(--font-size-xs, 0.6875rem);
+  color: var(--color-text-muted, #6B7280);
+}
+
+/* Hito Intermedio de Cronología (DESCANSO) */
+.timeline-period-break {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  margin: var(--space-3, 12px) 0;
+}
+
+.period-pill {
+  background-color: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #DEE2E6);
+  border-radius: var(--radius-pill, 999px);
+  padding: 4px 18px;
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-extrabold, 800);
+  color: var(--color-text, #212529);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-card);
+}
+
+.period-minute {
+  font-size: 10px;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-muted, #6B7280);
+  margin-top: 4px;
+}
+
+/* ==========================================================================
+   8. PESTAÑA B: DESGLOSE ESTADÍSTICO (Barras Comparativas)
+   ========================================================================== */
+
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  padding: var(--space-2, 8px) 0;
+}
+
+.stat-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 4px);
+}
+
+.stat-row__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stat-value {
+  font-size: var(--font-size-md, 0.875rem);
+  font-weight: var(--font-weight-bold, 700);
+  font-variant-numeric: tabular-nums;
+  width: 50px;
+}
+
+.stat-value--home {
+  text-align: left;
+  color: var(--color-primary, #2D6A4F);
+}
+
+.stat-value--away {
+  text-align: right;
+  color: var(--color-text, #212529);
+}
+
+.stat-label {
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text-muted, #6B7280);
+  text-align: center;
+  flex: 1 1 auto;
+}
+
+/* Pista y Relleno Dual Comparativo */
+.comparative-bar-track {
+  width: 100%;
+  height: 8px;
+  background-color: var(--color-chart-neutral, #E9ECEF);
+  border-radius: var(--radius-pill, 999px);
+  display: flex;
+  overflow: hidden;
+  gap: 2px;
+}
+
+.comparative-bar-fill {
+  height: 100%;
+  transition: width var(--transition-normal, 250ms ease);
+}
+
+.comparative-bar-fill--home {
+  background-color: var(--color-primary, #2D6A4F);
+  border-top-left-radius: var(--radius-pill, 999px);
+  border-bottom-left-radius: var(--radius-pill, 999px);
+}
+
+.comparative-bar-fill--away {
+  background-color: #64748B; /* Contraste neutro/pizarra para el rival */
+  border-top-right-radius: var(--radius-pill, 999px);
+  border-bottom-right-radius: var(--radius-pill, 999px);
+}
+
+/* ==========================================================================
+   9. PESTAÑA C: ALINEACIONES
+   ========================================================================== */
+
+.lineups-container {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4, 16px);
+  padding: var(--space-2, 8px) 0;
+}
+
+.lineup-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.lineup-title {
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text, #212529);
+  margin: var(--space-0, 0);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-border-subtle, #E9ECEF);
+}
+
+.lineup-players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  padding: var(--space-0, 0);
+  margin: var(--space-0, 0);
+}
+
+.lineup-player-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-xs, 0.6875rem);
+  color: var(--color-text, #212529);
+  padding: 4px 0;
+}
+
+.player-rating {
+  font-weight: var(--font-weight-extrabold, 800);
+  color: var(--color-primary, #2D6A4F);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   10. RESPONSIVE Y ACCESIBILIDAD
+   ========================================================================== */
+
+@media (max-width: 360px) {
+  .scoreboard-score {
+    font-size: 1.85rem;
+  }
+  .tactical-pitch {
+    height: 160px;
+  }
+  .timeline-entry--home .timeline-entry__content,
+  .timeline-entry--away .timeline-entry__content {
+    font-size: 0.7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comparative-bar-fill,
+  .btn-quick-sim,
+  .match-tab {
+    transition: none !important;
+    animation: none !important;
+  }
+}
