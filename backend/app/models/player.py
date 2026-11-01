@@ -21,7 +21,7 @@ class Player(Base):
     goles_oficiales = Column(Integer, default=0)
     remates_totales = Column(Integer, default=0)
     asistencias_oficiales = Column(Integer, default=0)
-    pases_intentados = Column(Integer, default=0)
+    pases_intentados = Column(Integer, default=0) 
     pases_completados = Column(Integer, default=0)
     pases_clave = Column(Integer, default=0)
     regates_intentados = Column(Integer, default=0)
