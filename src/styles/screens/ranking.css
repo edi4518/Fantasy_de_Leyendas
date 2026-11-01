@@ -1,2 +1,626 @@
-/* Estilos de la tabla de clasificación de directores técnicos */
-.ranking-table { width: 100%; border-collapse: collapse; }
+/**
+ * ==========================================================================
+ * RANKING.CSS - Sistema de Diseño Fantasy de Leyendas
+ * Pantalla de Ranking Global (Fiel a la maqueta Mobile-First PWA)
+ * ==========================================================================
+ */
+
+/* --------------------------------------------------------------------------
+   1. RESET Y CONTENEDOR RAÍZ
+   -------------------------------------------------------------------------- */
+.ranking-screen {
+  width: 100%;
+  max-width: 412px;
+  min-height: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  /* Espacio inferior de 140px para que el listado no quede tapado por la tarjeta fija ni el nav */
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px calc(140px + env(safe-area-inset-bottom, 0px)) 16px;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   2. CABECERA DE LA PANTALLA
+   -------------------------------------------------------------------------- */
+.ranking-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.ranking-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #0f172a;
+  margin: 0 0 5px 0;
+  letter-spacing: -0.025em;
+}
+
+.ranking-season {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+  display: inline-block;
+  padding: 3px 12px;
+  background-color: #f1f5f9;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+
+/* --------------------------------------------------------------------------
+   3. PODIO TOP 3 (David Villa 1ro, Alex Mercer 2do, Carlos Sainz 3ro)
+   -------------------------------------------------------------------------- */
+.podium-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 14px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.podium-step {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+/* Orden visual: 2do (izq), 1ro (centro), 3ro (der) */
+.podium-step--second {
+  order: 1;
+}
+
+.podium-step--first {
+  order: 2;
+  z-index: 2;
+}
+
+.podium-step--third {
+  order: 3;
+}
+
+/* Corona dorada sobre el 1er lugar */
+.podium-crown {
+  color: #f59e0b;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.25));
+}
+
+.podium-crown svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Tarjetas del podio */
+.podium-card {
+  width: 100%;
+  min-height: 114px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 12px 4px 10px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+  box-sizing: border-box;
+}
+
+/* Tarjeta destacada 1er puesto: más alta, borde amarillo/dorado */
+.podium-card--first {
+  min-height: 138px;
+  border: 2px solid #f59e0b;
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.16);
+  padding: 14px 6px 12px 6px;
+  background: #ffffff;
+}
+
+.podium-avatar-wrapper {
+  position: relative;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.podium-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #f8fafc;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.podium-avatar--first {
+  width: 52px;
+  height: 52px;
+  border: 2.5px solid #f59e0b;
+  background-color: #fffbeb;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+}
+
+.podium-avatar--third,
+.podium-step--third .podium-avatar {
+  border: 2px solid #b45309;
+  background-color: #fff7ed;
+}
+
+.avatar-icon {
+  width: 22px;
+  height: 22px;
+  color: #64748b;
+}
+
+.podium-avatar--first .avatar-icon {
+  width: 26px;
+  height: 26px;
+  color: #d97706;
+}
+
+.podium-avatar--third .avatar-icon,
+.podium-step--third .avatar-icon {
+  color: #b45309;
+}
+
+/* Medallas circulares con número (1, 2, 3) */
+.podium-badge {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  font-weight: 800;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  line-height: 1;
+}
+
+.podium-badge--second {
+  width: 18px;
+  height: 18px;
+  background-color: #475569;
+  font-size: 0.65rem;
+}
+
+.podium-badge--first {
+  width: 20px;
+  height: 20px;
+  background-color: #f59e0b;
+  font-size: 0.72rem;
+}
+
+.podium-badge--third {
+  width: 18px;
+  height: 18px;
+  background-color: #b45309;
+  font-size: 0.65rem;
+}
+
+/* Nombres de los mánagers en el podio */
+.podium-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 86px;
+  display: block;
+}
+
+.podium-name--first {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #0f172a;
+  max-width: 96px;
+}
+
+/* Puntos de los mánagers en el podio */
+.podium-points {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  letter-spacing: -0.01em;
+  display: block;
+}
+
+.podium-points--first {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #d97706;
+}
+
+.podium-points--third,
+.podium-step--third .podium-points {
+  color: #b45309;
+}
+
+/* --------------------------------------------------------------------------
+   4. LISTA CLASIFICADA (Puestos del 4 al 7 en tarjetas blancas compactas)
+   -------------------------------------------------------------------------- */
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 10px 0;
+  padding: 0;
+  list-style: none;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 9px 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.item-rank {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #64748b;
+  width: 20px;
+  flex-shrink: 0;
+  text-align: left;
+}
+
+.item-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.avatar-icon-sm,
+.item-avatar svg,
+.item-avatar img {
+  width: 18px;
+  height: 18px;
+  color: #94a3b8;
+  stroke: #94a3b8;
+}
+
+.item-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+  text-align: left;
+}
+
+.item-stats {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.item-points {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+/* Indicadores de tendencia */
+.item-trend {
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.trend-up {
+  color: #10b981;
+}
+
+.trend-down {
+  color: #ef4444;
+}
+
+.trend-neutral {
+  color: #94a3b8;
+}
+
+/* --------------------------------------------------------------------------
+   5. TARJETA FIJA DEL MÁNAGER CONECTADO (Ubicada fija sobre la Bottom Nav)
+   -------------------------------------------------------------------------- */
+.ranking-current-user {
+  position: fixed;
+  bottom: calc(60px + 10px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: calc(412px - 32px);
+  background-color: #266046;
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  z-index: 40;
+  box-shadow: 0 8px 24px rgba(38, 96, 70, 0.38), 0 2px 6px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+}
+
+.user-position-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 48px;
+}
+
+.user-position-label {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #86efac;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.user-rank {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.user-avatar-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 10px;
+  flex-shrink: 0;
+}
+
+.user-avatar-badge .avatar-icon-sm {
+  color: #ffffff;
+  stroke: #ffffff;
+  width: 16px;
+  height: 16px;
+}
+
+.user-team-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: 8px;
+}
+
+.user-team-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+
+.user-team {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #a7f3d0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+
+.user-points-badge {
+  background-color: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 5px 11px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.user-points {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.user-points-trend {
+  color: #4ade80;
+  font-weight: 800;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   6. BARRA DE NAVEGACIÓN INFERIOR (5 accesos limpios con SVG)
+   -------------------------------------------------------------------------- */
+.bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  height: 60px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+  font-family: inherit;
+}
+
+.bottom-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav__svg {
+  width: 20px;
+  height: 20px;
+  stroke: #64748b;
+  transition: stroke 0.15s ease;
+}
+
+.bottom-nav__label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.bottom-nav__item--active,
+.bottom-nav__item.is-active {
+  color: #266046;
+}
+
+.bottom-nav__item--active .bottom-nav__svg,
+.bottom-nav__item.is-active .bottom-nav__svg {
+  stroke: #266046;
+}
+
+.bottom-nav__item--active .bottom-nav__label,
+.bottom-nav__item.is-active .bottom-nav__label {
+  font-weight: 700;
+  color: #266046;
+}
+
+/* --------------------------------------------------------------------------
+   7. ADAPTACIÓN PARA ESCRITORIO (Smartphone centrado >= 480px)
+   -------------------------------------------------------------------------- */
+@media screen and (min-width: 480px) {
+  body {
+    background-color: #e2e8f0;
+  }
+
+  .app-layout:has(.ranking-screen) {
+    background-color: #e2e8f0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px 0;
+    box-shadow: none;
+  }
+
+  .app-main:has(.ranking-screen) {
+    padding: 0 !important;
+    width: auto;
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Marco del smartphone simulado centrado */
+  .ranking-screen {
+    width: 412px;
+    max-width: 412px;
+    height: min(780px, calc(100vh - 32px));
+    border-radius: 36px;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    background-color: #f8fafc;
+    position: relative;
+    padding: 18px 16px 140px 16px;
+    margin: 0 auto;
+    overflow-y: auto;
+  }
+
+  /* Barra de navegación anclada en el fondo del teléfono */
+  .app-navigation {
+    max-width: 412px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    bottom: max(16px, calc((100vh - min(780px, calc(100vh - 32px))) / 2)) !important;
+    border-bottom-left-radius: 36px;
+    border-bottom-right-radius: 36px;
+    overflow: hidden;
+  }
+
+  /* Tarjeta fija del mánager anclada exactamente sobre la barra de navegación en escritorio */
+  .ranking-current-user {
+    max-width: calc(412px - 32px) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    bottom: calc(max(16px, calc((100vh - min(780px, calc(100vh - 32px))) / 2)) + 60px + 10px) !important;
+  }
+}

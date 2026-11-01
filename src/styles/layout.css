@@ -38,6 +38,10 @@
   border-bottom: var(--border-width-thin) solid var(--color-border);
 }
 
+.app-header:empty {
+  display: none !important;
+}
+
 /* 3. Área de Contenido Principal (App Main) */
 .app-main,
 .layout-main {
@@ -50,6 +54,36 @@
   padding-right: calc(var(--space-4) + env(safe-area-inset-right, 0px));
   /* Reserva de padding inferior: Altura de BottomNav + espaciado de margen + safe-area */
   padding-bottom: calc(var(--touch-target-nav) + var(--space-6) + env(safe-area-inset-bottom, 0px));
+}
+
+/* Pantallas autónomas o contenidas: anulan paddings del App Shell */
+.app-main:has(.onboarding-screen),
+.app-main:has(.login-card) {
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.app-layout:has(.onboarding-screen),
+.app-layout:has(.login-card) {
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* Pantalla de Ranking: flujo libre y visible sin ningún overflow que corte la lista */
+.app-main:has(.ranking-screen) {
+  padding: 0 !important;
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+}
+
+.app-layout:has(.ranking-screen) {
+  min-height: 100dvh;
+  height: auto !important;
+  overflow: visible !important;
 }
 
 /* 4. Contenedor de Navegación Fija Inferior */
@@ -93,6 +127,7 @@
 
 /* 7. Adaptación para Pantallas de Escritorio / Tablet */
 @media (min-width: 768px) {
+
   .app-layout,
   .app-container,
   .app-navigation {
