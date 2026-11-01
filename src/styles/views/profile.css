@@ -1,0 +1,503 @@
+/**
+ * @file profile.css
+ * @description Estilos modulares para la pantalla de Editar Perfil de Fantasy de Leyendas.
+ * Consume estrictamente los tokens del sistema de diseño (design-tokens.css), garantizando
+ * coherencia visual con la interfaz de Stitch (#2D6A4F, bordes redondeados y switches táctiles).
+ */
+
+@import "../design-tokens.css";
+
+/* ==========================================================================
+   1. CONTENEDOR RAÍZ Y ESTRUCTURA GENERAL
+   ========================================================================== */
+
+.profile-body {
+  background-color: var(--color-background, #F8F9FA);
+  color: var(--color-text, #212529);
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', system-ui, sans-serif);
+  margin: var(--space-0, 0);
+  padding: var(--space-0, 0);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.profile-app-container {
+  width: 100%;
+  max-width: var(--app-max-width, 480px);
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-surface, #FFFFFF);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: var(--shadow-card);
+  padding-bottom: calc(var(--space-8, 32px) + env(safe-area-inset-bottom, 0px));
+}
+
+/* ==========================================================================
+   2. HEADER SUPERIOR CON ACCIONES
+   ========================================================================== */
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: calc(var(--space-4, 16px) + env(safe-area-inset-top, 0px));
+  padding-bottom: var(--space-3, 12px);
+  padding-left: var(--space-4, 16px);
+  padding-right: var(--space-4, 16px);
+  background-color: var(--color-surface, #FFFFFF);
+  border-bottom: var(--border-width-thin, 1px) solid var(--color-border-subtle, #E9ECEF);
+}
+
+.profile-header__back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill, 999px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text, #212529);
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+
+.profile-header__back-btn:hover {
+  background-color: var(--color-surface-hover, #F1F3F5);
+}
+
+.profile-header__back-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.profile-header__title {
+  font-size: var(--font-size-title-sm, 1.0625rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text, #212529);
+  margin: var(--space-0, 0);
+  line-height: 1.3;
+}
+
+.profile-header__save-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-primary, #2D6A4F);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: var(--font-weight-bold, 700);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm, 6px);
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.profile-header__save-btn:hover {
+  color: var(--color-primary-hover, #245640);
+  background-color: var(--color-primary-light, #EAF3EE);
+}
+
+/* ==========================================================================
+   3. SECCIÓN DEL AVATAR CON BOTÓN FLOTANTE DE CÁMARA
+   ========================================================================== */
+
+.profile-main {
+  flex: 1 1 auto;
+  padding: var(--space-4, 16px) var(--space-5, 20px);
+}
+
+.avatar-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: var(--space-2, 8px);
+  padding-bottom: var(--space-5, 20px);
+}
+
+.avatar-uploader {
+  position: relative;
+  width: 104px;
+  height: 104px;
+}
+
+.avatar-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-pill, 999px);
+  background-color: #F1F3F5;
+  border: 1px solid var(--color-border-subtle, #E9ECEF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-silhouette {
+  width: 48px;
+  height: 48px;
+  stroke: #9CA3AF;
+}
+
+/* Botón Flotante Verde con Icono de Cámara */
+.avatar-camera-btn {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-pill, 999px);
+  background-color: var(--color-primary, #2D6A4F);
+  border: 2.5px solid var(--color-surface, #FFFFFF);
+  color: var(--color-text-inverse, #FFFFFF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.avatar-camera-btn:hover {
+  background-color: var(--color-primary-hover, #245640);
+  transform: scale(1.06);
+}
+
+.avatar-camera-btn:active {
+  background-color: var(--color-primary-dark, #1B4130);
+  transform: scale(0.96);
+}
+
+.avatar-camera-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Ocultar input nativo de archivo de forma accesible */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ==========================================================================
+   4. FORMULARIO E INPUTS ESTILIZADOS
+   ========================================================================== */
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.form-section {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-title {
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2, 8px);
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3, 12px);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--space-3, 12px);
+}
+
+.form-label {
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: #495057;
+  line-height: 1.2;
+}
+
+.form-input {
+  width: 100%;
+  height: 44px;
+  background-color: var(--color-surface, #FFFFFF);
+  border: var(--border-width-thin, 1px) solid var(--color-border, #DEE2E6);
+  border-radius: var(--radius-md, 10px);
+  padding: 0 var(--space-3, 12px);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm, 0.75rem);
+  color: var(--color-text, #212529);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary, #2D6A4F);
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.18);
+}
+
+/* Input con Icono de Candado (Disabled) */
+.input-with-icon {
+  position: relative;
+  width: 100%;
+}
+
+.form-input--disabled {
+  background-color: #F8F9FA;
+  color: var(--color-text-muted, #6B7280);
+  cursor: not-allowed;
+  padding-right: 38px;
+}
+
+.input-lock-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9CA3AF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.input-lock-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ==========================================================================
+   5. SECCIÓN DE PREFERENCIAS (Switches / Toggles)
+   ========================================================================== */
+
+.preferences-section {
+  margin-top: var(--space-2, 8px);
+}
+
+.preference-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2, 8px) 0;
+}
+
+.preference-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.preference-icon {
+  color: var(--color-text-muted, #6B7280);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preference-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--color-text-muted, #6B7280);
+}
+
+.preference-label {
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text, #212529);
+}
+
+/* Toggle Switch Personalizado (Verde Activo / Gris Inactivo) */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #E2E8F0;
+  border-radius: var(--radius-pill, 999px);
+  transition: background-color var(--transition-normal, 250ms ease);
+}
+
+.slider::before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--color-surface, #FFFFFF);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform var(--transition-normal, 250ms cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+/* Estado Activo: Verde Canónico */
+.switch input:checked + .slider {
+  background-color: var(--color-primary, #2D6A4F);
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(22px);
+}
+
+.switch input:focus-visible + .slider {
+  outline: 2px solid var(--color-primary, #2D6A4F);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   6. BOTONES DE ACCIÓN (Guardar Cambios y Cerrar Sesión)
+   ========================================================================== */
+
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  margin-top: var(--space-4, 16px);
+}
+
+.btn-save-profile {
+  width: 100%;
+  min-height: 50px;
+  background-color: var(--color-primary, #2D6A4F);
+  color: var(--color-text-inverse, #FFFFFF);
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: var(--font-weight-bold, 700);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.35);
+  transition: background-color var(--transition-fast),
+              box-shadow var(--transition-fast),
+              transform var(--transition-fast);
+}
+
+.btn-save-profile:hover {
+  background-color: var(--color-primary-hover, #245640);
+  box-shadow: 0 6px 16px rgba(45, 106, 79, 0.45);
+}
+
+.btn-save-profile:active {
+  background-color: var(--color-primary-dark, #1B4130);
+  transform: translateY(1px);
+}
+
+/* Botón / Enlace Cerrar Sesión en Rojo */
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--color-error, #C92A2A);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm, 6px);
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.btn-logout:hover {
+  color: var(--color-error-dark, #741616);
+  background-color: var(--color-error-light, #FDF2F2);
+}
+
+.logout-icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+/* ==========================================================================
+   7. TOAST FEEDBACK DE CONFIRMACIÓN
+   ========================================================================== */
+
+.profile-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1E293B;
+  color: #FFFFFF;
+  padding: 10px 18px;
+  border-radius: var(--radius-md, 10px);
+  font-size: var(--font-size-xs, 0.6875rem);
+  font-weight: var(--font-weight-semibold, 600);
+  box-shadow: var(--shadow-modal);
+  z-index: var(--z-toast, 700);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: toastFadeIn 250ms ease forwards;
+}
+
+@keyframes toastFadeIn {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ==========================================================================
+   8. RESPONSIVE Y ACCESIBILIDAD
+   ========================================================================== */
+
+@media (max-width: 360px) {
+  .form-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slider,
+  .slider::before,
+  .avatar-camera-btn,
+  .btn-save-profile {
+    transition: none !important;
+  }
+}
