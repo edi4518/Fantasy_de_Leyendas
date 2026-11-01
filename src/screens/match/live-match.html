@@ -1,11 +1,101 @@
-<!-- Vista HTML: Simulación de partido en directo -->
-<section class="screen-live-match">
-  <div class="scoreboard">
-    <span id="home-team-name">Mi Equipo</span>
-    <span id="match-score">0 - 0</span>
-    <span id="away-team-name">Rival Histórico</span>
-  </div>
-  <div class="match-events-feed" id="match-ticker">
-    <!-- Relato en tiempo real de jugadas de leyendas -->
-  </div>
+<!-- Vista modular: Simulación de partido en directo (screens/match) -->
+<section class="match-detail-container" id="match-view">
+  <!-- 1. Header con acciones en vivo y rápida -->
+  <header class="match-header" role="banner">
+    <div class="match-header__left">
+      <a href="home.html" class="match-header__back-btn" id="btn-back" aria-label="Volver">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </a>
+      <h1 class="match-header__title">Partido en Directo</h1>
+    </div>
+
+    <div class="match-header__actions">
+      <button type="button" class="btn btn-live-sim" id="btn-live-sim" aria-label="Simular minuto a minuto en directo" title="Ver relato en vivo">
+        ▶ EN VIVO
+      </button>
+      <button type="button" class="btn btn--primary btn-quick-sim" id="btn-quick-sim" aria-label="Simulación rápida">
+        SIMULACIÓN RÁPIDA
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. Marcador -->
+  <section class="match-scoreboard" aria-label="Marcador del partido">
+    <div class="team-side team-side--home">
+      <span class="team-side__name" id="home-team-name">Tu Equipo</span>
+    </div>
+
+    <div class="scoreboard-center">
+      <div class="scoreboard-score" id="scoreboard-score-container">
+        <span class="score-number" id="home-score">2</span>
+        <span class="score-divider">–</span>
+        <span class="score-number" id="away-score">1</span>
+      </div>
+
+      <div class="match-status-badge" id="match-status-badge" role="button" tabindex="0">
+        <span class="status-indicator-dot" id="status-dot"></span>
+        <span class="status-text" id="match-status-text">FINAL</span>
+      </div>
+    </div>
+
+    <div class="team-side team-side--away">
+      <span class="team-side__name" id="away-team-name">Equipo Rival</span>
+    </div>
+  </section>
+
+  <!-- 3. Cancha Táctica -->
+  <section class="match-pitch-section">
+    <div class="tactical-pitch">
+      <div class="pitch-marking pitch-marking--boundary"></div>
+      <div class="pitch-marking pitch-marking--halfway"></div>
+      <div class="pitch-marking pitch-marking--center-circle"></div>
+      <div class="pitch-marking pitch-marking--center-spot"></div>
+      <div class="pitch-marking pitch-marking--penalty-box-top"></div>
+      <div class="pitch-marking pitch-marking--goal-box-top"></div>
+      <div class="pitch-marking pitch-marking--penalty-box-bottom"></div>
+      <div class="pitch-marking pitch-marking--goal-box-bottom"></div>
+
+      <div class="pitch-action-overlay" id="pitch-action-overlay">
+        <span class="pitch-action-team" id="pitch-action-team">
+          <span class="pitch-action-dot"></span>
+          <span id="pitch-action-team-text">Tu Equipo</span>
+        </span>
+        <span class="pitch-action-status" id="pitch-action-status">ATAQUE PELIGROSO</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Pestañas -->
+  <nav class="match-tabs" role="tablist">
+    <button type="button" class="match-tab is-active" id="tab-cronologia" data-target="panel-cronologia">Cronología</button>
+    <button type="button" class="match-tab" id="tab-estadisticas" data-target="panel-estadisticas">Estadísticas</button>
+    <button type="button" class="match-tab" id="tab-alineaciones" data-target="panel-alineaciones">Alineaciones</button>
+  </nav>
+
+  <!-- 5. Paneles -->
+  <main class="match-tab-panels">
+    <section class="tab-panel is-active" id="panel-cronologia">
+      <div class="timeline-container" id="timeline-events-list"></div>
+    </section>
+
+    <section class="tab-panel" id="panel-estadisticas" hidden>
+      <div class="stats-container" id="match-stats-list"></div>
+    </section>
+
+    <section class="tab-panel" id="panel-alineaciones" hidden>
+      <div class="lineups-container" id="lineups-display">
+        <div class="lineup-column lineup-column--home">
+          <h3 class="lineup-title" id="lineup-home-title">Tu Equipo</h3>
+          <ul class="lineup-players-list" id="lineup-home-players"></ul>
+        </div>
+        <div class="lineup-column lineup-column--away">
+          <h3 class="lineup-title" id="lineup-away-title">Equipo Rival</h3>
+          <ul class="lineup-players-list" id="lineup-away-players"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
 </section>

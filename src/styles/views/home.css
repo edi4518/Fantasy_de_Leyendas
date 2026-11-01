@@ -798,3 +798,48 @@
     transition: none !important;
   }
 }
+
+/* Animación de Matchmaking / Búsqueda de Rival */
+.btn-buscar-rival.is-searching {
+  background: linear-gradient(135deg, #1B4332 0%, #2D6A4F 50%, #40916C 100%) !important;
+  animation: pulseSearch 0.8s ease-in-out infinite alternate !important;
+  pointer-events: none;
+  cursor: wait;
+}
+
+@keyframes pulseSearch {
+  from {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(45, 106, 79, 0.4);
+  }
+  to {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(82, 183, 136, 0.8);
+  }
+}
+
+.btn-buscar-rival .spinner-radar {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spinRadar 0.65s linear infinite;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+@keyframes spinRadar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-buscar-rival.is-found {
+  background-color: #1B4332 !important;
+  color: #FFFFFF !important;
+  transform: scale(1.03) !important;
+  box-shadow: 0 0 25px rgba(82, 183, 136, 0.9) !important;
+  transition: all 0.25s ease-out;
+}

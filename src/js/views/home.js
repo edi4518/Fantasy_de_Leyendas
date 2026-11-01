@@ -251,14 +251,31 @@ export async function fetchHomeData() {
     console.info('[HomeView] Modo offline o backend no disponible para analíticas:', err.message);
   }
 
-  // 3. Mapeo y fusión con el esquema canónico
+  // 3. Fusión con persistencia de partidos locales (Fase 4)
+  let localStats = null;
+  let localLastMatch = null;
+  try {
+    const rawStats = localStorage.getItem('fantasy_user_stats');
+    if (rawStats) localStats = JSON.parse(rawStats);
+    const rawHistory = localStorage.getItem('fantasy_match_history');
+    if (rawHistory) {
+      const historyArr = JSON.parse(rawHistory);
+      if (Array.isArray(historyArr) && historyArr.length > 0) {
+        localLastMatch = historyArr[0];
+      }
+    }
+  } catch (e) {
+    console.debug('[HomeView] Error leyendo datos locales de partidos:', e);
+  }
+
+  // 4. Mapeo y fusión con el esquema canónico
   const consolidatedData = {
     ...DEFAULT_HOME_DATA,
     manager: {
       ...DEFAULT_HOME_DATA.manager,
       name: managerData?.username || managerData?.name || DEFAULT_HOME_DATA.manager.name,
       season: managerData?.season || DEFAULT_HOME_DATA.manager.season,
-      ranking: managerData?.ranking ?? DEFAULT_HOME_DATA.manager.ranking
+      ranking: localStats?.ranking ?? managerData?.ranking ?? DEFAULT_HOME_DATA.manager.ranking
     },
     budget: {
       ...DEFAULT_HOME_DATA.budget,
@@ -273,7 +290,13 @@ export async function fetchHomeData() {
     },
     streak: {
       ...DEFAULT_HOME_DATA.streak,
-      ...(analyticsData?.streak || {})
+      ...(analyticsData?.streak || {}),
+      recentResults: localStats?.streak || analyticsData?.streak?.recentResults || DEFAULT_HOME_DATA.streak.recentResults,
+      lastMatch: localLastMatch ? {
+        result: localLastMatch.resultado === 'VICTORIA' ? 'V' : (localLastMatch.resultado === 'EMPATE' ? 'E' : 'D'),
+        scoreText: `${localLastMatch.resultado === 'VICTORIA' ? 'V' : (localLastMatch.resultado === 'EMPATE' ? 'E' : 'D')} ${localLastMatch.score}`,
+        opponent: s 
+      } : (analyticsData?.streak?.lastMatch || DEFAULT_HOME_DATA.streak.lastMatch)
     }
   };
 
@@ -284,29 +307,36 @@ export async function fetchHomeData() {
  * Inicializa los eventos de interacción de la pantalla Home.
  */
 export function setupHomeEventListeners() {
-  // 1. Botón "BUSCAR RIVAL"
+  // 1. Botón "BUSCAR RIVAL" con animación de Matchmaking
   const btnBuscarRival = document.getElementById('btn-buscar-rival');
   if (btnBuscarRival) {
-    btnBuscarRival.addEventListener('click', () => {
+    btnBuscarRival.addEventListener('click', (e) => {
+      e.preventDefault();
       console.info('[HomeView] Iniciando emparejamiento para buscar rival...');
-      // Feedback visual accesible
+
+      // Fase 1: Animación de búsqueda activa con radar/spinner
       btnBuscarRival.disabled = true;
-      const originalText = btnBuscarRival.innerHTML;
+      btnBuscarRival.classList.add('is-searching');
       btnBuscarRival.innerHTML = `
-        <span class="spinner-small" aria-hidden="true">⏳</span>
-        <span>BUSCANDO...</span>
+        <span class="spinner-radar" aria-hidden="true"></span>
+        <span>BUSCANDO RIVAL...</span>
       `;
 
+      // Fase 2: Rival encontrado con feedback visual
       setTimeout(() => {
-        btnBuscarRival.disabled = false;
-        btnBuscarRival.innerHTML = originalText;
-        // Redirección al simulador de partido
-        if (window.location.hash) {
-          window.location.hash = '#/match/live';
-        } else {
-          window.location.href = 'match-detail.html';
-        }
-      }, 800);
+        btnBuscarRival.classList.remove('is-searching');
+        btnBuscarRival.classList.add('is-found');
+        btnBuscarRival.innerHTML = `
+          <span>Rival encontrado</span>
+        `;
+
+        // Fase 3: Redirección fluida al partido en directo
+        setTimeout(() => {
+          const isPagesDir = window.location.pathname.includes('/pages/');
+          const targetUrl = isPagesDir ? 'match-detail.html?autoplay=true' : '/src/pages/match-detail.html?autoplay=true';
+          window.location.href = targetUrl;
+        }, 500);
+      }, 1200);
     });
   }
 
