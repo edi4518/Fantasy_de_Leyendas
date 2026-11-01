@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file ranking.js
  * @description Controlador de la pantalla de Ranking Global.
  * Asegura la integridad del DOM del podio Top 3, el listado clasificado y la tarjeta de mánager.

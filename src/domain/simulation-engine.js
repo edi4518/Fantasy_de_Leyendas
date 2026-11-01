@@ -278,7 +278,7 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
       homeStarters = res.activeStarters;
       if (res.subInfo) {
         subEventThisCycle = {
-          minute,
+          minute: minute - 1,
           side: 'home',
           type: 'substitution',
           player: res.subInfo.in,
@@ -293,7 +293,7 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
       awayStarters = res.activeStarters;
       if (res.subInfo) {
         subEventThisCycle = {
-          minute,
+          minute: minute - 1,
           side: 'away',
           type: 'substitution',
           player: res.subInfo.in,
@@ -308,7 +308,7 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
       homeStarters = res.activeStarters;
       if (res.subInfo) {
         subEventThisCycle = {
-          minute,
+          minute: minute - 1,
           side: 'home',
           type: 'substitution',
           player: res.subInfo.in,
@@ -323,7 +323,7 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
       awayStarters = res.activeStarters;
       if (res.subInfo) {
         subEventThisCycle = {
-          minute,
+          minute: minute - 1,
           side: 'away',
           type: 'substitution',
           player: res.subInfo.in,
@@ -338,7 +338,7 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
       homeStarters = res.activeStarters;
       if (res.subInfo) {
         subEventThisCycle = {
-          minute,
+          minute: minute - 1,
           side: 'home',
           type: 'substitution',
           player: res.subInfo.in,
@@ -353,7 +353,7 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
       awayStarters = res.activeStarters;
       if (res.subInfo) {
         subEventThisCycle = {
-          minute,
+          minute: minute - 1,
           side: 'away',
           type: 'substitution',
           player: res.subInfo.in,
@@ -541,16 +541,20 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
       }
     }
 
-    // Tarjetas disciplinarias en el ciclo (~12% chance)
-    if (!isPeriodBreak && !isFullTime && Math.random() < 0.12) {
-      const isRed = Math.random() < 0.10;
+    // Tarjetas disciplinarias en el ciclo (~10% chance)
+    if (!isPeriodBreak && !isFullTime && Math.random() < 0.10) {
+      const isRed = Math.random() < 0.08;
       const fouledAway = attackingHome;
       const targetSide = fouledAway ? 'away' : 'home';
       const punishedTeam = fouledAway ? awayStarters : homeStarters;
-      const player = punishedTeam[Math.floor(Math.random() * punishedTeam.length)]?.name || 'Defensa';
+      // Preferir jugadores de campo (DEF, MC, DEL) para amonestaciones
+      const outfieldPlayers = punishedTeam.filter(p => p.assignedRole !== 'POR');
+      const cardPool = outfieldPlayers.length > 0 ? outfieldPlayers : punishedTeam;
+      const player = cardPool[Math.floor(Math.random() * cardPool.length)]?.name || 'Defensa';
+      const cardMinute = (subEventThisCycle || hasGoalThisCycle) ? Math.min(90, minute + 1) : minute;
 
       events.unshift({
-        minute,
+        minute: cardMinute,
         side: targetSide,
         type: isRed ? 'red-card' : 'yellow-card',
         player,

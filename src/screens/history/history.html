@@ -1,5 +1,96 @@
-<!-- Vista HTML: Historial de partidos jugados -->
-<section class="screen-history">
-  <h2>Historial de Enfrentamientos</h2>
-  <div id="history-records-list" class="history-list"></div>
+<section class="history-screen history-app-container" id="history-view">
+  <!-- 1. ENCABEZADO DE LA VISTA -->
+  <header class="history-header" role="banner">
+    <span class="history-header__overline">REGISTRO DE TEMPORADA</span>
+    <h1 class="history-header__title">Historial de Partidos</h1>
+    <p class="history-header__subtitle" id="history-subtitle">Mostrando los últimos 10 resultados</p>
+  </header>
+
+  <!-- 2. LISTADO DE TARJETAS DE PARTIDOS -->
+  <main class="history-main" role="main">
+    <div class="history-cards-list" id="history-cards-container" role="feed" aria-label="Historial de enfrentamientos disputados">
+
+      <!-- Tarjeta 1: Victoria vs Real Galácticos -->
+      <article class="card history-match-card" data-match-id="1">
+        <div class="history-card__header">
+          <h2 class="history-card__opponent">Real Galácticos</h2>
+          <span class="history-card__date">Hoy</span>
+        </div>
+
+        <div class="history-card__scoreboard">
+          <span class="team-name team-name--home">Tu Equipo</span>
+          <div class="score-display">
+            <span class="score-num">2</span>
+            <span class="score-divider">–</span>
+            <span class="score-num">1</span>
+          </div>
+          <span class="team-name team-name--away" title="Real Galácticos">Real Galáctic...</span>
+        </div>
+
+        <div class="history-card__footer">
+          <span class="points-wrapper">
+            Puntos obtenidos: <strong class="points-badge points-badge--win">+25</strong>
+          </span>
+          <a href="/match/live?id=1" data-link class="match-details-link" data-id="1" aria-label="Ver detalles del partido contra Real Galácticos">
+            Ver detalles &gt;
+          </a>
+        </div>
+      </article>
+
+      <!-- Tarjeta 2: Empate vs Milan Vintage -->
+      <article class="card history-match-card" data-match-id="2">
+        <div class="history-card__header">
+          <h2 class="history-card__opponent">Milan Vintage</h2>
+          <span class="history-card__date">Hace 2 días</span>
+        </div>
+
+        <div class="history-card__scoreboard">
+          <span class="team-name team-name--home">Tu Equipo</span>
+          <div class="score-display">
+            <span class="score-num">1</span>
+            <span class="score-divider">–</span>
+            <span class="score-num">1</span>
+          </div>
+          <span class="team-name team-name--away" title="Milan Vintage">Milan Vintage</span>
+        </div>
+
+        <div class="history-card__footer">
+          <span class="points-wrapper">
+            Puntos obtenidos: <strong class="points-badge points-badge--draw">+5</strong>
+          </span>
+          <a href="/match/live?id=2" data-link class="match-details-link" data-id="2" aria-label="Ver detalles del partido contra Milan Vintage">
+            Ver detalles &gt;
+          </a>
+        </div>
+      </article>
+
+      <!-- Tarjeta 3: Derrota vs Santos Eterno -->
+      <article class="card history-match-card" data-match-id="3">
+        <div class="history-card__header">
+          <h2 class="history-card__opponent">Santos Eterno</h2>
+          <span class="history-card__date">Hace 3 días</span>
+        </div>
+
+        <div class="history-card__scoreboard">
+          <span class="team-name team-name--home">Tu Equipo</span>
+          <div class="score-display">
+            <span class="score-num">0</span>
+            <span class="score-divider">–</span>
+            <span class="score-num">3</span>
+          </div>
+          <span class="team-name team-name--away" title="Santos Eterno">Santos Eterno</span>
+        </div>
+
+        <div class="history-card__footer">
+          <span class="points-wrapper">
+            Puntos obtenidos: <strong class="points-badge points-badge--loss">-15</strong>
+          </span>
+          <a href="/match/live?id=3" data-link class="match-details-link" data-id="3" aria-label="Ver detalles del partido contra Santos Eterno">
+            Ver detalles &gt;
+          </a>
+        </div>
+      </article>
+
+    </div>
+  </main>
 </section>

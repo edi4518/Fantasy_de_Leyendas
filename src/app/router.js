@@ -7,6 +7,7 @@
  */
 
 import { authService } from "../services/auth-service.js";
+import { updateActiveNavItem } from "./navigation.js";
 
 const routes = {
   "/": {
@@ -31,13 +32,13 @@ const routes = {
     authRequired: false,
     fullScreen: true,
   },
-  "/dashboard": { screen: "dashboard", authRequired: true },
+  "/dashboard": { screen: "dashboard", authRequired: false },
   "/market": { screen: "market", authRequired: true },
   "/comparison": { screen: "comparison", authRequired: true },
   "/lineup": { screen: "lineup", authRequired: true },
-  "/match/live": { screen: "match", subview: "live", authRequired: true },
-  "/match/result": { screen: "match", subview: "result", authRequired: true },
-  "/history": { screen: "history", authRequired: true },
+  "/match/live": { screen: "match", subview: "live-match", authRequired: false },
+  "/match/result": { screen: "match", subview: "match-result", authRequired: false },
+  "/history": { screen: "history", authRequired: false },
   "/ranking": {
     screen: "ranking",
     authRequired: false,
@@ -48,6 +49,8 @@ const routes = {
 };
 
 export function initRouter() {
+  window.router = { navigate: navigateTo, current: getCurrentRoute };
+
   // Manejo de eventos de retroceso/avance del navegador
   window.addEventListener("popstate", handleLocation);
 
@@ -64,7 +67,8 @@ export function initRouter() {
 }
 
 export function navigateTo(url) {
-  if (window.location.pathname !== url) {
+  const currentFullUrl = window.location.pathname + window.location.search;
+  if (currentFullUrl !== url) {
     window.history.pushState({}, "", url);
   }
   handleLocation();
@@ -142,6 +146,11 @@ async function handleLocation() {
 
   const route = routes[path] || routes["/login"];
 
+  // Sincronizar ítem activo en la barra de navegación inferior
+  if (typeof updateActiveNavItem === "function") {
+    updateActiveNavItem(path);
+  }
+
   // Ocultar header y barra inferior en pantallas a pantalla completa
   const appHeader = document.getElementById("app-header");
   const appNav = document.getElementById("app-navigation");
@@ -211,7 +220,7 @@ async function loadScreenController(route) {
 
     case "auth": {
       try {
-        const module = await import("../screens/auth/auth.js");
+        const module = await import(`../screens/auth/auth.js?t=${Date.now()}`);
         if (typeof module.initAuth === "function") {
           module.initAuth(route.subview, routerInstance);
         }
@@ -223,12 +232,56 @@ async function loadScreenController(route) {
 
     case "dashboard": {
       try {
-        const module = await import("../screens/dashboard/dashboard.js");
+        const module = await import(`../screens/dashboard/dashboard.js?t=${Date.now()}`);
         if (typeof module.initDashboard === "function") {
           module.initDashboard(routerInstance);
+        } else if (typeof module.initHomeView === "function") {
+          module.initHomeView(routerInstance);
         }
       } catch (err) {
         console.warn("[Router] Controlador dashboard.js no inicializado:", err);
+      }
+      break;
+    }
+
+    case "history": {
+      try {
+        const module = await import("../screens/history/history.js");
+        if (typeof module.initHistory === "function") {
+          module.initHistory(routerInstance);
+        } else if (typeof module.initHistoryView === "function") {
+          module.initHistoryView(routerInstance);
+        }
+      } catch (err) {
+        console.warn("[Router] Controlador history.js no inicializado:", err);
+      }
+      break;
+    }
+
+    case "profile": {
+      try {
+        const module = await import("../screens/profile/profile.js");
+        if (typeof module.initProfile === "function") {
+          module.initProfile(routerInstance);
+        } else if (typeof module.initProfileView === "function") {
+          module.initProfileView(routerInstance);
+        }
+      } catch (err) {
+        console.warn("[Router] Controlador profile.js no inicializado:", err);
+      }
+      break;
+    }
+
+    case "match": {
+      try {
+        const module = await import(`../screens/match/match.js?t=${Date.now()}`);
+        if (typeof module.initMatch === "function") {
+          module.initMatch(routerInstance);
+        } else if (typeof module.initMatchDetailView === "function") {
+          module.initMatchDetailView(routerInstance);
+        }
+      } catch (err) {
+        console.warn("[Router] Controlador match.js no inicializado:", err);
       }
       break;
     }

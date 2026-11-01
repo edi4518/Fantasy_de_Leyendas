@@ -2,7 +2,7 @@ import os
 import shutil
 from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 import bcrypt
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -16,7 +16,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Schemas de respuesta y modelos de datos
 # ============================================================================
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 

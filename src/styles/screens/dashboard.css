@@ -1,2 +1,905 @@
-/* Estilos del panel de control principal del DT y estado de temporada */
-.dashboard-overview { display: grid; gap: var(--space-md); }
+/**
+ * ==========================================================================
+ * DASHBOARD.CSS - Sistema de Diseño Fantasy de Leyendas
+ * Pantalla Principal / Home (Mobile-First PWA exacta a la maqueta de referencia)
+ * ==========================================================================
+ */
+
+@import "../design-tokens.css";
+
+/* --------------------------------------------------------------------------
+   1. CONTENEDOR RAÍZ Y ESTRUCTURA GENERAL (Mobile-First Shell)
+   -------------------------------------------------------------------------- */
+.home-app-container,
+#home-view {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  background-color: var(--color-background, #F8FAFC);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: none;
+  box-sizing: border-box;
+  padding: 0;
+  overflow: hidden;
+  color: var(--color-text, #0F172A);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* --------------------------------------------------------------------------
+   2. CABECERA DEL MÁNAGER (Top Header con separador vertical)
+   -------------------------------------------------------------------------- */
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 6px 16px;
+  background-color: transparent;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.manager-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.manager-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2D6A4F;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.manager-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.manager-avatar .avatar-icon {
+  width: 22px;
+  height: 22px;
+  stroke: #2D6A4F;
+}
+
+.manager-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.manager-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1.25;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.manager-season {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #64748B;
+  line-height: 1.4;
+}
+
+/* Bloque Clasificación con línea vertical divisoria sutil */
+.ranking-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  border-left: 1px solid #E2E8F0;
+  padding-left: 14px;
+  flex-shrink: 0;
+}
+
+.ranking-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.ranking-value {
+  font-size: 1.48rem;
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   3. ÁREA PRINCIPAL DE CONTENIDO
+   -------------------------------------------------------------------------- */
+.home-main {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px 14px 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.home-card {
+  background-color: #FFFFFF;
+  border-radius: 14px;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  padding: 12px 14px;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   4. TARJETA DE PRESUPUESTO DEL EQUIPO & VALORACIÓN GLOBAL
+   -------------------------------------------------------------------------- */
+.budget-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.budget-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.budget-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.budget-icon {
+  width: 18px;
+  height: 18px;
+  stroke: #2D6A4F;
+}
+
+.budget-card__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0F172A;
+  margin: 0;
+}
+
+.budget-percentage-badge {
+  background-color: #ECFDF5;
+  color: #2D6A4F;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.budget-card__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.budget-metrics {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.budget-figures {
+  display: flex;
+  align-items: baseline;
+  font-size: 0.82rem;
+}
+
+.budget-spent-text {
+  color: #0F172A;
+}
+
+.budget-spent-value {
+  color: #2D6A4F !important;
+  font-weight: 800;
+}
+
+/* Barra de progreso de presupuesto */
+.budget-progress-track {
+  width: 100%;
+  height: 7px;
+  background-color: #E2E8F0;
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  margin: 2px 0;
+}
+
+.budget-progress-bar {
+  height: 100%;
+  background-color: var(--color-primary, #2D6A4F);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.budget-sub-figures {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: #64748B;
+  line-height: 1.2;
+}
+
+.budget-limit-text {
+  color: #64748B;
+}
+
+.budget-available-text {
+  color: #64748B;
+}
+
+/* Indicador Circular de Valoración Global */
+.val-global-badge {
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  min-height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--color-primary, #2D6A4F);
+  background-color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex-shrink: 0;
+  padding: 4px;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.val-global-badge__label {
+  font-size: 6.8px;
+  font-weight: 700;
+  color: var(--color-primary, #2D6A4F);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  line-height: 1;
+  text-align: center;
+  margin: 0 0 1px 0;
+  display: block;
+}
+
+.val-global-badge__value {
+  font-size: 1.48rem;
+  font-weight: 800;
+  color: var(--color-primary, #2D6A4F);
+  line-height: 1;
+  margin: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   5. TARJETA DE JUGADOR DESTACADO / MVP (Estructura con fila superior)
+   -------------------------------------------------------------------------- */
+.mvp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 14px;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.mvp-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.mvp-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.mvp-stats-summary {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: #64748B;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.stat-label {
+  color: #64748B;
+}
+
+.stat-val {
+  color: #0F172A;
+  font-weight: 800;
+}
+
+.stat-divider {
+  color: #CBD5E1;
+  margin: 0 2px;
+  font-weight: 400;
+}
+
+.mvp-card__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mvp-card__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mvp-avatar-wrapper {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+}
+
+.mvp-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2.5px solid var(--color-primary, #2D6A4F);
+  background-color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.mvp-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mvp-avatar-icon {
+  width: 26px;
+  height: 26px;
+  fill: #2D6A4F;
+  color: #2D6A4F;
+}
+
+.mvp-star-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #D4AC0D;
+  border: 2px solid #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.star-icon {
+  width: 9px;
+  height: 9px;
+  fill: #FFFFFF;
+}
+
+.mvp-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mvp-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.mvp-position-text {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.mvp-card__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.mvp-score-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.mvp-score-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  background-color: var(--color-primary, #2D6A4F);
+  color: #FFFFFF;
+  border-radius: 999px;
+  padding: 4px 10px;
+  box-shadow: 0 1px 3px rgba(45, 106, 79, 0.25);
+}
+
+.mvp-score-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.mvp-score-max {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+/* --------------------------------------------------------------------------
+   6. SECCIÓN "MI EQUIPO" (Círculos posicionales con código de color)
+   -------------------------------------------------------------------------- */
+.team-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.team-section__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.team-section__title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+}
+
+.team-section__count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.team-slots-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.player-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 0;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.player-slot:hover {
+  transform: translateY(-2px);
+}
+
+.player-slot__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.player-slot__icon {
+  width: 20px;
+  height: 20px;
+}
+
+.player-slot__role {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+/* === Color posicional: POR (Amarillo / Dorado) === */
+.player-slot--por .player-slot__avatar,
+.player-slot__avatar[data-position="POR"],
+.player-slot:has([data-position="POR"]) .player-slot__avatar {
+  border: 2px solid #EAB308;
+  background-color: #FEF9C3;
+  color: #CA8A04;
+}
+
+.player-slot--por .player-slot__icon,
+.player-slot__avatar[data-position="POR"] .player-slot__icon,
+.player-slot:has([data-position="POR"]) .player-slot__icon {
+  fill: #CA8A04;
+  color: #CA8A04;
+}
+
+.player-slot--por .player-slot__role,
+.player-slot:has([data-position="POR"]) .player-slot__role {
+  color: #CA8A04;
+}
+
+/* === Color posicional: DEF (Azul) === */
+.player-slot--def .player-slot__avatar,
+.player-slot__avatar[data-position="DEF"],
+.player-slot:has([data-position="DEF"]) .player-slot__avatar {
+  border: 2px solid #60A5FA;
+  background-color: #EFF6FF;
+  color: #2563EB;
+}
+
+.player-slot--def .player-slot__icon,
+.player-slot__avatar[data-position="DEF"] .player-slot__icon,
+.player-slot:has([data-position="DEF"]) .player-slot__icon {
+  fill: #2563EB;
+  color: #2563EB;
+}
+
+.player-slot--def .player-slot__role,
+.player-slot:has([data-position="DEF"]) .player-slot__role {
+  color: #2563EB;
+}
+
+/* === Color posicional: MC (Verde Esmeralda) === */
+.player-slot--mc .player-slot__avatar,
+.player-slot__avatar[data-position="MC"],
+.player-slot__avatar[data-position="MED"],
+.player-slot:has([data-position="MC"]) .player-slot__avatar,
+.player-slot:has([data-position="MED"]) .player-slot__avatar {
+  border: 2px solid #34D399;
+  background-color: #ECFDF5;
+  color: #059669;
+}
+
+.player-slot--mc .player-slot__icon,
+.player-slot__avatar[data-position="MC"] .player-slot__icon,
+.player-slot__avatar[data-position="MED"] .player-slot__icon,
+.player-slot:has([data-position="MC"]) .player-slot__icon,
+.player-slot:has([data-position="MED"]) .player-slot__icon {
+  fill: #059669;
+  color: #059669;
+}
+
+.player-slot--mc .player-slot__role,
+.player-slot:has([data-position="MC"]) .player-slot__role,
+.player-slot:has([data-position="MED"]) .player-slot__role {
+  color: #059669;
+}
+
+/* === Color posicional: DEL (Rojo / Rosa) === */
+.player-slot--del .player-slot__avatar,
+.player-slot__avatar[data-position="DEL"],
+.player-slot:has([data-position="DEL"]) .player-slot__avatar {
+  border: 2px solid #F87171;
+  background-color: #FEF2F2;
+  color: #DC2626;
+}
+
+.player-slot--del .player-slot__icon,
+.player-slot__avatar[data-position="DEL"] .player-slot__icon,
+.player-slot:has([data-position="DEL"]) .player-slot__icon {
+  fill: #DC2626;
+  color: #DC2626;
+}
+
+.player-slot--del .player-slot__role,
+.player-slot:has([data-position="DEL"]) .player-slot__role {
+  color: #DC2626;
+}
+
+/* --------------------------------------------------------------------------
+   7. TARJETA "RACHA RECIENTE"
+   -------------------------------------------------------------------------- */
+.streak-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.streak-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.streak-card__title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+}
+
+.streak-card__link {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.streak-card__link:hover {
+  color: var(--color-primary, #2D6A4F);
+}
+
+.streak-card__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.streak-match-info {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.streak-result-highlight {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #0F172A;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.streak-result-highlight .text-win,
+.text-win {
+  color: var(--color-primary, #2D6A4F) !important;
+  font-weight: 800;
+}
+
+.streak-result-highlight .text-loss,
+.text-loss {
+  color: #DC2626 !important;
+  font-weight: 800;
+}
+
+.streak-result-highlight .text-draw,
+.text-draw {
+  color: #D97706 !important;
+  font-weight: 800;
+}
+
+.streak-opponent {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748B;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.streak-circles-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.streak-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.streak-circle--win {
+  background-color: var(--color-primary, #2D6A4F);
+}
+
+.streak-circle--loss {
+  background-color: #DC2626;
+}
+
+.streak-circle--draw {
+  background-color: #D97706;
+}
+
+/* --------------------------------------------------------------------------
+   8. ZONA Y BOTÓN DE ACCIÓN PRINCIPAL (CTA): ¡BUSCAR RIVAL!
+   Ubicado fijo/docked directamente ARRIBA de la barra de navegación inferior
+   -------------------------------------------------------------------------- */
+.home-cta-dock {
+  width: 100%;
+  flex-shrink: 0;
+  padding: 10px 16px 14px 16px;
+  background-color: var(--color-background, #F8FAFC);
+  border-top: 1px solid rgba(226, 232, 240, 0.7);
+  box-sizing: border-box;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#btn-buscar-rival,
+.btn-buscar-rival {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 14px 20px !important;
+  background-color: #235b3e !important;
+  color: #ffffff !important;
+  font-family: inherit !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 12px rgba(35, 91, 62, 0.25) !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 10 !important;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-buscar-rival:hover {
+  background-color: #1B4730;
+  box-shadow: 0 6px 18px rgba(35, 91, 62, 0.4);
+}
+
+.btn-buscar-rival:active {
+  transform: translateY(1px);
+}
+
+.btn-buscar-rival__icon {
+  width: 19px;
+  height: 19px;
+  stroke: #FFFFFF;
+}
+
+/* --------------------------------------------------------------------------
+   9. ACCESIBILIDAD Y ANIMACIONES
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .budget-progress-bar,
+  .player-slot,
+  .btn-buscar-rival {
+    transition: none !important;
+  }
+}
+
+.btn-buscar-rival.is-searching {
+  background: linear-gradient(135deg, #1B4332 0%, #2D6A4F 50%, #40916C 100%) !important;
+  animation: pulseSearch 0.8s ease-in-out infinite alternate !important;
+  pointer-events: none;
+  cursor: wait;
+}
+
+@keyframes pulseSearch {
+  from {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(45, 106, 79, 0.4);
+  }
+  to {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(82, 183, 136, 0.8);
+  }
+}
+
+.btn-buscar-rival .spinner-radar {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spinRadar 0.65s linear infinite;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+@keyframes spinRadar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-buscar-rival.is-found {
+  background-color: #1B4332 !important;
+  color: #FFFFFF !important;
+  transform: scale(1.03) !important;
+  box-shadow: 0 0 25px rgba(82, 183, 136, 0.9) !important;
+  transition: all 0.25s ease-out;
+}
