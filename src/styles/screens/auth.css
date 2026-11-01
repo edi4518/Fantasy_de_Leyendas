@@ -1,2 +1,450 @@
-/* Estilos para login, registro y formularios de acceso */
-.auth-container { max-width: 360px; margin: 40px auto; }
+/* ==========================================================================
+   Autenticación: Login & Registro
+   Arquitectura: SPA - Mobile First
+   Tokens de diseño: src/styles/design-tokens.css
+   ========================================================================== */
+
+/* ==========================================================================
+   1. NORMALIZACIÓN DEL CONTENEDOR SPA (#app-content)
+   ========================================================================== */
+#app-content:has(.login-card) {
+  padding: 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   2. SECCIÓN LOGIN
+   ========================================================================== */
+
+/* --- 2.1 Tarjeta Base de Login --- */
+.login-card {
+  width: 100%;
+  max-width: var(--onboarding-max-width, 390px);
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-surface, #ffffff);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 28px 24px 20px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .login-card {
+    min-height: 760px;
+    height: 760px;
+    max-height: 94vh;
+    border-radius: var(--radius-xl, 32px);
+    border: 1px solid var(--color-border, #e5e7eb);
+    box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* --- 2.2 Encabezado de Login (Badge e Isotipo) --- */
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.trophy-badge {
+  width: 52px;
+  height: 52px;
+  background-color: var(--color-primary-light, #eaf3ee);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.trophy-icon {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+.login-title {
+  color: var(--color-text, #111827);
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+/* --- 2.3 Formulario y Campos de Login --- */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.form-label {
+  color: var(--color-text-muted, #4b5563);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 10px;
+  background-color: var(--color-surface, #ffffff);
+  height: 44px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--color-primary, #2d6a4f);
+  box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.2);
+}
+
+.input-wrapper.has-error {
+  border-color: var(--color-error, #dc2626);
+}
+
+.input-wrapper.has-error:focus-within {
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
+.form-input {
+  width: 100%;
+  height: 100%;
+  padding: 0 38px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--color-text, #111827);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.form-input::placeholder {
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.toggle-password-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.eye-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.error-message {
+  color: var(--color-error, #dc2626);
+  font-size: 0.78rem;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.error-message.hidden {
+  display: none;
+}
+
+/* --- 2.4 Botones y Autenticación Social en Login --- */
+.submit-btn {
+  width: 100%;
+  height: 46px;
+  background-color: var(--color-primary, #2d6a4f);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: 4px;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, transform 0.05s ease;
+}
+
+.submit-btn:hover {
+  background-color: var(--color-primary-hover, #245640);
+}
+
+.submit-btn:active {
+  transform: scale(0.99);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 6px 0;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.divider-text {
+  padding: 0 10px;
+  color: var(--color-text-muted, #9ca3af);
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.social-login-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 44px;
+  background-color: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text, #1f2937);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.social-btn:hover {
+  background-color: var(--color-background, #f9fafb);
+}
+
+.social-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* ==========================================================================
+   3. PIE DE PÁGINA DE LOGIN
+   ========================================================================== */
+.login-footer {
+  text-align: center;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.signup-prompt {
+  font-size: 0.82rem;
+  color: var(--color-text-muted, #6b7280);
+  margin: 0;
+}
+
+.signup-link {
+  color: var(--color-primary, #2d6a4f);
+  text-decoration: none;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.signup-link:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Extensiones exclusivas para la vista de Registro
+   ========================================================================== */
+
+.register-card {
+  padding-top: 16px;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Barra superior con botón volver y trofeo */
+.register-top-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.back-btn {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  text-decoration: none;
+}
+
+.top-trophy-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.top-trophy-wrapper .trophy-badge {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 4px;
+}
+
+.app-subname {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text, #111827);
+}
+
+/* Título y etiqueta de rol */
+.register-header-text {
+  text-align: left;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.role-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.register-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  text-align: left;
+  margin-top: 2px;
+}
+
+/* Avatar picker */
+.avatar-picker-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 4px 0 8px;
+}
+
+.avatar-container {
+  position: relative;
+  width: 76px;
+  height: 76px;
+}
+
+.avatar-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.camera-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  background-color: var(--color-primary, #2d6a4f);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+}
+
+.avatar-label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #6b7280);
+  margin-top: 6px;
+}
+
+/* Fila de 2 columnas (Nombre y Apellidos) */
+.form-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+/* Inputs sin icono a la izquierda */
+.clean-wrapper .form-input {
+  padding-left: 14px;
+}
+
+/* Iconos ubicados a la derecha */
+.input-icon-right {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

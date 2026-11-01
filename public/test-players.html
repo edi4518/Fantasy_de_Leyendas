@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catálogo de Leyendas - Prueba de Avatares</title>
+
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+
+    <!-- Sistema de diseño y componente de tarjeta -->
+    <link rel="stylesheet" href="/src/styles/design-tokens.css" />
+    <!-- <link rel="stylesheet" href="/src/components/player-card/player-card.css" /> -->
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0b1120;
+            color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #ffffff;
+        }
+
+        /* Grilla de 3 columnas centrada */
+        #players-container {
+            display: grid;
+            grid-template-columns: repeat(3, 140px);
+            gap: 1.25rem;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        /* Tarjeta oscura con esquinas redondeadas */
+        .player-card {
+            background-color: #121c2d;
+            border: 1px solid #1e293b;
+            border-radius: 14px;
+            padding: 1.25rem 0.75rem 1rem 0.75rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Círculo contenedor con borde celeste */
+        .player-card__avatar-wrapper {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #1e293b;
+            margin-bottom: 0.85rem;
+            border: 2px solid #0099ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Imagen original con recorte superior */
+        .player-card__img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center 15%;
+            /* transform: scale(0.88); */
+            display: block;
+        }
+
+
+        .player-card__body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Badge celeste de posición */
+        .player-card__badge-pos {
+            font-size: 0.7rem;
+            font-weight: 700;
+            background-color: #00a2ff;
+            color: #000000;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 0.4rem;
+        }
+
+        /* Nombre del jugador */
+        .player-card__name {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0.15rem 0 0.35rem 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 120px;
+        }
+
+        /* Precio en celeste claro */
+        .player-card__price {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #38bdf8;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Catálogo de Leyendas</h1>
+        <p class="subtitle">Comprobación de retratos de Supabase Storage con encuadre óptico y avatares circulares
+            normalizados.</p>
+    </header>
+
+    <main id="players-container">
+        <div class="status-msg">
+            <div class="spinner"></div>
+            <p>Cargando leyendas...</p>
+        </div>
+    </main>
+
+    <script type="module">
+        import { createPlayerCard } from '/src/components/player-card/player-card.js';
+
+        const container = document.getElementById('players-container');
+
+        async function cargar() {
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/players');
+
+                if (!res.ok) {
+                    throw new Error(`Error en el servidor: HTTP ${res.status}`);
+                }
+
+                const players = await res.json();
+
+                if (!players || players.length === 0) {
+                    container.innerHTML = '<p style="text-align:center; color:#94a3b8;">No hay jugadores disponibles.</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                players.forEach(p => {
+                    container.appendChild(createPlayerCard(p));
+                });
+
+            } catch (err) {
+                console.error("Error al cargar jugadores:", err);
+                container.innerHTML = `
+                  <div class="status-msg status-msg--error">
+                    <p><strong>Error al conectar con la API</strong></p>
+                    <p style="font-size: 0.8rem; margin-top: 0.5rem;">${err.message}</p>
+                  </div>
+                `;
+            }
+        }
+
+        cargar();
+    </script>
+</body>
+
+</html>

@@ -1,35 +1,63 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Fantasy de Leyendas - Gestiona tu 11 histórico de leyendas del fútbol con presupuesto de 100M y simulación en tiempo real.">
-  <meta name="theme-color" content="#2D6A4F">
-  <title>Fantasy de Leyendas | 11 Histórico</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Fantasy de Leyendas - Gestiona tu alineación histórica de leyendas del fútbol con presupuesto de 100M y simulación en tiempo real." />
+  <meta name="theme-color" content="#2D6A4F" />
+  <title>Fantasy de Leyendas</title>
 
   <!-- Google Fonts: Plus Jakarta Sans -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
 
   <!-- PWA Manifest & Icons -->
-  <link rel="manifest" href="/public/manifest.webmanifest">
-  <link rel="apple-touch-icon" href="/public/icons/icon-192.png">
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
 
-  <!-- Core Design Tokens & Styles -->
-  <link rel="stylesheet" href="/src/styles/design-tokens.css">
-  <link rel="stylesheet" href="/src/styles/reset.css">
-  <link rel="stylesheet" href="/src/styles/global.css">
-  <link rel="stylesheet" href="/src/styles/layout.css">
-  <link rel="stylesheet" href="/src/styles/components.css">
+  <!-- Capas de estilos por arquitectura -->
+  <link rel="stylesheet" href="/src/styles/design-tokens.css?v=4" />
+  <link rel="stylesheet" href="/src/styles/reset.css?v=4" />
+  <link rel="stylesheet" href="/src/styles/global.css?v=4" />
+  <link rel="stylesheet" href="/src/styles/layout.css?v=4" />
+  <link rel="stylesheet" href="/src/styles/components.css?v=4" />
+
+  <!-- Estilos por pantalla -->
+  <link rel="stylesheet" href="/src/styles/screens/onboarding.css?v=4" />
+  <link rel="stylesheet" href="/src/styles/screens/auth.css?v=4" />
+  <link rel="stylesheet" href="/src/styles/screens/ranking.css?v=5" />
 </head>
+
 <body class="app-body">
+  <script>
+    // Limpieza inmediata de cachés anteriores en desarrollo
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var i = 0; i < regs.length; i++) {
+          regs[i].unregister();
+        }
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(function(keys) {
+        for (var i = 0; i < keys.length; i++) {
+          caches.delete(keys[i]);
+        }
+      });
+    }
+  </script>
+
   <!-- Contenedor principal de la Single Page Application -->
   <div id="app-root" class="app-layout">
     <header id="app-header" class="app-header" role="banner"></header>
-    <main id="app-content" class="app-main" role="main" tabindex="-1">
-      <!-- Vistas dinámicas inyectadas por router.js -->
-    </main>
+
+    <!-- Aquí es donde router.js inyecta el HTML de cada pantalla -->
+    <main id="app-content" class="app-main" role="main" tabindex="-1"></main>
+
     <nav id="app-navigation" class="app-navigation" role="navigation"></nav>
   </div>
 
@@ -39,4 +67,5 @@
   <!-- Script principal de inicio (Vanilla ES Modules) -->
   <script type="module" src="/src/app/main.js"></script>
 </body>
+
 </html>

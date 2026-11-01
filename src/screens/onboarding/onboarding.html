@@ -1,6 +1,61 @@
-<!-- Vista HTML: Onboarding y bienvenida al Fantasy de Leyendas -->
-<section class="screen-onboarding" aria-labelledby="onboarding-title">
-  <h1 id="onboarding-title">Bienvenido a Fantasy de Leyendas</h1>
-  <p>Arma tu 11 histórico legendario con un presupuesto máximo de 100M €.</p>
-  <button id="btn-start-onboarding" class="btn btn--primary">Comenzar Aventura</button>
-</section>
+<main class="onboarding-screen" id="onboarding-container">
+  <!-- Botón Saltar -->
+  <header class="onboarding-header">
+    <button type="button" class="btn-skip" id="btn-skip">Saltar</button>
+  </header>
+
+  <!-- Imagen / Ilustración dinámica -->
+  <section class="onboarding-visual">
+    <img
+      id="onboarding-img"
+      src="/public/images/pantalla_regla1.webp"
+      alt="Ilustración regla de juego"
+      class="visual-img"
+    />
+  </section>
+
+  <!-- Contenido de texto -->
+  <section class="onboarding-content">
+    <span class="badge-subtitle">CÓMO JUGAR</span>
+    <h1 class="main-title" id="onboarding-title">
+      Regla 1: Presupuesto de 100 millones
+    </h1>
+    <p class="description" id="onboarding-desc">
+      Tienes un límite salarial estricto de 100 millones de créditos para fichar
+      exactamente a 9 leyendas históricas del fútbol. Gasta con inteligencia
+      para equilibrar a tus estrellas con talentos ocultos.
+    </p>
+
+    <!-- Indicadores de progreso (Dots) -->
+    <div
+      class="carousel-indicators"
+      role="tablist"
+      aria-label="Progreso del tutorial"
+      id="indicators-group"
+    >
+      <span class="dot active" data-step="0"></span>
+      <span class="dot" data-step="1"></span>
+      <span class="dot" data-step="2"></span>
+    </div>
+  </section>
+
+  <!-- Botón de acción principal -->
+  <footer class="onboarding-footer">
+    <button type="button" class="btn-action" id="btn-next">
+      <span id="btn-text">PRÓXIMO</span>
+      <svg
+        class="icon-arrow"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+  </footer>
+</main>

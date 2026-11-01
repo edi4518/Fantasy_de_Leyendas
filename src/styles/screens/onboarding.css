@@ -1,0 +1,200 @@
+/*
+  @file onboarding.css
+  @description Estilos de la pantalla de Onboarding / Cómo jugar.
+  Diseño Mobile First contenido al 100% del viewport vertical (100dvh),
+  eliminando completamente el scroll vertical innecesario.
+ */
+
+/* --- RESET Y CONTENEDOR MOBILE FIRST (100dvh sin scroll) --- */
+.onboarding-screen {
+  background-color: var(--color-surface, #ffffff);
+  width: 100%;
+  max-width: var(--onboarding-max-width, 390px);
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  margin: 0 auto;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@media (min-width: 480px) {
+  .onboarding-screen {
+    height: min(780px, 92vh);
+    max-height: 92vh;
+    min-height: 0;
+    margin: auto;
+    border-radius: var(--radius-screen, 36px);
+    box-shadow: var(--shadow-screen, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+    border: var(--border-width-frame, 8px) solid var(--color-device-frame, #94a3b8);
+    padding: 24px 24px 20px;
+  }
+}
+
+/* --- HEADER --- */
+.onboarding-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 4px 8px;
+  flex-shrink: 0;
+}
+
+.btn-skip {
+  background: none;
+  border: var(--border-width-none, 0);
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
+  font-size: var(--font-size-md, 0.875rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-accent-blue, #3b82f6);
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: opacity var(--transition-fast, 150ms ease);
+}
+
+.btn-skip:hover {
+  opacity: var(--opacity-hover, 0.7);
+}
+
+/* --- ILUSTRACIÓN ESCALABLE Y COMPACTA --- */
+.onboarding-visual {
+  width: 100%;
+  max-height: clamp(150px, 26vh, 230px);
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-card, 20px);
+  overflow: hidden;
+  background-color: var(--color-surface-subtle, #f1f5f9);
+  box-shadow: var(--shadow-visual, 0 4px 12px rgba(0, 0, 0, 0.05));
+  flex: 0 1 auto;
+  margin: 0 auto;
+}
+
+.visual-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity var(--transition-normal, 250ms ease);
+}
+
+/* --- CONTENIDO DE TEXTO --- */
+.onboarding-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10px 2px 4px;
+  flex: 1 1 auto;
+}
+
+.badge-subtitle {
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  font-weight: var(--font-weight-extrabold, 800);
+  color: var(--color-slate-subtle, #94a3b8);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.main-title {
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(1.15rem, 3.2vh, 1.4rem);
+  line-height: 1.25;
+  font-weight: var(--font-weight-extrabold, 800);
+  color: var(--color-dark-slate, #0f172a);
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+  transition: opacity var(--transition-fast, 150ms ease);
+}
+
+.description {
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-slate-muted, #64748b);
+  margin-bottom: 10px;
+  min-height: auto;
+  transition: opacity var(--transition-fast, 150ms ease);
+}
+
+/* --- INDICADORES (DOTS) --- */
+.carousel-indicators {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin-top: 2px;
+}
+
+.dot {
+  width: var(--indicator-dot-size, 7px);
+  height: var(--indicator-dot-size, 7px);
+  border-radius: var(--radius-pill, 999px);
+  background-color: var(--color-dot-inactive, #cbd5e1);
+  display: inline-block;
+  cursor: pointer;
+  transition: background-color var(--transition-normal, 250ms ease), transform var(--transition-fast, 150ms ease);
+}
+
+.dot.active {
+  background-color: var(--color-dot-active, #0f172a);
+  transform: scale(1.15);
+}
+
+/* --- BOTÓN DE ACCIÓN --- */
+.onboarding-footer {
+  padding-top: 6px;
+  flex-shrink: 0;
+}
+
+.btn-action {
+  width: 100%;
+  height: 48px;
+  min-height: 44px;
+  background-color: transparent;
+  color: var(--color-dark-slate, #0f172a);
+  border: var(--border-width-btn-action, 1.5px) solid var(--color-dark-slate, #0f172a);
+  border-radius: var(--radius-btn, 14px);
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
+  font-size: var(--font-size-md, 0.875rem);
+  font-weight: var(--font-weight-bold, 700);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  transition: all var(--transition-normal, 250ms ease);
+}
+
+.btn-action:hover {
+  background-color: var(--color-dark-slate, #0f172a);
+  color: var(--color-text-inverse, #ffffff);
+}
+
+/* Estilo específico para el último paso (IR AL LOGIN) */
+.btn-action.btn-action--final {
+  background-color: var(--color-forest-green, #1b4130);
+  border-color: var(--color-forest-green, #1b4130);
+  color: var(--color-text-inverse, #ffffff);
+}
+
+.btn-action.btn-action--final:hover {
+  background-color: var(--color-forest-green-hover, #123023);
+  border-color: var(--color-forest-green-hover, #123023);
+}
+
+.icon-arrow {
+  transition: transform var(--transition-fast, 150ms ease);
+}
+
+.btn-action:hover .icon-arrow {
+  transform: translateX(3px);
+}
