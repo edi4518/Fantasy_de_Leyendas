@@ -234,6 +234,8 @@
   align-items: center;
   gap: 6px;
   padding: 3px 12px;
+  min-width: 96px;
+  justify-content: center;
   border-radius: var(--radius-pill, 999px);
   background-color: #F1F5F9;
   border: 1px solid var(--color-border-subtle, #E9ECEF);
@@ -242,20 +244,23 @@
   color: #64748B;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   user-select: none;
-  transition: background-color var(--transition-fast, 150ms ease);
+  transition: background-color var(--transition-fast, 150ms ease), border-color 150ms ease;
 }
 
 .match-status-badge:hover {
   background-color: #E2E8F0;
 }
 
-.status-indicator-dot {
+.status-indicator-dot,
+.status-dot {
   width: 6px;
   height: 6px;
   border-radius: var(--radius-pill, 999px);
-  background-color: var(--color-primary, #2D6A4F);
+  background-color: #94A3B8;
+  transition: background-color 150ms ease;
 }
 
 /* Animación de pulso cuando el partido está en vivo */
@@ -265,7 +270,8 @@
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
-.status-indicator-dot.is-live {
+.status-indicator-dot.is-live,
+.status-dot.is-live {
   background-color: #10B981;
   animation: pulseLive 1.2s infinite;
 }

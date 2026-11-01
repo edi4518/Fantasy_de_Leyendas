@@ -82,8 +82,10 @@ export const DEFAULT_MATCH_DATA = {
 };
 
 let liveSimulationInterval = null;
+let halftimeTimeout = null;
 let currentFullMatch = null;
 let isMatchLive = false;
+let currentSimulatedMinute = 0;
 
 /**
  * Obtiene la plantilla real del usuario (desde localStorage o backend).
@@ -485,6 +487,10 @@ export async function startLiveMatchPlayback() {
     clearInterval(liveSimulationInterval);
     liveSimulationInterval = null;
   }
+  if (halftimeTimeout) {
+    clearTimeout(halftimeTimeout);
+    halftimeTimeout = null;
+  }
 
   const liveBtn = document.getElementById('btn-live-sim');
   if (liveBtn) liveBtn.classList.add('is-running');
@@ -496,17 +502,18 @@ export async function startLiveMatchPlayback() {
   // 2. Simulación (Backend con fallback local offline)
   currentFullMatch = await matchService.simulateMatch(homeSquad, awaySquad);
   const snapshots = currentFullMatch.cycleSnapshots || [];
-  let currentCycleIndex = 0;
+  let activeSnapshotIndex = -1;
+  currentSimulatedMinute = 1;
   isMatchLive = true;
 
-  // Estado inicial en el minuto 0
+  // Estado inicial en el minuto 1 (con hito inicial en cronología)
   renderMatchDetails({
-    status: 'EN VIVO 1\'',
+    status: "EN VIVO 1'",
     isLive: true,
     homeTeam: { name: homeSquad.name, score: 0, formation: homeSquad.formation },
     awayTeam: { name: awaySquad.name, score: 0, formation: awaySquad.formation },
     liveAction: { team: homeSquad.name, status: '¡PITIDO INICIAL! RUEDA EL BALÓN' },
-    events: [],
+    events: [{ minute: 0, isPeriodBreak: true, label: 'INICIO DEL PARTIDO' }],
     stats: {
       possession: { home: 50, away: 50, label: 'Posesión' },
       shots: { home: 0, away: 0, label: 'Tiros a Puerta' },
@@ -515,34 +522,121 @@ export async function startLiveMatchPlayback() {
     lineups: currentFullMatch.lineups
   });
 
-  liveSimulationInterval = setInterval(() => {
-    if (currentCycleIndex >= snapshots.length) {
+  const TICK_MS = 150; // Timing acelerado (~150ms por minuto simulado)
+
+  function runSimulationTick() {
+    if (!isMatchLive) return;
+
+    currentSimulatedMinute++;
+
+    // 1. Caso: Descanso al minuto 45
+    if (currentSimulatedMinute === 45) {
+      // Aplicar el snapshot correspondiente al descanso (ciclo 10)
+      while (
+        activeSnapshotIndex + 1 < snapshots.length &&
+        snapshots[activeSnapshotIndex + 1].minute <= 45
+      ) {
+        activeSnapshotIndex++;
+        const step = snapshots[activeSnapshotIndex];
+        if (step.hasGoalThisCycle) triggerScoreBump();
+        renderMatchDetails({
+          status: 'DESCANSO',
+          isLive: false,
+          homeTeam: { name: homeSquad.name, score: step.homeScore, formation: homeSquad.formation },
+          awayTeam: { name: awaySquad.name, score: step.awayScore, formation: awaySquad.formation },
+          liveAction: step.liveAction,
+          events: step.events,
+          stats: step.stats,
+          lineups: currentFullMatch.lineups
+        });
+      }
+
+      // Detener temporalmente el reloj para el descanso
+      if (liveSimulationInterval) {
+        clearInterval(liveSimulationInterval);
+        liveSimulationInterval = null;
+      }
+
+      const statusTextEl = document.getElementById('match-status-text');
+      if (statusTextEl) statusTextEl.textContent = 'DESCANSO';
+      const statusDot = document.getElementById('status-dot');
+      if (statusDot) statusDot.classList.remove('is-live');
+
+      // Pausa táctica de entretiempo (1.1 segundos) antes de reanudar el segundo tiempo
+      halftimeTimeout = setTimeout(() => {
+        if (!isMatchLive) return;
+        currentSimulatedMinute = 45; // El siguiente tick avanzará a 46'
+        if (statusDot) statusDot.classList.add('is-live');
+        liveSimulationInterval = setInterval(runSimulationTick, TICK_MS);
+      }, 1100);
+
+      return;
+    }
+
+    // 2. Caso: Fin del partido al minuto 90
+    if (currentSimulatedMinute >= 90) {
+      // Aplicar todos los snapshots restantes hasta el final
+      while (activeSnapshotIndex + 1 < snapshots.length) {
+        activeSnapshotIndex++;
+        const step = snapshots[activeSnapshotIndex];
+        if (step.hasGoalThisCycle) triggerScoreBump();
+        renderMatchDetails({
+          status: 'FINAL',
+          isLive: false,
+          homeTeam: { name: homeSquad.name, score: step.homeScore, formation: homeSquad.formation },
+          awayTeam: { name: awaySquad.name, score: step.awayScore, formation: awaySquad.formation },
+          liveAction: step.liveAction,
+          events: step.events,
+          stats: step.stats,
+          lineups: currentFullMatch.lineups
+        });
+      }
+
+      const statusTextEl = document.getElementById('match-status-text');
+      if (statusTextEl) statusTextEl.textContent = 'FINAL';
+      const statusDot = document.getElementById('status-dot');
+      if (statusDot) statusDot.classList.remove('is-live');
+
       finishLiveMatch();
       return;
     }
 
-    const step = snapshots[currentCycleIndex];
-    currentCycleIndex++;
-
-    if (step.hasGoalThisCycle) {
-      triggerScoreBump();
+    // 3. Minuto a minuto acelerado regular (1..44 y 46..89)
+    let appliedNewSnapshot = false;
+    while (
+      activeSnapshotIndex + 1 < snapshots.length &&
+      snapshots[activeSnapshotIndex + 1].minute <= currentSimulatedMinute
+    ) {
+      activeSnapshotIndex++;
+      appliedNewSnapshot = true;
+      const step = snapshots[activeSnapshotIndex];
+      if (step.hasGoalThisCycle) {
+        triggerScoreBump();
+      }
+      renderMatchDetails({
+        status: `EN VIVO ${currentSimulatedMinute}'`,
+        isLive: true,
+        homeTeam: { name: homeSquad.name, score: step.homeScore, formation: homeSquad.formation },
+        awayTeam: { name: awaySquad.name, score: step.awayScore, formation: awaySquad.formation },
+        liveAction: step.liveAction,
+        events: step.events,
+        stats: step.stats,
+        lineups: currentFullMatch.lineups
+      });
     }
 
-    renderMatchDetails({
-      status: step.statusBadge,
-      isLive: step.isLive,
-      homeTeam: { name: homeSquad.name, score: step.homeScore, formation: homeSquad.formation },
-      awayTeam: { name: awaySquad.name, score: step.awayScore, formation: awaySquad.formation },
-      liveAction: step.liveAction,
-      events: step.events,
-      stats: step.stats,
-      lineups: currentFullMatch.lineups
-    });
-
-    if (currentCycleIndex >= snapshots.length) {
-      finishLiveMatch();
+    // Si este minuto no coincidió con un snapshot, avanzar el contador minuto a minuto en el badge
+    if (!appliedNewSnapshot) {
+      const statusTextEl = document.getElementById('match-status-text');
+      if (statusTextEl) {
+        statusTextEl.textContent = `EN VIVO ${currentSimulatedMinute}'`;
+      }
+      const statusDot = document.getElementById('status-dot');
+      if (statusDot) statusDot.classList.add('is-live');
     }
-  }, 850);
+  }
+
+  liveSimulationInterval = setInterval(runSimulationTick, TICK_MS);
 }
 
 function triggerScoreBump() {
@@ -563,10 +657,19 @@ function finishLiveMatch() {
     clearInterval(liveSimulationInterval);
     liveSimulationInterval = null;
   }
+  if (halftimeTimeout) {
+    clearTimeout(halftimeTimeout);
+    halftimeTimeout = null;
+  }
   isMatchLive = false;
 
   const liveBtn = document.getElementById('btn-live-sim');
   if (liveBtn) liveBtn.classList.remove('is-running');
+
+  const statusTextEl = document.getElementById('match-status-text');
+  if (statusTextEl) statusTextEl.textContent = 'FINAL';
+  const statusDot = document.getElementById('status-dot');
+  if (statusDot) statusDot.classList.remove('is-live');
 
   if (currentFullMatch) {
     renderMatchDetails(currentFullMatch);
@@ -586,6 +689,10 @@ export async function executeQuickSimulation() {
     clearInterval(liveSimulationInterval);
     liveSimulationInterval = null;
   }
+  if (halftimeTimeout) {
+    clearTimeout(halftimeTimeout);
+    halftimeTimeout = null;
+  }
   isMatchLive = false;
 
   const liveBtn = document.getElementById('btn-live-sim');
@@ -597,13 +704,15 @@ export async function executeQuickSimulation() {
     currentFullMatch = await matchService.simulateMatch(homeSquad, awaySquad);
   }
 
+  const statusTextEl = document.getElementById('match-status-text');
+  if (statusTextEl) statusTextEl.textContent = 'FINAL';
+  const statusDot = document.getElementById('status-dot');
+  if (statusDot) statusDot.classList.remove('is-live');
+
   renderMatchDetails(currentFullMatch);
   showMatchResultModal(currentFullMatch);
 }
 
-/**
- * Conecta el modal de resultados sincronizado con el partido simulado.
- */
 function showMatchResultModal(match) {
   const homeScore = match.homeTeam?.score ?? 0;
   const awayScore = match.awayTeam?.score ?? 0;
