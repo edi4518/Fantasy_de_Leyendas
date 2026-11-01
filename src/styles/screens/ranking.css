@@ -10,19 +10,18 @@
    -------------------------------------------------------------------------- */
 .ranking-screen {
   width: 100%;
-  max-width: 412px;
+  max-width: 100%;
   min-height: 100%;
-  margin: 0 auto;
+  margin: 0;
   box-sizing: border-box;
   background-color: #f8fafc;
   color: #0f172a;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   display: flex;
   flex-direction: column;
-  /* Espacio inferior de 140px para que el listado no quede tapado por la tarjeta fija ni el nav */
-  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px calc(140px + env(safe-area-inset-bottom, 0px)) 16px;
+  padding: 14px 16px 16px 16px;
   position: relative;
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
 }
 
@@ -379,12 +378,10 @@
    5. TARJETA FIJA DEL MÁNAGER CONECTADO (Ubicada fija sobre la Bottom Nav)
    -------------------------------------------------------------------------- */
 .ranking-current-user {
-  position: fixed;
-  bottom: calc(60px + 10px + env(safe-area-inset-bottom, 0px));
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: calc(412px - 32px);
+  position: sticky;
+  bottom: 10px;
+  margin-top: auto;
+  width: 100%;
   background-color: #266046;
   color: #ffffff;
   padding: 10px 14px;
@@ -397,6 +394,7 @@
   box-shadow: 0 8px 24px rgba(38, 96, 70, 0.38), 0 2px 6px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(8px);
+  flex-shrink: 0;
 }
 
 .user-position-box {
@@ -560,67 +558,4 @@
 .bottom-nav__item.is-active .bottom-nav__label {
   font-weight: 700;
   color: #266046;
-}
-
-/* --------------------------------------------------------------------------
-   7. ADAPTACIÓN PARA ESCRITORIO (Smartphone centrado >= 480px)
-   -------------------------------------------------------------------------- */
-@media screen and (min-width: 480px) {
-  body {
-    background-color: #e2e8f0;
-  }
-
-  .app-layout:has(.ranking-screen) {
-    background-color: #e2e8f0;
-    min-height: 100vh;
-    min-height: 100dvh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 16px 0;
-    box-shadow: none;
-  }
-
-  .app-main:has(.ranking-screen) {
-    padding: 0 !important;
-    width: auto;
-    height: auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  /* Marco del smartphone simulado centrado */
-  .ranking-screen {
-    width: 412px;
-    max-width: 412px;
-    height: min(780px, calc(100vh - 32px));
-    border-radius: 36px;
-    border: 1px solid #cbd5e1;
-    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);
-    background-color: #f8fafc;
-    position: relative;
-    padding: 18px 16px 140px 16px;
-    margin: 0 auto;
-    overflow-y: auto;
-  }
-
-  /* Barra de navegación anclada en el fondo del teléfono */
-  .app-navigation {
-    max-width: 412px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    bottom: max(16px, calc((100vh - min(780px, calc(100vh - 32px))) / 2)) !important;
-    border-bottom-left-radius: 36px;
-    border-bottom-right-radius: 36px;
-    overflow: hidden;
-  }
-
-  /* Tarjeta fija del mánager anclada exactamente sobre la barra de navegación en escritorio */
-  .ranking-current-user {
-    max-width: calc(412px - 32px) !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    bottom: calc(max(16px, calc((100vh - min(780px, calc(100vh - 32px))) / 2)) + 60px + 10px) !important;
-  }
 }

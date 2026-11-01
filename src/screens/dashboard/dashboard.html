@@ -1,13 +1,216 @@
-<!-- Vista HTML: Dashboard principal del manager -->
-<section class="screen-dashboard">
-  <header class="dashboard-header">
-    <h1>Mi Club Legendario</h1>
-    <div class="budget-badge" id="dashboard-budget">Presupuesto Restante: 100.0M €</div>
+<section class="screen-dashboard home-app-container" id="home-view">
+  <!-- 1. HEADER: Datos del Mánager y Clasificación -->
+  <header class="home-header" role="banner">
+    <a href="/profile" data-link class="manager-profile" style="text-decoration: none; color: inherit;" aria-label="Editar perfil del mánager">
+      <div class="manager-avatar" id="manager-avatar" aria-label="Avatar del Mánager">
+        <svg class="avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </div>
+      <div class="manager-info">
+        <h1 class="manager-name" id="manager-name">Nombre del Mánager</h1>
+        <span class="manager-season" id="manager-season">Temporada 24 / 25</span>
+      </div>
+    </a>
+
+    <div class="ranking-block" id="ranking-block" aria-label="Clasificación general">
+      <span class="ranking-label">CLASIFICACIÓN</span>
+      <span class="ranking-value" id="ranking-value">#450</span>
+    </div>
   </header>
-  <div class="dashboard-widgets">
-    <article class="widget-squad-summary" id="widget-squad">
-      <h3>Estado de Alineación</h3>
-      <p id="squad-status-text">11 / 11 Jugadores seleccionados</p>
+
+  <!-- ÁREA PRINCIPAL DE CONTENIDO -->
+  <main class="home-main" role="main">
+    <!-- 2. CARD: Presupuesto del Equipo y Valoración Global -->
+    <article class="card home-card budget-card" id="team-budget-card" aria-labelledby="budget-title">
+      <div class="budget-card__header">
+        <div class="budget-title-wrapper">
+          <svg class="budget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+            <line x1="2" y1="10" x2="22" y2="10"></line>
+          </svg>
+          <h2 class="budget-card__title" id="budget-title">Presupuesto del equipo</h2>
+        </div>
+        <span class="budget-percentage-badge" id="budget-percentage">83%</span>
+      </div>
+
+      <div class="budget-card__content">
+        <div class="budget-metrics" id="team-budget">
+          <div class="budget-figures">
+            <span class="budget-spent-text">Gastado: <strong id="budget-spent" class="budget-spent-value">83.4M</strong></span>
+          </div>
+
+          <!-- Barra de Progreso de Presupuesto -->
+          <div class="budget-progress-track" role="progressbar" aria-valuenow="83.4" aria-valuemin="0" aria-valuemax="100" id="budget-progress-container" aria-label="Porcentaje de presupuesto consumido">
+            <div class="budget-progress-bar" id="budget-progress-bar" style="width: 83.4%;"></div>
+          </div>
+
+          <div class="budget-sub-figures">
+            <span class="budget-limit-text" id="budget-limit-text">Límite: 100M</span>
+            <span class="budget-available-text" id="budget-available-wrapper">Disponible: <span id="budget-available">16.6M</span></span>
+          </div>
+        </div>
+
+        <!-- Badge Circular: Valoración Global -->
+        <div class="val-global-badge" id="global-val" aria-label="Valoración global del equipo">
+          <span class="val-global-badge__label">VAL. GLOBAL</span>
+          <span class="val-global-badge__value" id="val-global-value">88</span>
+        </div>
+      </div>
     </article>
-  </div>
+
+    <!-- 3. CARD: MVP de la Plantilla -->
+    <article class="card home-card mvp-card" id="mvp-player-card" aria-labelledby="mvp-name">
+      <div class="mvp-card__top">
+        <span class="badge badge--gold mvp-badge" id="mvp-tag">MVP</span>
+        <div class="mvp-stats-summary">
+          <span class="stat-item"><span class="stat-label">PARTIDOS:</span> <strong class="stat-val" id="mvp-matches">24</strong></span>
+          <span class="stat-divider">|</span>
+          <span class="stat-item"><span class="stat-label">GOLES:</span> <strong class="stat-val" id="mvp-goals">18</strong></span>
+        </div>
+      </div>
+
+      <div class="mvp-card__body">
+        <div class="mvp-card__left">
+          <div class="mvp-avatar-wrapper">
+            <div class="mvp-avatar" id="mvp-avatar" aria-label="Foto de L. Messi">
+              <svg class="mvp-avatar-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+            </div>
+            <!-- Medalla / Insignia de Estrella MVP -->
+            <div class="mvp-star-badge" title="Jugador Más Valioso">
+              <svg class="star-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </div>
+          </div>
+
+          <div class="mvp-details">
+            <h3 class="mvp-name" id="mvp-name">L. MESSI</h3>
+            <span class="mvp-position-text" id="mvp-pos">DEL / DELANTERO</span>
+          </div>
+        </div>
+
+        <div class="mvp-card__right">
+          <span class="mvp-score-label" id="mvp-label">NOTA MEDIA</span>
+          <div class="mvp-score-pill" aria-label="Calificación de 9.2 sobre 10">
+            <span class="mvp-score-value" id="mvp-score">9.2</span>
+            <span class="mvp-score-max">/10</span>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 4. SECCIÓN: Mi Equipo (6 Jugadores con colores posicionales) -->
+    <section class="team-section" id="team-section" aria-labelledby="team-section-title">
+      <div class="team-section__header">
+        <h2 class="team-section__title" id="team-section-title">Mi Equipo</h2>
+        <span class="team-section__count" id="team-players-count">6 / 6 jugadores</span>
+      </div>
+
+      <div class="team-slots-grid" id="team-slots-container" role="list" aria-label="Alineación titular de 6 jugadores">
+        <!-- 1: POR (Amarillo/Dorado) -->
+        <div class="player-slot player-slot--por" role="listitem">
+          <div class="player-slot__avatar" data-position="POR" aria-label="Portero">
+            <svg class="player-slot__icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+          <span class="player-slot__role">POR</span>
+        </div>
+
+        <!-- 2: DEF (Azul) -->
+        <div class="player-slot player-slot--def" role="listitem">
+          <div class="player-slot__avatar" data-position="DEF" aria-label="Defensa">
+            <svg class="player-slot__icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+          <span class="player-slot__role">DEF</span>
+        </div>
+
+        <!-- 3: DEF (Azul) -->
+        <div class="player-slot player-slot--def" role="listitem">
+          <div class="player-slot__avatar" data-position="DEF" aria-label="Defensa">
+            <svg class="player-slot__icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+          <span class="player-slot__role">DEF</span>
+        </div>
+
+        <!-- 4: MC (Verde) -->
+        <div class="player-slot player-slot--mc" role="listitem">
+          <div class="player-slot__avatar" data-position="MC" aria-label="Mediocampista">
+            <svg class="player-slot__icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+          <span class="player-slot__role">MC</span>
+        </div>
+
+        <!-- 5: MC (Verde) -->
+        <div class="player-slot player-slot--mc" role="listitem">
+          <div class="player-slot__avatar" data-position="MC" aria-label="Mediocampista">
+            <svg class="player-slot__icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+          <span class="player-slot__role">MC</span>
+        </div>
+
+        <!-- 6: DEL (Rojo) -->
+        <div class="player-slot player-slot--del" role="listitem">
+          <div class="player-slot__avatar" data-position="DEL" aria-label="Delantero">
+            <svg class="player-slot__icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+          </div>
+          <span class="player-slot__role">DEL</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. CARD: Racha Reciente -->
+    <article class="card home-card streak-card" id="recent-streak" aria-labelledby="streak-title">
+      <div class="streak-card__header">
+        <h3 class="streak-card__title" id="streak-title">Racha Reciente</h3>
+        <a href="/history" data-link class="streak-card__link" id="streak-last-match-link" aria-label="Ver detalles del último partido">
+          ÚLTIMO PARTIDO &gt;
+        </a>
+      </div>
+
+      <div class="streak-card__content">
+        <div class="streak-match-info" id="streak-match-info">
+          <strong class="streak-result-highlight" id="streak-result-container">
+            <span class="text-win" id="streak-result-badge">V</span>
+            <span id="streak-result-score">2 – 1</span>
+          </strong>
+          <span class="streak-opponent" id="streak-opponent-text">vs MánagerX</span>
+        </div>
+
+        <!-- Círculos de Resultados Recientes (V, V, D, E, V) -->
+        <div class="streak-circles-wrapper" id="streak-circles-container" aria-label="Historial de los últimos 5 partidos">
+          <span class="streak-circle streak-circle--win" title="Victoria (V)">V</span>
+          <span class="streak-circle streak-circle--win" title="Victoria (V)">V</span>
+          <span class="streak-circle streak-circle--loss" title="Derrota (D)">D</span>
+          <span class="streak-circle streak-circle--draw" title="Empate (E)">E</span>
+          <span class="streak-circle streak-circle--win" title="Victoria (V)">V</span>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <!-- 6. ZONA DE ACCIÓN INFERIOR (Ubicada directamente arriba de la barra de navegación) -->
+  <footer class="home-cta-dock" id="home-cta-dock">
+    <button class="btn btn--primary btn-buscar-rival" id="btn-buscar-rival" type="button" aria-label="Buscar rival para jugar partido">
+      <svg class="btn-buscar-rival__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <span>¡BUSCAR RIVAL!</span>
+    </button>
+  </footer>
 </section>

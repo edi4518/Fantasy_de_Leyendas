@@ -8,14 +8,14 @@
    1. NORMALIZACIÓN DEL CONTENEDOR SPA (#app-content)
    ========================================================================== */
 #app-content:has(.login-card) {
-  padding: 24px 0;
+  padding: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  min-height: 100dvh;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
   box-sizing: border-box;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ==========================================================================
@@ -37,7 +37,7 @@
 }
 
 @media (min-width: 640px) {
-  .login-card {
+  .login-card:not(.register-card) {
     min-height: 760px;
     height: 760px;
     max-height: 94vh;
@@ -302,10 +302,77 @@
    ========================================================================== */
 
 .register-card {
-  padding-top: 16px;
+  width: 100%;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  padding: 16px 20px 24px 20px !important;
+  display: flex;
+  flex-direction: column;
   justify-content: flex-start;
-  align-items: center;
-  gap: 12px;
+  align-items: stretch;
+  gap: 8px;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.register-card .register-top-bar {
+  margin-bottom: 2px;
+}
+
+.register-card .register-header-text {
+  margin-top: 2px;
+}
+
+.register-card .avatar-picker-section {
+  margin: 2px 0 6px;
+}
+
+.register-card .avatar-container {
+  width: 64px;
+  height: 64px;
+}
+
+.register-card .avatar-circle img {
+  width: 32px;
+  height: 32px;
+}
+
+.register-card .register-form-body {
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.register-card .form-group {
+  gap: 2px;
+}
+
+.register-card .input-wrapper {
+  height: 40px;
+}
+
+.register-card .form-input {
+  font-size: 0.88rem;
+}
+
+.register-card .submit-btn {
+  height: 44px;
+  margin-top: 8px;
+}
+
+.register-card .login-footer {
+  text-align: center;
+  margin-top: 12px;
+  margin-bottom: 8px;
+  padding-bottom: 16px;
+  flex-shrink: 0;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Barra superior con botón volver y trofeo */

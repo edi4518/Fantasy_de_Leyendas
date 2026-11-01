@@ -7,7 +7,7 @@
 
 import { apiClient } from './api-client.js';
 import { simulateMatchEngine } from '../domain/simulation-engine.js';
-import { CPU_TEAMS, getRandomCpuTeam } from '../data/cpu-teams.js';
+import { CPU_TEAMS, getRandomCpuTeam } from '../domain/cpu-teams.js';
 
 const STORAGE_KEYS = {
   HISTORY: 'fantasy_match_history',
@@ -104,10 +104,19 @@ export const matchService = {
       history.unshift({
         id: matchData.id || Date.now(),
         rival: matchData.awayTeam.name,
+        opponent: matchData.awayTeam.name,
+        homeTeam: matchData.homeTeam,
+        awayTeam: matchData.awayTeam,
+        homeScore,
+        awayScore,
         score: `${homeScore} - ${awayScore}`,
         resultado: resultType,
         points: pointsGained,
-        fecha: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        events: matchData.events || [],
+        stats: matchData.stats || {},
+        lineups: matchData.lineups || {},
+        fecha: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        relativeDate: 'Hoy'
       });
       localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history.slice(0, 30)));
     } catch (err) {
