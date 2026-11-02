@@ -51,8 +51,9 @@ const routes = {
 export function initRouter() {
   window.router = { navigate: navigateTo, current: getCurrentRoute };
 
-  // Manejo de eventos de retroceso/avance del navegador
+  // Manejo de eventos de retroceso/avance del navegador y cambio de hash
   window.addEventListener("popstate", handleLocation);
+  window.addEventListener("hashchange", handleLocation);
 
   // Delegación de clics globales para enlaces internos <a href="/ruta" data-link>
   document.body.addEventListener("click", (e) => {
@@ -67,20 +68,45 @@ export function initRouter() {
 }
 
 export function navigateTo(url) {
-  const currentFullUrl = window.location.pathname + window.location.search;
-  if (currentFullUrl !== url) {
-    window.history.pushState({}, "", url);
+  if (window.location.pathname.includes("index.html") || window.location.pathname.endsWith("/public/")) {
+    window.location.hash = url;
+  } else {
+    const currentFullUrl = window.location.pathname + window.location.search;
+    if (currentFullUrl !== url) {
+      window.history.pushState({}, "", url);
+    }
   }
   handleLocation();
 }
 
 export function getCurrentRoute() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const explicit = urlParams.get("screen") || urlParams.get("route");
+  if (explicit) {
+    return explicit.startsWith("/") ? explicit : "/" + explicit;
+  }
+
+  if (window.location.hash && window.location.hash.length > 1) {
+    const rawHash = window.location.hash.slice(1).split("?")[0];
+    return rawHash.startsWith("/") ? rawHash : "/" + rawHash;
+  }
+
   let path = window.location.pathname || "/";
   // Normalizar si Live Server carga con index.html o carpeta public
   if (path.includes("index.html") || path.endsWith("/public/")) {
     return "/";
   }
   return path;
+}
+
+function updateBrowserUrl(newPath) {
+  if (window.location.pathname.includes("index.html") || window.location.pathname.endsWith("/public/")) {
+    if (window.location.hash !== "#" + newPath) {
+      window.location.hash = newPath;
+    }
+  } else if (window.location.pathname !== newPath) {
+    window.history.replaceState({}, "", newPath);
+  }
 }
 
 async function handleLocation() {
@@ -92,9 +118,22 @@ async function handleLocation() {
     localStorage.removeItem("user");
     localStorage.removeItem("hasSeenOnboarding");
 
-    // Limpia el query parameter de la URL para evitar reseteos en navegaciones posteriores
     const cleanPath = window.location.pathname || "/";
     window.history.replaceState({}, "", cleanPath);
+  }
+
+  // Soporte directo para modo de prueba (Home / Dashboard)
+  const isDirectTest = urlParams.get("test") === "true" ||
+                       urlParams.get("home") === "true" ||
+                       urlParams.get("screen") === "dashboard" ||
+                       window.location.hash.includes("dashboard");
+
+  if (isDirectTest) {
+    localStorage.setItem("hasSeenOnboarding", "true");
+    if (!localStorage.getItem("auth_token") && !localStorage.getItem("access_token")) {
+      localStorage.setItem("auth_token", "dev-test-token");
+      localStorage.setItem("user", JSON.stringify({ name: "Mánager Leyenda", email: "manager@fantasy.com" }));
+    }
   }
 
   let path = getCurrentRoute();
@@ -103,45 +142,36 @@ async function handleLocation() {
 
   // 2. Redirección inicial en la raíz ("/")
   if (path === "/") {
-    if (!hasSeenOnboarding) {
-      // a) Nuevo usuario: nunca vio el tutorial
+    if (isDirectTest) {
+      path = "/dashboard";
+    } else if (!hasSeenOnboarding) {
       path = "/onboarding";
     } else if (!authToken) {
-      // b) Ya vio onboarding o deslogueado: directo a Login
       path = "/login";
     } else {
-      // c) Sesión activa: directo a Dashboard
       path = "/dashboard";
     }
 
-    if (window.location.pathname !== path) {
-      window.history.replaceState({}, "", path);
-    }
+    updateBrowserUrl(path);
   }
 
   // 3. Regla de negocio: Onboarding estrictamente una única vez
   if (path === "/onboarding" && hasSeenOnboarding) {
     path = authToken ? "/dashboard" : "/login";
-    if (window.location.pathname !== path) {
-      window.history.replaceState({}, "", path);
-    }
+    updateBrowserUrl(path);
   }
 
   // 4. Guardia de rutas protegidas (authRequired)
   const candidateRoute = routes[path] || routes["/login"];
   if (candidateRoute.authRequired && !authToken) {
     path = "/login";
-    if (window.location.pathname !== path) {
-      window.history.replaceState({}, "", path);
-    }
+    updateBrowserUrl(path);
   }
 
   // 5. Redireccionar usuarios autenticados fuera de login o register
   if ((path === "/login" || path === "/register") && authToken) {
     path = "/dashboard";
-    if (window.location.pathname !== path) {
-      window.history.replaceState({}, "", path);
-    }
+    updateBrowserUrl(path);
   }
 
   const route = routes[path] || routes["/login"];

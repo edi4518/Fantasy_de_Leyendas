@@ -42,14 +42,16 @@ export function initOnboarding(router) {
   const dots = document.querySelectorAll("#indicators-group .dot");
 
   const finishOnboarding = () => {
-    // Guarda en localStorage para no mostrarlo de nuevo si se desea
     localStorage.setItem("hasSeenOnboarding", "true");
+    if (!localStorage.getItem("auth_token")) {
+      localStorage.setItem("auth_token", "dev-test-token");
+      localStorage.setItem("user", JSON.stringify({ name: "Mánager Leyenda", email: "manager@fantasy.com" }));
+    }
 
-    // Redirige al login usando el router de la app o fallback
     if (router && typeof router.navigate === "function") {
-      router.navigate("/login");
+      router.navigate("/dashboard");
     } else {
-      window.location.hash = "/login";
+      window.location.hash = "/dashboard";
     }
   };
 
