@@ -53,6 +53,13 @@ export function openMatchResultModal(data = DEFAULT_MATCH_RESULT_DATA, options =
     document.body.appendChild(container);
   }
 
+  // Determinar clases de estilo según el resultado del partido y los puntos
+  const resultTypeUpper = (data.resultType || 'VICTORIA').toUpperCase();
+  const rawPoints = String(data.ranking?.pointsGained ?? '+15 Puntos');
+  const isLossResult = resultTypeUpper.includes('DERROTA') || rawPoints.trim().startsWith('-');
+  const isDrawResult = resultTypeUpper.includes('EMPATE');
+  const pointsModifierClass = isLossResult ? 'points-gained--loss' : (isDrawResult ? 'points-gained--draw' : '');
+
   // 3. Crear el marcado HTML del modal
   const modalHTML = `
     <div class="match-result-overlay" id="match-result-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-result-title">
@@ -112,7 +119,7 @@ export function openMatchResultModal(data = DEFAULT_MATCH_RESULT_DATA, options =
           <article class="modal-subcard ranking-subcard" aria-labelledby="ranking-subcard-title">
             <h3 class="ranking-subcard__title" id="ranking-subcard-title">Actualización de Clasificación</h3>
             <div class="ranking-subcard__content">
-              <strong class="points-gained" id="modal-points-gained">${data.ranking?.pointsGained || '+15 Puntos'}</strong>
+              <strong class="points-gained ${pointsModifierClass}" id="modal-points-gained">${rawPoints}</strong>
               <span class="current-rank-label">
                 Puesto Actual: <strong class="current-rank-value" id="modal-current-rank">${data.ranking?.currentRank || '#430'}</strong>
               </span>
@@ -173,6 +180,24 @@ function populateModalData(data = DEFAULT_MATCH_RESULT_DATA) {
     } else {
       resultBadgeEl.classList.add('modal-result-badge--win');
     }
+  }
+
+  // Puntos ganados o perdidos con color reactivo
+  const pointsEl = document.getElementById('modal-points-gained');
+  if (pointsEl) {
+    if (data.ranking?.pointsGained !== undefined) {
+      pointsEl.textContent = data.ranking.pointsGained;
+    }
+    const currentPointsText = pointsEl.textContent || '';
+    const loss = (data.resultType || '').toUpperCase().includes('DERROTA') || currentPointsText.trim().startsWith('-');
+    const draw = (data.resultType || '').toUpperCase().includes('EMPATE');
+    pointsEl.classList.toggle('points-gained--loss', loss);
+    pointsEl.classList.toggle('points-gained--draw', draw);
+  }
+
+  const rankEl = document.getElementById('modal-current-rank');
+  if (rankEl && data.ranking?.currentRank !== undefined) {
+    rankEl.textContent = data.ranking.currentRank;
   }
 
   // Avatar de iniciales o imagen

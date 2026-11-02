@@ -336,6 +336,18 @@
   font-weight: var(--font-weight-extrabold, 800);
   color: var(--color-primary, #2D6A4F);
   font-variant-numeric: tabular-nums;
+  transition: color 0.2s ease;
+}
+
+.points-gained--loss,
+.points-gained.points-lost,
+.points-gained.is-loss {
+  color: var(--color-error, #C92A2A);
+}
+
+.points-gained--draw,
+.points-gained.is-draw {
+  color: var(--color-gold, #D4AC0D);
 }
 
 .current-rank-label {

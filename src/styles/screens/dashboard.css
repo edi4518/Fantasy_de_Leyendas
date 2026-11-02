@@ -208,6 +208,24 @@
   margin: 0;
 }
 
+.budget-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.budget-formation-badge {
+  background-color: rgba(45, 106, 79, 0.1);
+  color: var(--color-primary, #2D6A4F);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  border: 1px solid rgba(45, 106, 79, 0.2);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
 .budget-percentage-badge {
   background-color: #ECFDF5;
   color: #2D6A4F;
@@ -325,6 +343,50 @@
   margin: 0;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+/* Pie informativo de la alineación dentro de la tarjeta de presupuesto */
+.budget-card__lineup-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px dashed #E2E8F0;
+  margin-top: 4px;
+}
+
+.lineup-info-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.lineup-info-icon {
+  width: 14px;
+  height: 14px;
+  stroke: var(--color-primary, #2D6A4F);
+  flex-shrink: 0;
+}
+
+#budget-lineup-status.is-incomplete {
+  color: #EF4444;
+}
+
+.budget-lineup-link {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-primary, #2D6A4F);
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.budget-lineup-link:hover {
+  opacity: 0.75;
+  text-decoration: underline;
 }
 
 /* --------------------------------------------------------------------------
@@ -924,4 +986,277 @@
   transform: scale(1.03) !important;
   box-shadow: 0 0 25px rgba(82, 183, 136, 0.9) !important;
   transition: all 0.25s ease-out;
+}
+
+/* --------------------------------------------------------------------------
+   7. MODAL DE ESTADÍSTICAS DEL EQUIPO & BOTONES DE ESTADÍSTICAS
+   -------------------------------------------------------------------------- */
+#mvp-stats-clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+#mvp-stats-clickable:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+.team-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-team-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(45, 106, 79, 0.08);
+  border: 1px solid rgba(45, 106, 79, 0.25);
+  color: var(--color-primary, #2D6A4F);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-team-stats:hover {
+  background: rgba(45, 106, 79, 0.16);
+  transform: translateY(-1px);
+}
+
+.stats-icon {
+  width: 13px;
+  height: 13px;
+  stroke: var(--color-primary, #2D6A4F);
+}
+
+/* Modal Bottom Sheet */
+.stats-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  animation: statsFadeIn 0.2s ease-out forwards;
+}
+
+.stats-modal-backdrop[hidden] {
+  display: none !important;
+}
+
+.stats-modal-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 430px;
+  max-height: 85vh;
+  margin: 0 auto;
+  background: #FFFFFF;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  animation: statsSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+.stats-modal-sheet[hidden] {
+  display: none !important;
+}
+
+@keyframes statsFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes statsSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.stats-modal__handle-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
+.stats-modal__handle {
+  width: 36px;
+  height: 4px;
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.stats-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 18px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.stats-modal__title-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stats-modal__title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.stats-modal__subtitle {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.stats-modal__close-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stats-modal__close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.stats-modal__body {
+  padding: 12px 16px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-stat-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.player-stat-card:hover {
+  transform: translateY(-1px);
+  border-color: #2D6A4F;
+}
+
+.player-stat-card__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.player-stat-card__token {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.player-stat-card__token--por {
+  background: #FEF3C7;
+  color: #B45309;
+  border: 2px solid #F59E0B;
+}
+
+.player-stat-card__token--def {
+  background: #DBEAFE;
+  color: #1D4ED8;
+  border: 2px solid #3B82F6;
+}
+
+.player-stat-card__token--mc {
+  background: #D1FAE5;
+  color: #047857;
+  border: 2px solid #10B981;
+}
+
+.player-stat-card__token--del {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: 2px solid #EF4444;
+}
+
+.player-stat-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.player-stat-card__name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.player-stat-card__tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.player-stat-card__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 6px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  min-width: 38px;
+}
+
+.stat-chip__label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.stat-chip__val {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.stat-chip--rating .stat-chip__val {
+  color: #2D6A4F;
 }

@@ -36,6 +36,20 @@ export function getPositionPenalty(naturalRole, assignedRole) {
 }
 
 export function getAdjustedPlayer(player, assignedRole) {
+  if (!player) {
+    player = {
+      name: 'Jugador',
+      posicion_base: assignedRole || 'MC',
+      role: assignedRole || 'MC',
+      rating_ataque: 75,
+      rating_defensa: 75,
+      rating_creacion: 75,
+      rating_tecnica: 75,
+      rating_fisico: 75,
+      rating_palmares: 75,
+      rating_general: 75
+    };
+  }
   const natural = (player.posicion_base || player.role || 'MC').toUpperCase();
   const assigned = (assignedRole || natural).toUpperCase();
   const penaltyRate = getPositionPenalty(natural, assigned);
@@ -258,10 +272,10 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
   const awayRoles = FORMATIONS_6V6[awayFormationKey]?.slots || ['POR', 'DEF', 'DEF', 'MC', 'MC', 'DEL'];
 
   const homeRaw = (Array.isArray(homeTeamData?.players) && homeTeamData.players.length >= 6)
-    ? homeTeamData.players
+    ? homeTeamData.players.map((p, i) => p || FALLBACK_DEFAULT_PLAYERS[i])
     : FALLBACK_DEFAULT_PLAYERS;
   const awayRaw = (Array.isArray(awayTeamData?.players) && awayTeamData.players.length >= 6)
-    ? awayTeamData.players
+    ? awayTeamData.players.map((p, i) => p || FALLBACK_DEFAULT_PLAYERS[i])
     : FALLBACK_DEFAULT_PLAYERS;
 
   let homeStarters = homeRaw.slice(0, 6).map((p, i) => getAdjustedPlayer(p, homeRoles[i]));
