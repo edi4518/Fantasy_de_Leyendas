@@ -1,5 +1,16 @@
 ﻿<!-- Vista modular: Simulación de partido en directo (screens/match) -->
 <section class="match-detail-container" id="match-view">
+  <!-- Overlay animado de celebración de GOL (gool.json Lottie) -->
+  <aside class="goal-celebration-overlay" id="goal-celebration-overlay" aria-hidden="true" hidden>
+    <div class="goal-celebration-content" id="goal-celebration-content">
+      <div class="goal-lottie-container" id="goal-lottie-container"></div>
+      <div class="goal-celebration-badge" id="goal-celebration-badge">
+        <span class="goal-celebration-title" id="goal-celebration-title">¡GOOOOOOOOL!</span>
+        <span class="goal-celebration-author" id="goal-celebration-author"></span>
+      </div>
+    </div>
+  </aside>
+
   <!-- 1. Header con acciones en vivo y rápida -->
   <header class="match-header" role="banner">
     <div class="match-header__left">

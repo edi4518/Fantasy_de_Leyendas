@@ -35,7 +35,7 @@ const routes = {
   "/dashboard": { screen: "dashboard", authRequired: false },
   "/market": { screen: "market", authRequired: true },
   "/comparison": { screen: "comparison", authRequired: true },
-  "/lineup": { screen: "lineup", authRequired: true },
+  "/lineup": { screen: "lineup", authRequired: false },
   "/match/live": { screen: "match", subview: "live-match", authRequired: false },
   "/match/result": { screen: "match", subview: "match-result", authRequired: false },
   "/history": { screen: "history", authRequired: false },
@@ -51,8 +51,9 @@ const routes = {
 export function initRouter() {
   window.router = { navigate: navigateTo, current: getCurrentRoute };
 
-  // Manejo de eventos de retroceso/avance del navegador
+  // Manejo de eventos de retroceso/avance del navegador y cambio de hash
   window.addEventListener("popstate", handleLocation);
+  window.addEventListener("hashchange", handleLocation);
 
   // Delegación de clics globales para enlaces internos <a href="/ruta" data-link>
   document.body.addEventListener("click", (e) => {
@@ -67,20 +68,58 @@ export function initRouter() {
 }
 
 export function navigateTo(url) {
-  const currentFullUrl = window.location.pathname + window.location.search;
-  if (currentFullUrl !== url) {
-    window.history.pushState({}, "", url);
+  // Limpiar cualquier parámetro de prueba (?screen= o ?home=) de la URL al navegar
+  if (window.location.search) {
+    const cleanUrl = window.location.pathname + "#" + url;
+    window.history.replaceState({}, "", cleanUrl);
+    handleLocation();
+  } else if (window.location.pathname.includes("index.html") || window.location.pathname.endsWith("/public/")) {
+    const targetHash = "#" + url;
+    if (window.location.hash !== targetHash) {
+      // El cambio de hash disparará el evento 'hashchange' que invoca handleLocation de forma natural
+      window.location.hash = targetHash;
+    } else {
+      handleLocation();
+    }
+  } else {
+    const currentFullUrl = window.location.pathname + window.location.search;
+    if (currentFullUrl !== url) {
+      window.history.pushState({}, "", url);
+    }
+    handleLocation();
   }
-  handleLocation();
 }
 
 export function getCurrentRoute() {
+  // 1. Si hay un hash activo (ej. #/dashboard, #/lineup, #/history), tiene prioridad máxima en la SPA
+  if (window.location.hash && window.location.hash.length > 1) {
+    const rawHash = window.location.hash.slice(1).split("?")[0];
+    return rawHash.startsWith("/") ? rawHash : "/" + rawHash;
+  }
+
+  // 2. Parámetro query explícito (?screen= o ?route=) en la carga inicial
+  const urlParams = new URLSearchParams(window.location.search);
+  const explicit = urlParams.get("screen") || urlParams.get("route");
+  if (explicit) {
+    return explicit.startsWith("/") ? explicit : "/" + explicit;
+  }
+
   let path = window.location.pathname || "/";
   // Normalizar si Live Server carga con index.html o carpeta public
   if (path.includes("index.html") || path.endsWith("/public/")) {
     return "/";
   }
   return path;
+}
+
+function updateBrowserUrl(newPath) {
+  if (window.location.pathname.includes("index.html") || window.location.pathname.endsWith("/public/")) {
+    if (window.location.hash !== "#" + newPath) {
+      window.location.hash = newPath;
+    }
+  } else if (window.location.pathname !== newPath) {
+    window.history.replaceState({}, "", newPath);
+  }
 }
 
 async function handleLocation() {
@@ -92,9 +131,22 @@ async function handleLocation() {
     localStorage.removeItem("user");
     localStorage.removeItem("hasSeenOnboarding");
 
-    // Limpia el query parameter de la URL para evitar reseteos en navegaciones posteriores
     const cleanPath = window.location.pathname || "/";
     window.history.replaceState({}, "", cleanPath);
+  }
+
+  // Soporte directo para modo de prueba (Home / Dashboard)
+  const isDirectTest = urlParams.get("test") === "true" ||
+                       urlParams.get("home") === "true" ||
+                       urlParams.get("screen") === "dashboard" ||
+                       window.location.hash.includes("dashboard");
+
+  if (isDirectTest) {
+    localStorage.setItem("hasSeenOnboarding", "true");
+    if (!localStorage.getItem("auth_token") && !localStorage.getItem("access_token")) {
+      localStorage.setItem("auth_token", "dev-test-token");
+      localStorage.setItem("user", JSON.stringify({ name: "Mánager Leyenda", email: "manager@fantasy.com" }));
+    }
   }
 
   let path = getCurrentRoute();
@@ -103,45 +155,36 @@ async function handleLocation() {
 
   // 2. Redirección inicial en la raíz ("/")
   if (path === "/") {
-    if (!hasSeenOnboarding) {
-      // a) Nuevo usuario: nunca vio el tutorial
+    if (isDirectTest) {
+      path = "/dashboard";
+    } else if (!hasSeenOnboarding) {
       path = "/onboarding";
     } else if (!authToken) {
-      // b) Ya vio onboarding o deslogueado: directo a Login
       path = "/login";
     } else {
-      // c) Sesión activa: directo a Dashboard
       path = "/dashboard";
     }
 
-    if (window.location.pathname !== path) {
-      window.history.replaceState({}, "", path);
-    }
+    updateBrowserUrl(path);
   }
 
   // 3. Regla de negocio: Onboarding estrictamente una única vez
   if (path === "/onboarding" && hasSeenOnboarding) {
     path = authToken ? "/dashboard" : "/login";
-    if (window.location.pathname !== path) {
-      window.history.replaceState({}, "", path);
-    }
+    updateBrowserUrl(path);
   }
 
   // 4. Guardia de rutas protegidas (authRequired)
   const candidateRoute = routes[path] || routes["/login"];
   if (candidateRoute.authRequired && !authToken) {
     path = "/login";
-    if (window.location.pathname !== path) {
-      window.history.replaceState({}, "", path);
-    }
+    updateBrowserUrl(path);
   }
 
   // 5. Redireccionar usuarios autenticados fuera de login o register
   if ((path === "/login" || path === "/register") && authToken) {
     path = "/dashboard";
-    if (window.location.pathname !== path) {
-      window.history.replaceState({}, "", path);
-    }
+    updateBrowserUrl(path);
   }
 
   const route = routes[path] || routes["/login"];
@@ -173,6 +216,9 @@ async function handleLocation() {
       throw new Error(`No se pudo cargar la vista: ${route.screen}/${viewFile}.html`);
     }
     const html = await response.text();
+
+    // Asegurar que la hoja de estilos de la pantalla esté cargada
+    ensureScreenStylesheet(route.screen);
 
     // Inyectar nuevo contenido y transición hacia adentro
     setTimeout(async () => {
@@ -272,6 +318,18 @@ async function loadScreenController(route) {
       break;
     }
 
+    case "lineup": {
+      try {
+        const module = await import(`../screens/lineup/lineup.js?t=${Date.now()}`);
+        if (typeof module.initLineup === "function") {
+          module.initLineup(routerInstance);
+        }
+      } catch (err) {
+        console.warn("[Router] Controlador lineup.js no inicializado:", err);
+      }
+      break;
+    }
+
     case "match": {
       try {
         const module = await import(`../screens/match/match.js?t=${Date.now()}`);
@@ -291,5 +349,17 @@ async function loadScreenController(route) {
         `[Router] Sin controlador específico para pantalla: ${route.screen}`,
       );
       break;
+  }
+}
+
+function ensureScreenStylesheet(screenName) {
+  if (!screenName) return;
+  const href = `/src/styles/screens/${screenName}.css`;
+  const existing = document.querySelector(`link[href*="${screenName}.css"]`);
+  if (!existing) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = `${href}?v=${Date.now()}`;
+    document.head.appendChild(link);
   }
 }

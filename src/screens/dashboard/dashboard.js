@@ -1,3 +1,4 @@
+import { getPlayerRating, getPlayerPrice, DEFAULT_HOME_SQUAD } from '../lineup/lineup.js';
 /**
  * @file dashboard.js
  * @description Módulo controlador para la vista principal (Dashboard / Inicio) de Fantasy de Leyendas.
@@ -18,17 +19,23 @@ export const DEFAULT_HOME_DATA = {
     avatarUrl: null
   },
   budget: {
-    spent: 83.4,
-    available: 16.6,
+    spent: 86.5,
+    available: 13.5,
     total: 100.0,
-    percentage: 83
+    percentage: 87
   },
-  valGlobal: 88,
+  valGlobal: 94,
+  formation: '1-2-2-1',
+  startersCount: 6,
+  reservesCount: 3,
+  totalPlayers: 9,
   mvp: {
-    name: 'L. Messi',
+    name: 'Messi',
     tag: 'MVP',
     position: 'DEL',
-    score: 9.2,
+    score: '-',
+    matches: 0,
+    goals: 0,
     maxScore: 10,
     avatarUrl: null
   },
@@ -36,12 +43,12 @@ export const DEFAULT_HOME_DATA = {
     count: 6,
     max: 6,
     players: [
-      { id: 1, role: 'POR', name: 'L. Yashin', rating: 91, avatarUrl: null },
-      { id: 2, role: 'DEF', name: 'F. Baresi', rating: 92, avatarUrl: null },
-      { id: 3, role: 'DEF', name: 'P. Maldini', rating: 94, avatarUrl: null },
-      { id: 4, role: 'MC', name: 'Z. Zidane', rating: 93, avatarUrl: null },
-      { id: 5, role: 'MC', name: 'Xavi Hernández', rating: 91, avatarUrl: null },
-      { id: 6, role: 'DEL', name: 'L. Messi', rating: 96, avatarUrl: null }
+      { id: 1, role: 'POR', name: 'Casillas', rating: 89, avatarUrl: null },
+      { id: 2, role: 'DEF', name: 'Maldini', rating: 92, avatarUrl: null },
+      { id: 3, role: 'DEF', name: 'Baresi', rating: 93, avatarUrl: null },
+      { id: 4, role: 'MC', name: 'Zidane', rating: 96, avatarUrl: null },
+      { id: 5, role: 'MC', name: 'Xavi', rating: 97, avatarUrl: null },
+      { id: 6, role: 'DEL', name: 'Messi', rating: 99, avatarUrl: null }
     ]
   },
   streak: {
@@ -50,7 +57,7 @@ export const DEFAULT_HOME_DATA = {
       scoreText: 'V 2 - 1',
       opponent: 'vs MánagerX'
     },
-    recentResults: ['V', 'V', 'D', 'E', 'V'] // V = Victoria, D = Derrota, E = Empate
+    recentResults: ['V', 'V', 'D', 'E', 'V']
   }
 };
 
@@ -108,6 +115,25 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
       budgetContainerEl.setAttribute('aria-valuenow', percentage.toString());
     }
 
+    // Formación e Información de Alineación en Budget Card
+    const formationBadgeEl = document.getElementById('budget-formation-badge');
+    if (formationBadgeEl && data.formation) {
+      formationBadgeEl.textContent = data.formation;
+    }
+
+    const lineupStatusEl = document.getElementById('budget-lineup-status');
+    if (lineupStatusEl) {
+      const starters = data.startersCount ?? 6;
+      const reserves = data.reservesCount ?? 3;
+      if (starters < 6 || reserves < 3) {
+        lineupStatusEl.textContent = `Alineación: ${starters}/6 Titulares • ${reserves}/3 Suplentes`;
+        lineupStatusEl.classList.add('is-incomplete');
+      } else {
+        lineupStatusEl.textContent = `Alineación: ${starters} Titulares • ${reserves} Suplentes`;
+        lineupStatusEl.classList.remove('is-incomplete');
+      }
+    }
+
     // 3. Valoración Global
     const valGlobalEl = document.getElementById('val-global-value');
     if (valGlobalEl && data.valGlobal !== undefined) {
@@ -131,8 +157,23 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
     }
 
     const mvpScoreEl = document.getElementById('mvp-score');
-    if (mvpScoreEl && data.mvp?.score !== undefined) {
-      mvpScoreEl.textContent = Number(data.mvp.score).toFixed(1);
+    if (mvpScoreEl) {
+      if (data.mvp?.score !== undefined && data.mvp?.score !== null && data.mvp?.score !== '-') {
+        const num = Number(data.mvp.score);
+        mvpScoreEl.textContent = !isNaN(num) && num > 0 ? num.toFixed(1) : '-';
+      } else {
+        mvpScoreEl.textContent = '-';
+      }
+    }
+
+    const mvpMatchesEl = document.getElementById('mvp-matches');
+    if (mvpMatchesEl) {
+      mvpMatchesEl.textContent = (data.mvp?.matches ?? 0).toString();
+    }
+
+    const mvpGoalsEl = document.getElementById('mvp-goals');
+    if (mvpGoalsEl) {
+      mvpGoalsEl.textContent = (data.mvp?.goals ?? 0).toString();
     }
 
     const mvpAvatarEl = document.getElementById('mvp-avatar');
@@ -289,7 +330,81 @@ export async function fetchHomeData() {
     console.debug('[Dashboard] Error leyendo datos locales de partidos:', e);
   }
 
-  // 4. Mapeo y fusión con el esquema canónico
+  // 4. Lectura y cálculo reactivo de la Alineación y Plantilla Activa
+  let activeSquad = null;
+  try {
+    const rawSquad = localStorage.getItem('fantasy_active_squad');
+    if (rawSquad) {
+      activeSquad = JSON.parse(rawSquad);
+    }
+  } catch (e) {
+    console.debug('[Dashboard] Error leyendo plantilla activa:', e);
+  }
+
+  if (!activeSquad || !Array.isArray(activeSquad.players) || activeSquad.players.length === 0) {
+    activeSquad = DEFAULT_HOME_SQUAD;
+  }
+
+  // Leer estadísticas acumuladas reales de los jugadores
+  let playerStats = {};
+  try {
+    const rawStats = localStorage.getItem('fantasy_player_stats');
+    if (rawStats) playerStats = JSON.parse(rawStats);
+  } catch (e) {
+    console.debug('[Dashboard] Error leyendo fantasy_player_stats:', e);
+  }
+
+  const starters = activeSquad.players.slice(0, 6).filter(Boolean);
+  const reserves = activeSquad.players.slice(6, 9).filter(Boolean);
+  const allSquadPlayers = activeSquad.players.filter(Boolean);
+
+  // Cálculo del presupuesto gastado y disponible
+  const totalSpent = allSquadPlayers.reduce((acc, p) => acc + getPlayerPrice(p), 0);
+  const spentRounded = Math.round(totalSpent * 10) / 10;
+  const availableRounded = Math.max(0, Math.round((100.0 - spentRounded) * 10) / 10);
+  const budgetPercentage = Math.min(100, Math.round((spentRounded / 100.0) * 100));
+
+  // Cálculo de Valoración Global (media real de los 6 puestos titulares)
+  const startersTotalRating = starters.reduce((acc, p) => acc + getPlayerRating(p), 0);
+  const calculatedValGlobal = starters.length > 0 ? Math.round(startersTotalRating / 6) : 0;
+
+  // Helper flexible para comparar nombres de jugadores (ej. "L. Messi" y "Messi")
+  function isSameName(a, b) {
+    if (!a || !b) return false;
+    const cleanA = a.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
+    const cleanB = b.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
+    return cleanA === cleanB || cleanA.includes(cleanB) || cleanB.includes(cleanA);
+  }
+
+  function getPlayerStatRecord(playerName) {
+    if (!playerName) return null;
+    return playerStats[playerName] || Object.values(playerStats).find(v => isSameName(v.name, playerName)) || null;
+  }
+
+  // Jugador destacado / MVP: prioriza a futbolistas con partidos disputados, goles y premios MVP oficiales
+  const playersWithMatches = allSquadPlayers.filter(p => {
+    const s = getPlayerStatRecord(p.name);
+    return (s?.matchesPlayed || 0) > 0;
+  });
+
+  let topPlayer;
+  let topStats;
+
+  if (playersWithMatches.length > 0) {
+    topPlayer = [...playersWithMatches].sort((a, b) => {
+      const sA = getPlayerStatRecord(a.name) || {};
+      const sB = getPlayerStatRecord(b.name) || {};
+      const scoreA = (sA.mvpAwards || 0) * 15 + (sA.goals || 0) * 5 + (Number(sA.avgRating) || 0) * 2;
+      const scoreB = (sB.mvpAwards || 0) * 15 + (sB.goals || 0) * 5 + (Number(sB.avgRating) || 0) * 2;
+      return scoreB - scoreA;
+    })[0];
+    topStats = getPlayerStatRecord(topPlayer.name);
+  } else {
+    topPlayer = allSquadPlayers.find(p => p.role === 'DEL') || starters[0] || allSquadPlayers[0];
+    topStats = { matchesPlayed: 0, goals: 0, avgRating: null };
+  }
+
+  // 5. Mapeo y fusión con el esquema canónico
   const consolidatedData = {
     ...DEFAULT_HOME_DATA,
     manager: {
@@ -299,16 +414,39 @@ export async function fetchHomeData() {
       ranking: localStats?.ranking ?? managerData?.ranking ?? DEFAULT_HOME_DATA.manager.ranking
     },
     budget: {
-      ...DEFAULT_HOME_DATA.budget,
-      spent: analyticsData?.budget_spent ?? DEFAULT_HOME_DATA.budget.spent,
-      available: analyticsData?.budget_available ?? DEFAULT_HOME_DATA.budget.available,
-      percentage: analyticsData?.budget_percentage ?? DEFAULT_HOME_DATA.budget.percentage
+      total: 100.0,
+      spent: spentRounded,
+      available: availableRounded,
+      percentage: budgetPercentage
     },
-    valGlobal: analyticsData?.global_rating ?? DEFAULT_HOME_DATA.valGlobal,
-    mvp: {
-      ...DEFAULT_HOME_DATA.mvp,
-      ...(analyticsData?.mvp_player || {})
+    valGlobal: calculatedValGlobal,
+    formation: activeSquad.formation || '1-2-2-1',
+    startersCount: starters.length,
+    reservesCount: reserves.length,
+    totalPlayers: allSquadPlayers.length,
+    team: {
+      count: starters.length,
+      max: 6,
+      players: starters.map((p, idx) => ({
+        id: idx + 1,
+        name: p.name,
+        role: p.role,
+        rating: getPlayerRating(p),
+        avatarUrl: p.photo_url || p.avatarUrl || null
+      }))
     },
+    mvp: topPlayer ? {
+      name: topPlayer.name,
+      tag: 'MVP',
+      position: (topPlayer.role || 'DEL').toUpperCase(),
+      matches: topStats?.matchesPlayed || 0,
+      goals: topStats?.goals || 0,
+      score: (topStats?.matchesPlayed > 0 && topStats?.avgRating != null)
+        ? Number(topStats.avgRating).toFixed(1)
+        : '-',
+      maxScore: 10,
+      avatarUrl: topPlayer.photo_url || topPlayer.avatarUrl || null
+    } : DEFAULT_HOME_DATA.mvp,
     streak: {
       ...DEFAULT_HOME_DATA.streak,
       ...(analyticsData?.streak || {}),
@@ -386,6 +524,158 @@ export function setupHomeEventListeners(router) {
       }
     });
   }
+
+  // 3. Enlace directo a Pizarra Táctica / Alineación
+  const lineupLink = document.getElementById('budget-lineup-link');
+  if (lineupLink) {
+    lineupLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.router && typeof window.router.navigate === 'function') {
+        window.router.navigate('/lineup');
+      } else if (router && typeof router.navigate === 'function') {
+        router.navigate('/lineup');
+      } else {
+        window.location.hash = '#/lineup';
+      }
+    });
+  }
+
+  // 4. Escucha de sincronización reactiva cuando la alineación cambia
+  const squadUpdateHandler = async () => {
+    try {
+      const liveData = await fetchHomeData();
+      renderHome(liveData);
+      if (statsModal && !statsModal.hasAttribute('hidden')) {
+        renderStatsModalContent();
+      }
+    } catch (e) {
+      console.debug('[Dashboard] Error al refrescar datos de alineación:', e);
+    }
+  };
+  window.addEventListener('fantasy:squad-updated', squadUpdateHandler);
+  window.addEventListener('fantasy:player-stats-updated', squadUpdateHandler);
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'fantasy_active_squad' || e.key === 'fantasy_player_stats') {
+      squadUpdateHandler();
+    }
+  });
+
+  // 5. Modal de Estadísticas Completas de los 9 Jugadores
+  const statsModal = document.getElementById('stats-modal-sheet');
+  const statsBackdrop = document.getElementById('stats-modal-backdrop');
+  const btnStats = document.getElementById('btn-team-stats');
+  const mvpClickable = document.getElementById('mvp-stats-clickable');
+  const btnCloseStats = document.getElementById('btn-close-stats-modal');
+  const statsListContainer = document.getElementById('stats-modal-list');
+
+  function openStatsModal() {
+    if (!statsModal || !statsBackdrop) return;
+    renderStatsModalContent();
+    statsBackdrop.removeAttribute('hidden');
+    statsModal.removeAttribute('hidden');
+  }
+
+  function closeStatsModal() {
+    if (!statsModal || !statsBackdrop) return;
+    statsModal.setAttribute('hidden', '');
+    statsBackdrop.setAttribute('hidden', '');
+  }
+
+  function renderStatsModalContent() {
+    if (!statsListContainer) return;
+
+    let squad = DEFAULT_HOME_SQUAD;
+    try {
+      const raw = localStorage.getItem('fantasy_active_squad');
+      if (raw) squad = JSON.parse(raw);
+    } catch (e) {}
+
+    let stats = {};
+    try {
+      const raw = localStorage.getItem('fantasy_player_stats');
+      if (raw) stats = JSON.parse(raw);
+    } catch (e) {}
+
+    const rawList = Array.isArray(squad?.players) ? squad.players : DEFAULT_HOME_SQUAD.players;
+    const players = [];
+    for (let i = 0; i < 9; i++) {
+      players.push(rawList[i] || DEFAULT_HOME_SQUAD.players[i] || null);
+    }
+
+    statsListContainer.innerHTML = players.map((p, idx) => {
+      if (!p) {
+        return `
+          <div class="player-stat-card">
+            <div class="player-stat-card__left">
+              <div class="player-stat-card__token player-stat-card__token--mc">+</div>
+              <div class="player-stat-card__info">
+                <span class="player-stat-card__name">Puesto Vacío</span>
+                <span class="player-stat-card__tag">${idx < 6 ? 'Titular sin asignar' : 'Banquillo libre'}</span>
+              </div>
+            </div>
+            <div class="player-stat-card__right">
+              <span class="stat-chip"><span class="stat-chip__label">PJ</span><strong class="stat-chip__val">-</strong></span>
+              <span class="stat-chip"><span class="stat-chip__label">Goles</span><strong class="stat-chip__val">-</strong></span>
+            </div>
+          </div>
+        `;
+      }
+
+      function isSameNameModal(a, b) {
+        if (!a || !b) return false;
+        const cleanA = a.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
+        const cleanB = b.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
+        return cleanA === cleanB || cleanA.includes(cleanB) || cleanB.includes(cleanA);
+      }
+
+      const role = (p.role || p.posicion_base || 'MC').toUpperCase();
+      const pStats = stats[p.name] ||
+        Object.values(stats).find(v => isSameNameModal(v.name, p.name)) ||
+        Object.entries(stats).find(([k]) => isSameNameModal(k, p.name))?.[1] ||
+        {};
+      const hasPlayed = (pStats.matchesPlayed || 0) > 0;
+      const matches = pStats.matchesPlayed || 0;
+      const goals = pStats.goals || 0;
+      const rating = (hasPlayed && pStats.avgRating != null)
+        ? Number(pStats.avgRating).toFixed(1)
+        : '-';
+      const isStarter = idx < 6;
+      const tokenClass = `player-stat-card__token--${role.toLowerCase()}`;
+
+      return `
+        <div class="player-stat-card">
+          <div class="player-stat-card__left">
+            <div class="player-stat-card__token ${tokenClass}">
+              ${role}
+            </div>
+            <div class="player-stat-card__info">
+              <span class="player-stat-card__name">${p.name}</span>
+              <span class="player-stat-card__tag">${isStarter ? 'Titular' : 'Suplente'} • Rating Base ${getPlayerRating(p)}</span>
+            </div>
+          </div>
+          <div class="player-stat-card__right">
+            <span class="stat-chip" title="Partidos Jugados">
+              <span class="stat-chip__label">PJ</span>
+              <strong class="stat-chip__val">${matches}</strong>
+            </span>
+            <span class="stat-chip" title="Goles anotados">
+              <span class="stat-chip__label">Goles</span>
+              <strong class="stat-chip__val">${goals}</strong>
+            </span>
+            <span class="stat-chip stat-chip--rating" title="Nota Media">
+              <span class="stat-chip__label">Nota</span>
+              <strong class="stat-chip__val">${rating}</strong>
+            </span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  if (btnStats) btnStats.addEventListener('click', openStatsModal);
+  if (mvpClickable) mvpClickable.addEventListener('click', openStatsModal);
+  if (btnCloseStats) btnCloseStats.addEventListener('click', closeStatsModal);
+  if (statsBackdrop) statsBackdrop.addEventListener('click', closeStatsModal);
 }
 
 /**

@@ -32,31 +32,47 @@
           </svg>
           <h2 class="budget-card__title" id="budget-title">Presupuesto del equipo</h2>
         </div>
-        <span class="budget-percentage-badge" id="budget-percentage">83%</span>
+        <div class="budget-header-badges">
+          <span class="budget-percentage-badge" id="budget-percentage">87%</span>
+        </div>
       </div>
 
       <div class="budget-card__content">
         <div class="budget-metrics" id="team-budget">
           <div class="budget-figures">
-            <span class="budget-spent-text">Gastado: <strong id="budget-spent" class="budget-spent-value">83.4M</strong></span>
+            <span class="budget-spent-text">Gastado: <strong id="budget-spent" class="budget-spent-value">86.5M</strong></span>
           </div>
 
           <!-- Barra de Progreso de Presupuesto -->
-          <div class="budget-progress-track" role="progressbar" aria-valuenow="83.4" aria-valuemin="0" aria-valuemax="100" id="budget-progress-container" aria-label="Porcentaje de presupuesto consumido">
-            <div class="budget-progress-bar" id="budget-progress-bar" style="width: 83.4%;"></div>
+          <div class="budget-progress-track" role="progressbar" aria-valuenow="86.5" aria-valuemin="0" aria-valuemax="100" id="budget-progress-container" aria-label="Porcentaje de presupuesto consumido">
+            <div class="budget-progress-bar" id="budget-progress-bar"></div>
           </div>
 
           <div class="budget-sub-figures">
             <span class="budget-limit-text" id="budget-limit-text">Límite: 100M</span>
-            <span class="budget-available-text" id="budget-available-wrapper">Disponible: <span id="budget-available">16.6M</span></span>
+            <span class="budget-available-text" id="budget-available-wrapper">Disponible: <span id="budget-available">13.5M</span></span>
           </div>
         </div>
 
         <!-- Badge Circular: Valoración Global -->
         <div class="val-global-badge" id="global-val" aria-label="Valoración global del equipo">
           <span class="val-global-badge__label">VAL. GLOBAL</span>
-          <span class="val-global-badge__value" id="val-global-value">88</span>
+          <span class="val-global-badge__value" id="val-global-value">94</span>
         </div>
+      </div>
+
+      <!-- Información de la Alineación activa en la tarjeta -->
+      <div class="budget-card__lineup-info" id="budget-lineup-info">
+        <div class="lineup-info-pill">
+          <svg class="lineup-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span id="budget-lineup-status">Alineación: 6 Titulares • 3 Suplentes</span>
+        </div>
+        <a href="#/lineup" class="budget-lineup-link" id="budget-lineup-link" aria-label="Gestionar y ver alineación">Ver Pizarra &gt;</a>
       </div>
     </article>
 
@@ -64,10 +80,10 @@
     <article class="card home-card mvp-card" id="mvp-player-card" aria-labelledby="mvp-name">
       <div class="mvp-card__top">
         <span class="badge badge--gold mvp-badge" id="mvp-tag">MVP</span>
-        <div class="mvp-stats-summary">
-          <span class="stat-item"><span class="stat-label">PARTIDOS:</span> <strong class="stat-val" id="mvp-matches">24</strong></span>
+        <div class="mvp-stats-summary" id="mvp-stats-clickable" role="button" tabindex="0" title="Ver estadísticas completas">
+          <span class="stat-item"><span class="stat-label">PARTIDOS:</span> <strong class="stat-val" id="mvp-matches">0</strong></span>
           <span class="stat-divider">|</span>
-          <span class="stat-item"><span class="stat-label">GOLES:</span> <strong class="stat-val" id="mvp-goals">18</strong></span>
+          <span class="stat-item"><span class="stat-label">GOLES:</span> <strong class="stat-val" id="mvp-goals">0</strong></span>
         </div>
       </div>
 
@@ -95,8 +111,8 @@
 
         <div class="mvp-card__right">
           <span class="mvp-score-label" id="mvp-label">NOTA MEDIA</span>
-          <div class="mvp-score-pill" aria-label="Calificación de 9.2 sobre 10">
-            <span class="mvp-score-value" id="mvp-score">9.2</span>
+          <div class="mvp-score-pill" aria-label="Calificación de nota media sobre 10">
+            <span class="mvp-score-value" id="mvp-score">-</span>
             <span class="mvp-score-max">/10</span>
           </div>
         </div>
@@ -107,7 +123,15 @@
     <section class="team-section" id="team-section" aria-labelledby="team-section-title">
       <div class="team-section__header">
         <h2 class="team-section__title" id="team-section-title">Mi Equipo</h2>
-        <span class="team-section__count" id="team-players-count">6 / 6 jugadores</span>
+        <div class="team-header-actions">
+          <button type="button" class="btn-team-stats" id="btn-team-stats" title="Ver estadísticas de los 9 jugadores">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="stats-icon" aria-hidden="true">
+              <path d="M18 20V10M12 20V4M6 20v-6"></path>
+            </svg>
+            <span>Estadísticas</span>
+          </button>
+          <span class="team-section__count" id="team-players-count">6 / 6 jugadores</span>
+        </div>
       </div>
 
       <div class="team-slots-grid" id="team-slots-container" role="list" aria-label="Alineación titular de 6 jugadores">
@@ -213,4 +237,23 @@
       <span>¡BUSCAR RIVAL!</span>
     </button>
   </footer>
+
+  <!-- Modal Bottom Sheet: Estadísticas de la Plantilla Completa (9 Jugadores) -->
+  <div id="stats-modal-backdrop" class="stats-modal-backdrop" hidden></div>
+  <section id="stats-modal-sheet" class="stats-modal-sheet" aria-labelledby="stats-modal-title"
+    aria-modal="true" role="dialog" hidden>
+    <div class="stats-modal__handle-wrapper">
+      <span class="stats-modal__handle"></span>
+    </div>
+    <div class="stats-modal__header">
+      <div class="stats-modal__title-box">
+        <h2 id="stats-modal-title" class="stats-modal__title">Estadísticas de la Plantilla</h2>
+        <span class="stats-modal__subtitle">Rendimiento real acumulado de tus 9 jugadores</span>
+      </div>
+      <button id="btn-close-stats-modal" class="stats-modal__close-btn" type="button" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="stats-modal__body" id="stats-modal-list">
+      <!-- Se pueblan reactivamente las tarjetas de los 9 jugadores -->
+    </div>
+  </section>
 </section>
