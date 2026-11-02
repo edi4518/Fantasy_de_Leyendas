@@ -107,11 +107,48 @@ export function calculatePossessionAndChances(homePlayers, awayPlayers, homeMult
 // 3. DUELOS DE RESOLUCIÓN (ATAQUE VS DEFENSA + ARQUERO CON RNG)
 // =============================================================================
 
+/**
+ * Selecciona al rematador de la jugada usando una ruleta ponderada.
+ * Los delanteros tienen la mayor probabilidad (peso base mayor),
+ * pero los mediocampistas que llegan al área y ocasionalmente defensores
+ * también pueden rematar y anotar.
+ */
+export function selectAttackerShooter(attackingPlayers = []) {
+  if (!Array.isArray(attackingPlayers) || attackingPlayers.length === 0) {
+    return { name: 'Delantero', rating_ataque: 80, rating_palmares: 75 };
+  }
+
+  // Ponderaciones por rol táctico:
+  // DEL: definición y presencia en área (x1.7)
+  // MC: llegada de segunda línea y remates de media distancia (x0.9)
+  // DEF: subida ofensiva o rebote en área rival (x0.15)
+  // POR: excepción mínima (x0.01)
+  const roleWeights = { DEL: 1.7, MC: 0.9, DEF: 0.15, POR: 0.01 };
+
+  const pool = attackingPlayers.map((p) => {
+    const role = (p.assignedRole || p.posicion_base || 'MC').toUpperCase();
+    const mult = roleWeights[role] || 1.0;
+    const atk = Math.max(20, Number(p.rating_ataque) || 70);
+    const weight = Math.pow(atk / 10, 2) * mult;
+    return { player: p, weight };
+  });
+
+  const totalWeight = pool.reduce((acc, item) => acc + item.weight, 0);
+  let roll = Math.random() * totalWeight;
+
+  for (const item of pool) {
+    if (roll < item.weight) {
+      return item.player;
+    }
+    roll -= item.weight;
+  }
+
+  return pool[0]?.player || attackingPlayers[0];
+}
+
 export function resolveGoalChance(attackingPlayers = [], defendingPlayers = [], attackMult = { attack: 1.0 }, defMult = { defense: 1.0 }, isClutchActive = false) {
-  const attackers = attackingPlayers.filter((p) => p && (p.assignedRole === 'DEL' || p.assignedRole === 'MC'));
-  const leadAttacker = attackers.length > 0
-    ? attackers.reduce((best, cur) => cur.rating_ataque > best.rating_ataque ? cur : best, attackers[0])
-    : (attackingPlayers[0] || { name: 'Delantero', rating_ataque: 80, rating_palmares: 75 });
+  // Selección ponderada del rematador (permite variedad natural de goleadores)
+  const leadAttacker = selectAttackerShooter(attackingPlayers);
 
   let attackRating = (leadAttacker.rating_ataque || 80) * (attackMult.attack || 1.0);
 
@@ -134,8 +171,9 @@ export function resolveGoalChance(attackingPlayers = [], defendingPlayers = [], 
   const defenseStrength = (avgDefRating * 0.5) + (gkRating * 0.5);
 
   const diff = attackRating - defenseStrength;
-  let goalProbability = 0.45 + (diff * 0.010);
-  goalProbability = Math.max(0.12, Math.min(0.78, goalProbability));
+  // Línea base calibrada para fútbol real (~28% de conversión por ocasión generada)
+  let goalProbability = 0.28 + (diff * 0.006);
+  goalProbability = Math.max(0.10, Math.min(0.52, goalProbability));
 
   const isGoal = Math.random() < goalProbability;
 
@@ -406,8 +444,13 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
         actionStatus = '¡PENALTI COBRADO!';
         if (attackingHome) homeShots++; else awayShots++;
 
-        const takers = attStarters.filter(p => p.assignedRole === 'DEL' || p.assignedRole === 'MC');
-        const taker = takers.length > 0 ? takers[0] : attStarters[0];
+        const sortedTakers = [...attStarters]
+          .filter(p => p.assignedRole === 'DEL' || p.assignedRole === 'MC')
+          .sort((a, b) => ((b.rating_ataque || 70) * 0.5 + (b.rating_tecnica || 70) * 0.5) - ((a.rating_ataque || 70) * 0.5 + (a.rating_tecnica || 70) * 0.5));
+        const penRoll = Math.random();
+        const taker = (penRoll < 0.70 || sortedTakers.length < 2)
+          ? (sortedTakers[0] || attStarters[0])
+          : sortedTakers[1];
         const gk = defStarters.find(p => p.assignedRole === 'POR') || defStarters[0];
 
         // 75% conversión de penal
@@ -439,12 +482,17 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
         actionStatus = 'TIRO LIBRE AL BORDE DEL ÁREA';
         if (attackingHome) homeShots++; else awayShots++;
 
-        const kickers = [...attStarters].sort((a, b) => b.rating_tecnica - a.rating_tecnica);
-        const kicker = kickers[0] || attStarters[0];
+        const kickers = [...attStarters].sort((a, b) => (b.rating_tecnica || 70) - (a.rating_tecnica || 70));
+        const fkRoll = Math.random();
+        const kicker = (fkRoll < 0.60 || kickers.length < 2)
+          ? (kickers[0] || attStarters[0])
+          : (fkRoll < 0.90 || kickers.length < 3)
+            ? kickers[1]
+            : (kickers[2] || kickers[0]);
         const gk = defStarters.find(p => p.assignedRole === 'POR') || defStarters[0];
 
         const freekickRoll = Math.random();
-        if (freekickRoll < 0.25) {
+        if (freekickRoll < 0.18) {
           if (attackingHome) homeScore++; else awayScore++;
           actionStatus = '¡GOLAZO DE TIRO LIBRE!';
           hasGoalThisCycle = true;
@@ -490,8 +538,8 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
           detail: '(Tiro de Esquina)'
         });
 
-        // Chance de gol de cabeza tras córner (18%)
-        if (Math.random() < 0.18) {
+        // Chance de gol de cabeza tras córner calibrada (14%)
+        if (Math.random() < 0.14) {
           const headers = attStarters.filter(p => p.assignedRole === 'DEF' || p.assignedRole === 'DEL');
           const headerGuy = headers[Math.floor(Math.random() * headers.length)] || attStarters[0];
           if (attackingHome) { homeScore++; homeShots++; } else { awayScore++; awayShots++; }
