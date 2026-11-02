@@ -33,7 +33,7 @@ const routes = {
     fullScreen: true,
   },
   "/dashboard": { screen: "dashboard", authRequired: false },
-  "/market": { screen: "market", authRequired: true },
+  "/market": { screen: "market", authRequired: false },
   "/comparison": { screen: "comparison", authRequired: true },
   "/lineup": { screen: "lineup", authRequired: true },
   "/match/live": { screen: "match", subview: "live-match", authRequired: false },
@@ -193,6 +193,9 @@ async function handleLocation() {
 async function loadScreenController(route) {
   const routerInstance = { navigate: navigateTo, current: getCurrentRoute };
 
+  const appContent = document.getElementById("app-content");
+  if (!appContent) return;
+
   switch (route.screen) {
     case "onboarding": {
       try {
@@ -254,6 +257,46 @@ async function loadScreenController(route) {
         }
       } catch (err) {
         console.warn("[Router] Controlador history.js no inicializado:", err);
+      }
+      break;
+    }
+
+    case "market": {
+      try {
+        const module = await import(`/src/screens/market/market.js?t=${Date.now()}`);
+        if (typeof module.renderMarketScreen === "function") {
+          module.renderMarketScreen(appContent, routerInstance);
+        } else {
+          console.warn("[Router] renderMarketScreen no se encontró en market.js");
+        }
+      } catch (err) {
+        console.error("[Router] Error crítico al importar market.js:", err);
+      }
+      break;
+    }
+
+    case "comparison": {
+      try {
+        const module = await import(`../screens/comparison/comparison.js?t=${Date.now()}`);
+        // Extraemos parámetros de la URL si los hay (ej: ?ids=1,2,3)
+        const urlParams = Object.fromEntries(new URLSearchParams(window.location.search));
+        if (typeof module.renderComparisonScreen === "function") {
+          module.renderComparisonScreen(appContent, routerInstance, urlParams);
+        }
+      } catch (err) {
+        console.warn("[Router] Controlador comparison.js no inicializado:", err);
+      }
+      break;
+    }
+
+    case "admin": {
+      try {
+        const module = await import(`../screens/admin/players-admin.js?t=${Date.now()}`);
+        if (typeof module.renderPlayersAdminScreen === "function") {
+          module.renderPlayersAdminScreen(appContent, routerInstance);
+        }
+      } catch (err) {
+        console.warn("[Router] Controlador players-admin.js no inicializado:", err);
       }
       break;
     }

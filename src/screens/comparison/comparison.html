@@ -1,9 +1,59 @@
-<!-- Vista HTML: Comparativa de atributos entre dos leyendas -->
-<section class="screen-comparison">
-  <h2>Comparador de Leyendas</h2>
-  <div class="comparison-container">
-    <div id="player-compare-slot-1" class="compare-slot"></div>
-    <div class="vs-divider">VS</div>
-    <div id="player-compare-slot-2" class="compare-slot"></div>
+<div class="comparison-screen" style="padding: 12px; background-color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; padding-bottom: 100px; max-width: 480px; margin: 0 auto; height: 100%; overflow-y: auto;">
+  <!-- Sub-header de la comparativa -->
+  <header style="background: #ffffff; padding: 12px 16px; border-radius: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+  <button id="btn-back-to-market" style="background: transparent; border: none; font-size: 1.4rem; cursor: pointer; color: #1e293b;" aria-label="Volver">‹</button>
+  <div style="text-align: center;">
+    <h2 style="font-size: 1rem; font-weight: 800; margin: 0; color: #0f172a;">Comparativa de Jugadores</h2>
+    <span style="font-size: 0.6rem; font-weight: 700; background: #e6f4ea; color: #2d6a4f; padding: 2px 8px; border-radius: 12px; letter-spacing: 0.5px; display: inline-block; margin-top: 2px;">SIMULACIÓN COMPARATIVA</span>
   </div>
-</section>
+  <button id="btn-comparison-search" style="background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #1e293b;" aria-label="Buscar">⌕</button>
+</div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; font-size: 0.7rem; font-weight: 800; color: #334155;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="width: 8px; height: 8px; background-color: #2d6a4f; border-radius: 50%; display: inline-block;"></span>
+        <span><strong id="comp-player-count">0</strong> JUGADORES COMPARADOS</span>
+      </div>
+      <button id="btn-add-more-players" style="background: #2d6a4f; color: white; border: none; padding: 4px 12px; border-radius: 16px; font-weight: 700; font-size: 0.75rem; cursor: pointer;">+ Añadir</button>
+    </div>
+
+    <!-- Barra tricolor superior proporcional -->
+    <div id="comp-color-bar" style="display: flex; height: 4px; border-radius: 2px; overflow: hidden; margin-top: 10px; background: #e2e8f0;">
+      <!-- Se generan dinámicamente -->
+    </div>
+  </header>
+
+  <!-- Tarjetas superiores con scroll horizontal -->
+  <section id="comp-cards-scroll" style="display: flex !important; flex-direction: row !important; gap: 10px; overflow-x: auto !important; overflow-y: hidden; width: 100%; padding-bottom: 8px; margin-bottom: 12px; white-space: nowrap;">
+    <!-- Tarjetas dinámicas -->
+  </section>
+
+  <!-- Contenedor del Radar Táctico -->
+  <section style="background: #ffffff; border-radius: 16px; padding: 14px; margin-bottom: 12px; border: 1px solid #f1f5f9;">
+    <div style="display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 800; color: #475569; margin-bottom: 10px;">
+      <span>[PERFIL TÁCTICO]</span>
+      <span style="color: #94a3b8;">MULTI-JUGADOR</span>
+    </div>
+
+    <div style="width: 100%; max-width: 280px; margin: 0 auto; height: 220px;">
+      <canvas id="radarChart"></canvas>
+    </div>
+
+    <div id="radar-legend" style="display: flex !important; flex-direction: row !important; justify-content: flex-start; gap: 6px; overflow-x: auto !important; white-space: nowrap !important; padding-bottom: 4px; margin-top: 10px;">
+      <!-- Leyendas dinámicas -->
+    </div>
+  </section>
+
+  <!-- Benchmark Estadístico -->
+  <section style="background: #ffffff; border-radius: 16px; padding: 14px; margin-bottom: 12px; border: 1px solid #f1f5f9;">
+    <div style="display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 800; color: #475569; margin-bottom: 10px;">
+      <span>[BENCHMARK ESTADÍSTICO]</span>
+      <span style="color: #94a3b8;">5 MÉTRICAS</span>
+    </div>
+
+    <div id="benchmark-list">
+      <!-- Métricas dinámicas -->
+    </div>
+  </section>
+</div>

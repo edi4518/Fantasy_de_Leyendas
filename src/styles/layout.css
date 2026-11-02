@@ -1,19 +1,16 @@
 /**
  * @file layout.css
- * @description Estructura de layout y App Shell con enfoque Mobile-First para PWA.
- * Define el contenedor unificado del smartphone (tarjeta centrada de 412px con bordes redondeados en desktop)
- * y la barra de navegación inferior perfectamente anclada al marco en todas las pantallas.
+ * @description Layout adaptativo profesional (Header de marca con logo en PC, Navegación superior tipo portal deportivo / Móvil app fija).
  */
 
 /* ==========================================================================
    1. FONDO GENERAL Y APP BODY
    ========================================================================== */
-
 body.app-body {
   margin: 0;
   padding: 0;
   background-color: var(--color-background, #f8fafc);
-  color: var(--color-text, #0f172a);
+  color: var(--color-text, #1f6415);
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
   min-height: 100dvh;
@@ -24,89 +21,61 @@ body.app-body {
   box-sizing: border-box;
 }
 
-/* En escritorio (>= 480px), centrado elegante con fondo gris slate suave */
-@media screen and (min-width: 480px) {
-  body.app-body {
-    background-color: #e2e8f0;
-    align-items: center;
-    justify-content: center;
-    padding: 16px 0;
-  }
-}
-
 /* ==========================================================================
-   2. CONTENEDOR PRINCIPAL: MARCO DEL SMARTPHONE (App Shell)
+   2. CONTENEDOR PRINCIPAL: APP SHELL (Full Viewport)
    ========================================================================== */
-
 .app-layout {
   width: 100%;
-  max-width: 412px;
+  max-width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100vh;
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
   position: relative;
   box-sizing: border-box;
-}
-
-/* En dispositivos móviles (< 480px): pantalla completa fluida */
-@media screen and (max-width: 479px) {
-  .app-layout {
-    max-width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
-    height: 100dvh;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-    overflow: hidden;
-  }
-}
-
-/* En escritorio (>= 480px): proporción de dispositivo móvil smartphone idéntica al Ranking */
-@media screen and (min-width: 480px) {
-  .app-layout {
-    width: 412px;
-    max-width: 412px;
-    height: min(780px, calc(100vh - 32px));
-    max-height: 780px;
-    border-radius: 36px;
-    border: 1px solid #cbd5e1;
-    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);
-    overflow: hidden;
-    margin: auto;
-  }
+  overflow: hidden;
+  margin: 0;
 }
 
 /* ==========================================================================
-   3. CABECERA OPCIONAL DEL APP SHELL
+   3. CABECERA PRINCIPAL (.app-header)
    ========================================================================== */
-
 .app-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 48px;
-  padding: 8px 16px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  display: none;
 }
 
-.app-header:empty {
-  display: none !important;
+@media screen and (min-width: 480px) {
+  .app-header {
+    display: flex !important;
+    order: -2;
+    background-color: #2d6a4f !important;
+    color: #ffffff !important;
+    padding: 10px 24px;
+    align-items: center;
+    justify-content: space-between;
+    height: 55px;
+    min-height: 55px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .app-header::before {
+    content: "⚽ FANTASY DE LEYENDAS";
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: #ffffff;
+  }
 }
 
 /* ==========================================================================
    4. ÁREA DE CONTENIDO PRINCIPAL (App Main)
    ========================================================================== */
-
 .app-main {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-  height: auto;
   padding: 0 !important;
   margin: 0;
   box-sizing: border-box;
@@ -116,9 +85,8 @@ body.app-body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Scrollbar estilizada y no invasiva dentro del teléfono */
 .app-main::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
 }
 
 .app-main::-webkit-scrollbar-track {
@@ -130,117 +98,170 @@ body.app-body {
   border-radius: 999px;
 }
 
-.app-main::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.6);
-}
-
-/* Pantallas a pantalla completa (Onboarding, Login, Registro): sin scroll externo */
-.app-main:has(.onboarding-screen),
-.app-main:has(.login-card) {
-  padding: 0 !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
 /* ==========================================================================
-   5. BARRA DE NAVEGACIÓN INFERIOR (App Navigation)
+   5. BARRA DE NAVEGACIÓN ADAPTATIVA Y FIJA
    ========================================================================== */
-
 .app-navigation {
-  flex: 0 0 60px;
-  height: 60px;
-  min-height: 60px;
+  flex: 0 0 auto;
   width: 100%;
-  max-width: 100%;
-  background-color: #ffffff;
-  border-top: 1px solid #e5e7eb;
   z-index: 50;
   box-sizing: border-box;
-  position: relative;
-  margin: 0;
-  padding: 0;
 }
 
-.bottom-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  background-color: #ffffff;
-  height: 60px;
-  width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* 📱 MÓVIL (< 480px) */
+@media screen and (max-width: 479px) {
+  .app-navigation {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  }
+
+  .app-main {
+    padding-bottom: 60px !important;
+  }
+
+  .bottom-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 100%;
+    width: 100%;
+  }
+
+  .bottom-nav__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    flex: 1;
+    height: 100%;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 0.68rem;
+  }
+
+  .bottom-nav__item--active,
+  .bottom-nav__item.is-active {
+    color: #266046 !important;
+  }
+
+  .bottom-nav__item--active .bottom-nav__svg,
+  .bottom-nav__item.is-active .bottom-nav__svg {
+    stroke: #266046 !important;
+  }
 }
 
-.bottom-nav__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  flex: 1;
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: #64748b;
-  cursor: pointer;
-  padding: 4px 0;
-  transition: color 0.15s ease;
-  font-family: inherit;
-  text-decoration: none;
-  box-sizing: border-box;
-}
+/* 💻 ESCRITORIO (>= 480px) */
+/* ==========================================================================
+   💻 ESCRITORIO (>= 480px): Header y Barra de Navegación Limpios y Centrados
+   ========================================================================== */
+@media screen and (min-width: 480px) {
+  /* Cabecera superior con el logo y título */
+  .app-header {
+    display: flex !important;
+    order: -2;
+    background-color: #1B4130 !important;
+    color: #ffffff !important;
+    padding: 12px 24px;
+    align-items: center;
+    justify-content: space-between;
+    height: 50px;
+    min-height: 50px;
+    border: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+  }
 
-.bottom-nav__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  .app-header::before {
+    content: "⚽ FANTASY DE LEYENDAS";
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: #ffffff;
+  }
 
-.bottom-nav__svg {
-  width: 20px;
-  height: 20px;
-  stroke: #64748b;
-  transition: stroke 0.15s ease;
-}
+  /* Barra de navegación superior unida sin líneas divisorias */
+  .app-navigation {
+    order: -1;
+    position: sticky;
+    top: 0;
+    height: 48px;
+    background-color: #1B4130 !important;
+    border: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+  }
 
-.bottom-nav__label {
-  font-size: 0.68rem;
-  font-weight: 500;
-  line-height: 1;
-  color: inherit;
-}
+  /* Contenedor del menú centrado */
+  .bottom-nav {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 auto;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center !important;
+    gap: 40px !important;
+    padding: 0 !important;
+    background-color: transparent !important;
+    border: none !important;
+  }
 
-.bottom-nav__item:hover {
-  color: #266046;
-}
+  /* Ocultamos los iconos en escritorio */
+  .bottom-nav__item .bottom-nav__icon {
+    display: none !important;
+  }
 
-.bottom-nav__item:hover .bottom-nav__svg {
-  stroke: #266046;
-}
+  /* Enlaces del menú limpios */
+  .bottom-nav__item {
+    flex: 0 0 auto;
+    height: 100%;
+    padding: 0 12px;
+    color: rgba(255, 255, 255, 0.65) !important;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-decoration: none;
+    background-color: transparent !important;
+    border: none !important;
+    border-bottom: none !important;
+    border-radius: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+  }
 
-.bottom-nav__item--active,
-.bottom-nav__item.is-active {
-  color: #266046 !important;
-}
+  .bottom-nav__item:hover {
+    color: #ffffff !important;
+  }
 
-.bottom-nav__item--active .bottom-nav__svg,
-.bottom-nav__item.is-active .bottom-nav__svg {
-  stroke: #266046 !important;
-}
+  /* Estado activo: Sin líneas azules ni cajas, solo texto blanco puro y destacado */
+  .bottom-nav__item--active,
+  .bottom-nav__item.is-active {
+    color: #ffffff !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-bottom: none !important;
+  }
 
-.bottom-nav__item--active .bottom-nav__label,
-.bottom-nav__item.is-active .bottom-nav__label {
-  font-weight: 700 !important;
-  color: #266046 !important;
+  .bottom-nav__label {
+    font-size: 0.75rem;
+    font-weight: 800; /* Texto más marcado para la sección activa */
+    color: inherit;
+  }
 }
-
 /* ==========================================================================
    6. CONTENEDOR GLOBAL DE MODALES
    ========================================================================== */
-
 #app-modal-container {
   position: relative;
   z-index: 100;
