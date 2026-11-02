@@ -17,63 +17,63 @@ body.app-body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
   min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* En escritorio (>= 480px), centrado elegante con fondo gris slate suave */
+/* En escritorio (>= 480px): el alto ocupa el 100vh completo y sin bordes redondeados */
 @media screen and (min-width: 480px) {
   body.app-body {
-    background-color: #e2e8f0;
+    background-color: #cbd5e1;
     align-items: center;
-    justify-content: center;
-    padding: 16px 0;
+    justify-content: flex-start;
+    padding: 0;
   }
 }
 
 /* ==========================================================================
-   2. CONTENEDOR PRINCIPAL: MARCO DEL SMARTPHONE (App Shell)
+   2. CONTENEDOR PRINCIPAL: APP SHELL (100vh continuo, sin bordes redondeados)
    ========================================================================== */
 
 .app-layout {
   width: 100%;
-  max-width: 412px;
+  max-width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
   position: relative;
   box-sizing: border-box;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none;
+  overflow: hidden;
 }
 
-/* En dispositivos móviles (< 480px): pantalla completa fluida */
-@media screen and (max-width: 479px) {
-  .app-layout {
-    max-width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
-    height: 100dvh;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-    overflow: hidden;
-  }
-}
-
-/* En escritorio (>= 480px): proporción de dispositivo móvil smartphone idéntica al Ranking */
+/* En escritorio (>= 480px): ancho mobile-first centrado, 100vh total y sin bordes redondeados */
 @media screen and (min-width: 480px) {
   .app-layout {
-    width: 412px;
-    max-width: 412px;
-    height: min(780px, calc(100vh - 32px));
-    max-height: 780px;
-    border-radius: 36px;
-    border: 1px solid #cbd5e1;
-    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    width: 440px;
+    max-width: 440px;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.12);
     overflow: hidden;
-    margin: auto;
+    margin: 0 auto;
   }
 }
 
