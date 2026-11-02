@@ -134,13 +134,19 @@ body.app-body {
   background: rgba(148, 163, 184, 0.6);
 }
 
-/* Pantallas a pantalla completa (Onboarding, Login, Registro): sin scroll externo */
+/* Pantallas que gestionan su propio scroll interno sin desplazar el contenedor externo */
+.app-main:has(.screen-dashboard),
+.app-main:has(.home-app-container),
+.app-main:has(#home-view),
+.app-main:has(.match-detail-container),
 .app-main:has(.onboarding-screen),
 .app-main:has(.login-card) {
   padding: 0 !important;
   height: 100% !important;
   min-height: 0 !important;
   overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 /* ==========================================================================
