@@ -95,11 +95,31 @@ export function getUserSquad() {
     const saved = localStorage.getItem('fantasy_active_squad');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed && Array.isArray(parsed.players) && parsed.players.length >= 6) {
+      if (parsed && Array.isArray(parsed.players)) {
+        // Rellenar cualquier posición nula con DEFAULT_HOME_SQUAD para que la plantilla siempre esté completa
+        const filledPlayers = parsed.players.map((p, i) => p || DEFAULT_HOME_SQUAD.players[i] || {
+          name: `Leyenda ${i + 1}`,
+          role: i === 0 ? 'POR' : (i < 3 ? 'DEF' : (i < 5 ? 'MC' : 'DEL')),
+          rating_general: 85,
+          rating_ataque: 75,
+          rating_defensa: 75
+        });
+
+        while (filledPlayers.length < 9) {
+          const idx = filledPlayers.length;
+          filledPlayers.push(DEFAULT_HOME_SQUAD.players[idx] || {
+            name: `Leyenda ${idx + 1}`,
+            role: idx === 0 ? 'POR' : (idx < 3 ? 'DEF' : (idx < 5 ? 'MC' : 'DEL')),
+            rating_general: 85,
+            rating_ataque: 75,
+            rating_defensa: 75
+          });
+        }
+
         return {
           name: parsed.name || 'Tu Equipo',
           formation: parsed.formation || '1-2-2-1',
-          players: parsed.players
+          players: filledPlayers
         };
       }
     }
@@ -482,7 +502,156 @@ export function setupMatchTabs() {
  * =============================================================================
  */
 
-export async function startLiveMatchPlayback() {
+
+/**
+ * =============================================================================
+ * CELEBRACIÓN DE GOL INTERACTIVA (Lottie gool.json)
+ * =============================================================================
+ */
+
+let cachedGoalAnimationData = null;
+let currentLottieGoalAnim = null;
+let goalCelebrationTimeout = null;
+
+async function loadGoalAnimationData() {
+  if (cachedGoalAnimationData) return cachedGoalAnimationData;
+  try {
+    let res = await fetch('/src/assets/images/gool.json');
+    if (!res.ok) {
+      res = await fetch('/src/assets/images/Gool.json');
+    }
+    if (res.ok) {
+      cachedGoalAnimationData = await res.json();
+      return cachedGoalAnimationData;
+    }
+  } catch (e) {
+    console.warn('[Match] No se pudo precargar gool.json:', e);
+  }
+  return null;
+}
+
+async function ensureLottieLibrary() {
+  if (window.lottie) return window.lottie;
+  return new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = '/src/assets/libs/lottie.min.js';
+    script.onload = () => resolve(window.lottie);
+    script.onerror = () => {
+      const cdnScript = document.createElement('script');
+      cdnScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+      cdnScript.onload = () => resolve(window.lottie);
+      cdnScript.onerror = () => resolve(null);
+      document.head.appendChild(cdnScript);
+    };
+    document.head.appendChild(script);
+  });
+}
+
+export function dismissGoalCelebration() {
+  if (goalCelebrationTimeout) {
+    clearTimeout(goalCelebrationTimeout);
+    goalCelebrationTimeout = null;
+  }
+  const overlay = document.getElementById('goal-celebration-overlay');
+  if (overlay) {
+    overlay.classList.remove('is-active');
+    overlay.setAttribute('hidden', '');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+  if (currentLottieGoalAnim) {
+    try { currentLottieGoalAnim.destroy(); } catch (e) {}
+    currentLottieGoalAnim = null;
+  }
+}
+
+export async function playGoalCelebration(goalInfo = {}) {
+  const overlay = document.getElementById('goal-celebration-overlay');
+  const container = document.getElementById('goal-lottie-container');
+  const titleEl = document.getElementById('goal-celebration-title');
+  const authorEl = document.getElementById('goal-celebration-author');
+
+  if (!overlay || !container) return;
+
+  const [lottieInstance, animData] = await Promise.all([
+    ensureLottieLibrary(),
+    loadGoalAnimationData()
+  ]);
+
+  if (!lottieInstance || !animData) return;
+
+  // Actualizar rótulo y autor del gol
+  if (titleEl) titleEl.textContent = '¡GOOOOOOOOL!';
+  if (authorEl) {
+    const scorerText = goalInfo.player ? `${goalInfo.player}` : '';
+    const minuteText = goalInfo.minute ? `(${goalInfo.minute}')` : '';
+    const teamText = goalInfo.team ? `· ${goalInfo.team}` : '';
+    authorEl.textContent = [scorerText, minuteText, teamText].filter(Boolean).join(' ');
+  }
+
+  // Destruir animación anterior si hubiese
+  if (currentLottieGoalAnim) {
+    try { currentLottieGoalAnim.destroy(); } catch (e) {}
+    currentLottieGoalAnim = null;
+  }
+  container.innerHTML = '';
+
+  // Renderizar Lottie con el JSON oficial gool.json
+  currentLottieGoalAnim = lottieInstance.loadAnimation({
+    container: container,
+    renderer: 'svg',
+    loop: false,
+    autoplay: true,
+    animationData: animData
+  });
+
+  // Mostrar el overlay con animación de entrada suave
+  overlay.removeAttribute('hidden');
+  overlay.setAttribute('aria-hidden', 'false');
+  void overlay.offsetWidth; // Forzar reflow
+  overlay.classList.add('is-active');
+
+  // Permitir cierre anticipado al hacer clic en el overlay
+  if (!overlay.hasAttribute('data-click-bound')) {
+    overlay.setAttribute('data-click-bound', 'true');
+    overlay.addEventListener('click', () => {
+      dismissGoalCelebration();
+    });
+  }
+
+  // Duración del JSON: 3000 ms (90 frames a 30fps) + 400 ms de transición suave
+  const DURATION_MS = 3000;
+  const FADE_OUT_MS = 400;
+
+  return new Promise((resolve) => {
+    if (goalCelebrationTimeout) clearTimeout(goalCelebrationTimeout);
+
+    goalCelebrationTimeout = setTimeout(() => {
+      overlay.classList.remove('is-active');
+
+      goalCelebrationTimeout = setTimeout(() => {
+        overlay.setAttribute('hidden', '');
+        overlay.setAttribute('aria-hidden', 'true');
+        if (currentLottieGoalAnim) {
+          try { currentLottieGoalAnim.destroy(); } catch (e) {}
+          currentLottieGoalAnim = null;
+        }
+        resolve();
+      }, FADE_OUT_MS);
+    }, DURATION_MS);
+  });
+}
+
+
+function clearGlobalSimulationTimers() {
+  dismissGoalCelebration();
+  if (window.__fantasySimulationInterval) {
+    clearInterval(window.__fantasySimulationInterval);
+    window.__fantasySimulationInterval = null;
+  }
+  if (window.__fantasyHalftimeTimeout) {
+    clearTimeout(window.__fantasyHalftimeTimeout);
+    window.__fantasyHalftimeTimeout = null;
+  }
   if (liveSimulationInterval) {
     clearInterval(liveSimulationInterval);
     liveSimulationInterval = null;
@@ -491,13 +660,20 @@ export async function startLiveMatchPlayback() {
     clearTimeout(halftimeTimeout);
     halftimeTimeout = null;
   }
+  isMatchLive = false;
+}
+
+export async function startLiveMatchPlayback() {
+  clearGlobalSimulationTimers();
 
   const liveBtn = document.getElementById('btn-live-sim');
   if (liveBtn) liveBtn.classList.add('is-running');
 
-  // 1. Obtener la plantilla real del usuario y un rival CPU aleatorio
+  // 1. Obtener la plantilla real del usuario y un rival CPU aleatorio de los 20 equipos del sistema
+  currentFullMatch = null;
   const homeSquad = getUserSquad();
   const awaySquad = getRandomCpuTeam() || DEFAULT_AWAY_SQUAD;
+  console.info(`[Match] Simulación en vivo contra CPU: ${homeSquad.name} vs ${awaySquad.name} (Formación: ${awaySquad.formation})`);
 
   // 2. Simulación (Backend con fallback local offline)
   currentFullMatch = await matchService.simulateMatch(homeSquad, awaySquad);
@@ -562,16 +738,33 @@ export async function startLiveMatchPlayback() {
       const statusDot = document.getElementById('status-dot');
       if (statusDot) statusDot.classList.remove('is-live');
 
+      triggerHalftimePause();
+      return;
+    }
+    function triggerHalftimePause() {
+      // Detener temporalmente el reloj para el descanso
+      if (liveSimulationInterval) {
+        clearInterval(liveSimulationInterval);
+        liveSimulationInterval = null;
+        window.__fantasySimulationInterval = null;
+      }
+
+      const statusTextEl = document.getElementById('match-status-text');
+      if (statusTextEl) statusTextEl.textContent = 'DESCANSO';
+      const statusDot = document.getElementById('status-dot');
+      if (statusDot) statusDot.classList.remove('is-live');
+
       // Pausa táctica de entretiempo (1.1 segundos) antes de reanudar el segundo tiempo
       halftimeTimeout = setTimeout(() => {
         if (!isMatchLive) return;
         currentSimulatedMinute = 45; // El siguiente tick avanzará a 46'
         if (statusDot) statusDot.classList.add('is-live');
         liveSimulationInterval = setInterval(runSimulationTick, TICK_MS);
+        window.__fantasySimulationInterval = liveSimulationInterval;
       }, 1100);
-
-      return;
+      window.__fantasyHalftimeTimeout = halftimeTimeout;
     }
+
 
     // 2. Caso: Fin del partido al minuto 90
     if (currentSimulatedMinute >= 90) {
@@ -610,9 +803,7 @@ export async function startLiveMatchPlayback() {
       activeSnapshotIndex++;
       appliedNewSnapshot = true;
       const step = snapshots[activeSnapshotIndex];
-      if (step.hasGoalThisCycle) {
-        triggerScoreBump();
-      }
+
       renderMatchDetails({
         status: `EN VIVO ${currentSimulatedMinute}'`,
         isLive: true,
@@ -623,6 +814,48 @@ export async function startLiveMatchPlayback() {
         stats: step.stats,
         lineups: currentFullMatch.lineups
       });
+
+      if (step.hasGoalThisCycle) {
+        triggerScoreBump();
+
+        // Extraer autor y equipo del gol para la celebración
+        const goalEvent = (step.events || []).slice().reverse().find(e => e.type === 'goal' || e.type === 'penalty-goal');
+        const goalInfo = {
+          player: goalEvent?.player || '',
+          team: goalEvent?.side === 'home' ? homeSquad.name : (goalEvent?.side === 'away' ? awaySquad.name : ''),
+          minute: step.minute || currentSimulatedMinute
+        };
+
+        // Pausar inmediatamente la simulación durante la animación de gol
+        if (liveSimulationInterval) {
+          clearInterval(liveSimulationInterval);
+          liveSimulationInterval = null;
+          window.__fantasySimulationInterval = null;
+        }
+
+        // Reproducir la animación oficial gool.json (3s duración + 400ms fade out)
+        playGoalCelebration(goalInfo).then(() => {
+          if (!isMatchLive) return;
+
+          // Si el gol fue en el minuto 45, reanudar hacia el descanso
+          if (currentSimulatedMinute === 45) {
+            triggerHalftimePause();
+            return;
+          }
+
+          // Si el gol fue al minuto 90, finalizar el encuentro
+          if (currentSimulatedMinute >= 90) {
+            finishLiveMatch();
+            return;
+          }
+
+          // Reanudar el reloj del partido tras la celebración
+          liveSimulationInterval = setInterval(runSimulationTick, TICK_MS);
+          window.__fantasySimulationInterval = liveSimulationInterval;
+        });
+
+        return;
+      }
     }
 
     // Si este minuto no coincidió con un snapshot, avanzar el contador minuto a minuto en el badge
@@ -637,6 +870,7 @@ export async function startLiveMatchPlayback() {
   }
 
   liveSimulationInterval = setInterval(runSimulationTick, TICK_MS);
+  window.__fantasySimulationInterval = liveSimulationInterval;
 }
 
 function triggerScoreBump() {
@@ -653,15 +887,7 @@ function triggerScoreBump() {
 }
 
 function finishLiveMatch() {
-  if (liveSimulationInterval) {
-    clearInterval(liveSimulationInterval);
-    liveSimulationInterval = null;
-  }
-  if (halftimeTimeout) {
-    clearTimeout(halftimeTimeout);
-    halftimeTimeout = null;
-  }
-  isMatchLive = false;
+  clearGlobalSimulationTimers();
 
   const liveBtn = document.getElementById('btn-live-sim');
   if (liveBtn) liveBtn.classList.remove('is-running');
@@ -672,6 +898,9 @@ function finishLiveMatch() {
   if (statusDot) statusDot.classList.remove('is-live');
 
   if (currentFullMatch) {
+    if (!currentFullMatch.saveOutcome) {
+      currentFullMatch.saveOutcome = matchService.saveMatchResult(currentFullMatch);
+    }
     renderMatchDetails(currentFullMatch);
     setTimeout(() => {
       showMatchResultModal(currentFullMatch);
@@ -684,16 +913,7 @@ function finishLiveMatch() {
  */
 export async function executeQuickSimulation() {
   console.debug('[Match] Simulación Rápida: Resolviendo al instante...');
-
-  if (liveSimulationInterval) {
-    clearInterval(liveSimulationInterval);
-    liveSimulationInterval = null;
-  }
-  if (halftimeTimeout) {
-    clearTimeout(halftimeTimeout);
-    halftimeTimeout = null;
-  }
-  isMatchLive = false;
+  clearGlobalSimulationTimers();
 
   const liveBtn = document.getElementById('btn-live-sim');
   if (liveBtn) liveBtn.classList.remove('is-running');
@@ -709,6 +929,10 @@ export async function executeQuickSimulation() {
   const statusDot = document.getElementById('status-dot');
   if (statusDot) statusDot.classList.remove('is-live');
 
+  if (!currentFullMatch.saveOutcome) {
+    currentFullMatch.saveOutcome = matchService.saveMatchResult(currentFullMatch);
+  }
+
   renderMatchDetails(currentFullMatch);
   showMatchResultModal(currentFullMatch);
 }
@@ -720,32 +944,32 @@ function showMatchResultModal(match) {
   const isDraw = homeScore === awayScore;
 
   const resultType = isWin ? 'VICTORIA' : (isDraw ? 'EMPATE' : 'DERROTA');
-  const points = isWin ? '+15 Puntos' : (isDraw ? '+5 Puntos' : '+0 Puntos');
+  const fallbackPoints = isWin ? '+15 Puntos' : (isDraw ? '+5 Puntos' : '-15 Puntos');
 
-  // Extracción del MVP del partido en base a los goles o salvadas
-  const goalsEvents = (match.events || []).filter((e) => e.type === 'goal');
-  let mvpName = 'L. Messi';
-  let mvpStats = '1 Gol decisivo';
-  let mvpRating = 9.4;
+  // Persistir resultado, puntos ganados, racha del mánager y notas de jugadores
+  const saveOutcome = match.saveOutcome || matchService.saveMatchResult(match);
+  match.saveOutcome = saveOutcome;
 
-  if (goalsEvents.length > 0) {
-    // Si hubo goles, el primer goleador o el más repetido
-    const goalScorer = goalsEvents[0].player;
-    mvpName = goalScorer;
-    const goalsCount = goalsEvents.filter((e) => e.player === goalScorer).length;
-    mvpStats = `${goalsCount} ${goalsCount > 1 ? 'Goles' : 'Gol'}`;
-    mvpRating = 9.2 + Math.min(0.7, goalsCount * 0.3);
+  // Extracción del MVP dinámico a partir del resultado de simulación oficial
+  const matchMvp = saveOutcome?.matchMvp;
+  const homeLeader = match.lineups?.home?.[0]?.name || 'Messi';
+  let mvpName = matchMvp ? matchMvp.name : homeLeader;
+  let mvpRating = matchMvp ? matchMvp.matchRating : (homeScore > awayScore ? 8.8 : 7.5);
+  let mvpStats = matchMvp?.matchGoals > 0
+    ? `${matchMvp.matchGoals} ${matchMvp.matchGoals > 1 ? 'Goles' : 'Gol'}`
+    : (matchMvp?.role === 'POR' ? 'Valla invicta y atajadas clave' : 'Rendimiento destacado');
+  let pointsText;
+  if (saveOutcome && typeof saveOutcome.pointsGained === 'number') {
+    if (saveOutcome.pointsGained > 0) {
+      pointsText = `+${saveOutcome.pointsGained} Puntos`;
+    } else if (saveOutcome.pointsGained < 0) {
+      pointsText = `${saveOutcome.pointsGained} Puntos`;
+    } else {
+      pointsText = `0 Puntos`;
+    }
   } else {
-    // Si fue 0-0, el portero de tu equipo
-    const gk = match.lineups?.home?.find((p) => p.role === 'POR');
-    mvpName = gk ? gk.name : 'I. Casillas';
-    mvpStats = 'Valla invicta y atajadas clave';
-    mvpRating = 9.0;
+    pointsText = fallbackPoints;
   }
-
-  // Persistir resultado, puntos ganados y racha del mánager (Fase 4)
-  const saveOutcome = matchService.saveMatchResult(match);
-  const pointsText = saveOutcome?.pointsGained ? `+${saveOutcome.pointsGained} Puntos` : points;
   const rankText = saveOutcome?.currentStats?.ranking ? `#${saveOutcome.currentStats.ranking}` : (isWin ? '#428' : '#430');
 
   openMatchResultModal(
@@ -957,14 +1181,22 @@ export async function initMatchDetailView() {
     });
   }
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const matchId = urlParams.get('id');
-  const isAutoplay = urlParams.get('autoplay') === 'true' || sessionStorage.getItem('fantasy_match_autoplay') === 'true';
+  const hashQuery = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
+  const hashParams = new URLSearchParams(hashQuery);
+  const searchParams = new URLSearchParams(window.location.search);
+  const currentHashRoute = window.location.hash.split('?')[0].replace('#', '');
+
+  const matchId = searchParams.get('id') || hashParams.get('id');
+  const hasAutoplayParam = searchParams.get('autoplay') === 'true' || hashParams.get('autoplay') === 'true';
+  const hasAutoplaySession = sessionStorage.getItem('fantasy_match_autoplay') === 'true';
+  const isLiveMatchRoute = currentHashRoute === '/match/live' || currentHashRoute === '/match';
+
+  // Si viene desde "BUSCAR RIVAL", con parámetro autoplay, o accediendo a /match/live sin un ID previo:
+  const shouldStartLive = hasAutoplayParam || hasAutoplaySession || (isLiveMatchRoute && !matchId);
   sessionStorage.removeItem('fantasy_match_autoplay');
 
-  // Si viene desde "BUSCAR RIVAL" en el Home (autoplay=true), arrancar automáticamente
-  if (isAutoplay) {
-    console.info('[Match] Autoplay activado desde Home: Iniciando simulación en vivo...');
+  if (shouldStartLive) {
+    console.info('[Match] Autoplay activado: Iniciando simulación en directo contra equipo rival de la CPU...');
     startLiveMatchPlayback();
   } else {
     console.info(`[Match] Cargando detalles del partido ID: ${matchId}`);
@@ -973,21 +1205,24 @@ export async function initMatchDetailView() {
   }
 
   const quickSimBtn = document.getElementById('btn-quick-sim');
-  if (quickSimBtn) {
+  if (quickSimBtn && !quickSimBtn.hasAttribute('data-bound')) {
+    quickSimBtn.setAttribute('data-bound', 'true');
     quickSimBtn.addEventListener('click', () => {
       executeQuickSimulation();
     });
   }
 
   const liveSimBtn = document.getElementById('btn-live-sim');
-  if (liveSimBtn) {
+  if (liveSimBtn && !liveSimBtn.hasAttribute('data-bound')) {
+    liveSimBtn.setAttribute('data-bound', 'true');
     liveSimBtn.addEventListener('click', () => {
       startLiveMatchPlayback();
     });
   }
 
   const statusBadge = document.getElementById('match-status-badge');
-  if (statusBadge) {
+  if (statusBadge && !statusBadge.hasAttribute('data-bound')) {
+    statusBadge.setAttribute('data-bound', 'true');
     statusBadge.addEventListener('click', () => {
       if (!isMatchLive) {
         startLiveMatchPlayback();
@@ -998,13 +1233,7 @@ export async function initMatchDetailView() {
   }
 }
 
-if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMatchDetailView);
-  } else {
-    initMatchDetailView();
-  }
-}
+// En entorno SPA, la inicialización es gobernada por router.js al inyectar live-match.html
 
 export const initMatch = initMatchDetailView;
 export function startMatchSimulation(matchData = DEFAULT_MATCH_DATA) { renderMatchDetails(matchData); }

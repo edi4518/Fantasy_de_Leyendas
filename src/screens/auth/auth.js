@@ -37,6 +37,23 @@ function initLogin(router) {
 
   const googleBtn = document.getElementById('google-login-btn');
   const appleBtn = document.getElementById('apple-login-btn');
+  const guestBtn = document.getElementById('guest-login-btn');
+
+  if (guestBtn) {
+    guestBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.setItem('hasSeenOnboarding', 'true');
+      if (!localStorage.getItem('auth_token')) {
+        localStorage.setItem('auth_token', 'dev-test-token');
+        localStorage.setItem('user', JSON.stringify({ name: 'Mánager Leyenda', email: 'manager@fantasy.com' }));
+      }
+      if (router && typeof router.navigate === 'function') {
+        router.navigate('/dashboard');
+      } else {
+        navigateTo('/dashboard');
+      }
+    });
+  }
 
   clearErrorState();
 

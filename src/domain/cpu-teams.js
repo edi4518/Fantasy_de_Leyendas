@@ -2875,17 +2875,28 @@ export function getRandomCpuTeam() {
     formation: raw.formacion,
     cost: raw.costo_total,
     rating: raw.rating_promedio,
-    players: raw.jugadores.map(j => ({
-      name: j.nombre,
-      role: j.role || j.posicion_base || 'MC',
-      posicion_base: j.posicion_base || j.role || 'MC',
-      rating_general: j.media_juego || j.rating_general || 75,
-      rating_ataque: j.rating_ataque || 70,
-      rating_defensa: j.rating_defensa || 70,
-      rating_creacion: j.rating_creacion || 70,
-      rating_tecnica: j.rating_tecnica || 70,
-      rating_fisico: j.rating_fisico || 80,
-      rating_palmares: j.rating_palmares || 70
-    }))
+    players: raw.jugadores.map(j => {
+      // Nivelación competitiva de estadísticas para equipos CPU
+      const general = Math.max(74, Math.round(Number(j.media_juego || j.rating_general) || 75));
+      const def = Math.max(45, Math.round(Number(j.rating_defensa) || general));
+      const atk = Math.max(35, Math.round(Number(j.rating_ataque) || general));
+      const crea = Math.max(50, Math.round(Number(j.rating_creacion) || general));
+      const tec = Math.max(50, Math.round(Number(j.rating_tecnica) || general));
+      const fis = Math.max(65, Math.round(Number(j.rating_fisico) || 75));
+      const palm = Math.max(55, Math.round(Number(j.rating_palmares) || 70));
+
+      return {
+        name: j.nombre,
+        role: j.role || j.posicion_base || 'MC',
+        posicion_base: j.posicion_base || j.role || 'MC',
+        rating_general: general,
+        rating_ataque: atk,
+        rating_defensa: def,
+        rating_creacion: crea,
+        rating_tecnica: tec,
+        rating_fisico: fis,
+        rating_palmares: palm
+      };
+    })
   };
 }

@@ -38,12 +38,14 @@
 
 @media (min-width: 640px) {
   .login-card:not(.register-card) {
-    min-height: 760px;
-    height: 760px;
-    max-height: 94vh;
-    border-radius: var(--radius-xl, 32px);
-    border: 1px solid var(--color-border, #e5e7eb);
-    box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.12);
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 }
 

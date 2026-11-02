@@ -14,15 +14,28 @@ body.app-body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
   min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* En escritorio (>= 480px): el alto ocupa el 100vh completo y sin bordes redondeados */
+@media screen and (min-width: 480px) {
+  body.app-body {
+    background-color: #cbd5e1;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+  }
 }
 
 /* ==========================================================================
-   2. CONTENEDOR PRINCIPAL: APP SHELL (Full Viewport)
+   2. CONTENEDOR PRINCIPAL: APP SHELL (100vh continuo, sin bordes redondeados)
    ========================================================================== */
 .app-layout {
   width: 100%;
@@ -30,52 +43,66 @@ body.app-body {
   min-height: 100vh;
   min-height: 100dvh;
   height: 100vh;
+  height: 100dvh;
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
   position: relative;
   box-sizing: border-box;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none;
   overflow: hidden;
-  margin: 0;
+}
+
+/* En escritorio (>= 480px): ancho mobile-first centrado, 100vh total y sin bordes redondeados */
+@media screen and (min-width: 480px) {
+  .app-layout {
+    width: 440px;
+    max-width: 440px;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    margin: 0 auto;
+  }
 }
 
 /* ==========================================================================
-   3. CABECERA PRINCIPAL (.app-header)
+   3. CABECERA OPCIONAL DEL APP SHELL
    ========================================================================== */
+
 .app-header {
-  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 8px 16px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-@media screen and (min-width: 480px) {
-  .app-header {
-    display: flex !important;
-    order: -2;
-    background-color: #2d6a4f !important;
-    color: #ffffff !important;
-    padding: 10px 24px;
-    align-items: center;
-    justify-content: space-between;
-    height: 55px;
-    min-height: 55px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .app-header::before {
-    content: "⚽ FANTASY DE LEYENDAS";
-    font-size: 1.1rem;
-    font-weight: 800;
-    letter-spacing: 0.8px;
-    color: #ffffff;
-  }
+.app-header:empty {
+  display: none !important;
 }
 
 /* ==========================================================================
    4. ÁREA DE CONTENIDO PRINCIPAL (App Main)
    ========================================================================== */
+
 .app-main {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   width: 100%;
+  height: auto;
   padding: 0 !important;
   margin: 0;
   box-sizing: border-box;
@@ -85,8 +112,9 @@ body.app-body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Scrollbar estilizada y no invasiva dentro del teléfono */
 .app-main::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .app-main::-webkit-scrollbar-track {
@@ -98,170 +126,123 @@ body.app-body {
   border-radius: 999px;
 }
 
+.app-main::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+/* Pantallas que gestionan su propio scroll interno sin desplazar el contenedor externo */
+.app-main:has(.screen-dashboard),
+.app-main:has(.home-app-container),
+.app-main:has(#home-view),
+.app-main:has(.match-detail-container),
+.app-main:has(.onboarding-screen),
+.app-main:has(.login-card) {
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
 /* ==========================================================================
-   5. BARRA DE NAVEGACIÓN ADAPTATIVA Y FIJA
+   5. BARRA DE NAVEGACIÓN INFERIOR (App Navigation)
    ========================================================================== */
+
 .app-navigation {
-  flex: 0 0 auto;
+  flex: 0 0 60px;
+  height: 60px;
+  min-height: 60px;
   width: 100%;
+  max-width: 100%;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
   z-index: 50;
+  box-sizing: border-box;
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+
+.bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background-color: #ffffff;
+  height: 60px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+  font-family: inherit;
+  text-decoration: none;
   box-sizing: border-box;
 }
 
-/* 📱 MÓVIL (< 480px) */
-@media screen and (max-width: 479px) {
-  .app-navigation {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background-color: #ffffff;
-    border-top: 1px solid #e5e7eb;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-  }
-
-  .app-main {
-    padding-bottom: 60px !important;
-  }
-
-  .bottom-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    height: 100%;
-    width: 100%;
-  }
-
-  .bottom-nav__item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    flex: 1;
-    height: 100%;
-    color: #64748b;
-    text-decoration: none;
-    font-size: 0.68rem;
-  }
-
-  .bottom-nav__item--active,
-  .bottom-nav__item.is-active {
-    color: #266046 !important;
-  }
-
-  .bottom-nav__item--active .bottom-nav__svg,
-  .bottom-nav__item.is-active .bottom-nav__svg {
-    stroke: #266046 !important;
-  }
+.bottom-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 💻 ESCRITORIO (>= 480px) */
-/* ==========================================================================
-   💻 ESCRITORIO (>= 480px): Header y Barra de Navegación Limpios y Centrados
-   ========================================================================== */
-@media screen and (min-width: 480px) {
-  /* Cabecera superior con el logo y título */
-  .app-header {
-    display: flex !important;
-    order: -2;
-    background-color: #1B4130 !important;
-    color: #ffffff !important;
-    padding: 12px 24px;
-    align-items: center;
-    justify-content: space-between;
-    height: 50px;
-    min-height: 50px;
-    border: none !important;
-    border-bottom: none !important;
-    box-shadow: none !important;
-  }
-
-  .app-header::before {
-    content: "⚽ FANTASY DE LEYENDAS";
-    font-size: 1.1rem;
-    font-weight: 800;
-    letter-spacing: 0.8px;
-    color: #ffffff;
-  }
-
-  /* Barra de navegación superior unida sin líneas divisorias */
-  .app-navigation {
-    order: -1;
-    position: sticky;
-    top: 0;
-    height: 48px;
-    background-color: #1B4130 !important;
-    border: none !important;
-    border-top: none !important;
-    border-bottom: none !important;
-    box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.15);
-  }
-
-  /* Contenedor del menú centrado */
-  .bottom-nav {
-    max-width: 100% !important;
-    width: 100% !important;
-    margin: 0 auto;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center !important;
-    gap: 40px !important;
-    padding: 0 !important;
-    background-color: transparent !important;
-    border: none !important;
-  }
-
-  /* Ocultamos los iconos en escritorio */
-  .bottom-nav__item .bottom-nav__icon {
-    display: none !important;
-  }
-
-  /* Enlaces del menú limpios */
-  .bottom-nav__item {
-    flex: 0 0 auto;
-    height: 100%;
-    padding: 0 12px;
-    color: rgba(255, 255, 255, 0.65) !important;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    text-decoration: none;
-    background-color: transparent !important;
-    border: none !important;
-    border-bottom: none !important;
-    border-radius: 0 !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s ease;
-  }
-
-  .bottom-nav__item:hover {
-    color: #ffffff !important;
-  }
-
-  /* Estado activo: Sin líneas azules ni cajas, solo texto blanco puro y destacado */
-  .bottom-nav__item--active,
-  .bottom-nav__item.is-active {
-    color: #ffffff !important;
-    background-color: transparent !important;
-    border: none !important;
-    border-bottom: none !important;
-  }
-
-  .bottom-nav__label {
-    font-size: 0.75rem;
-    font-weight: 800; /* Texto más marcado para la sección activa */
-    color: inherit;
-  }
+.bottom-nav__svg {
+  width: 20px;
+  height: 20px;
+  stroke: #64748b;
+  transition: stroke 0.15s ease;
 }
+
+.bottom-nav__label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1;
+  color: inherit;
+}
+
+.bottom-nav__item:hover {
+  color: #266046;
+}
+
+.bottom-nav__item:hover .bottom-nav__svg {
+  stroke: #266046;
+}
+
+.bottom-nav__item--active,
+.bottom-nav__item.is-active {
+  color: #266046 !important;
+}
+
+.bottom-nav__item--active .bottom-nav__svg,
+.bottom-nav__item.is-active .bottom-nav__svg {
+  stroke: #266046 !important;
+}
+
+.bottom-nav__item--active .bottom-nav__label,
+.bottom-nav__item.is-active .bottom-nav__label {
+  font-weight: 700 !important;
+  color: #266046 !important;
+}
+
 /* ==========================================================================
    6. CONTENEDOR GLOBAL DE MODALES
    ========================================================================== */
+
 #app-modal-container {
   position: relative;
   z-index: 100;
