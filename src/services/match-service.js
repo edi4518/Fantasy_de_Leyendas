@@ -1,3 +1,11 @@
+import {
+  calcularDesgaste,
+  calcularRecuperacion,
+  actualizarEnergiaPlantel,
+  aplicarPenalizacionFatiga,
+  MODIFICADORES_POSICION,
+  STAMINA_CONFIG
+} from './stamina-service.js?v=1';
 /**
  * @file match-service.js
  * @description Servicio modular para simulación de partidos, persistencia de resultados,
@@ -299,6 +307,41 @@ export const matchService = {
         e.side === 'home' && e.type === 'substitution'
       );
 
+      // Procesar sistema de Stamina / Energía para los 9 jugadores del plantel
+      try {
+        const squadWithMinutes = cleanNinePlayers.map((player, idx) => {
+          const isStarter = idx < 6;
+          // Verificar si fue sustituido
+          let minutos = 0;
+          if (isStarter) {
+            const wasSubbedOut = homeSubInEvents.find(e => this.arePlayerNamesMatching(e.playerOut, player.name));
+            minutos = wasSubbedOut ? Math.max(1, Number(wasSubbedOut.minute) || 60) : 90;
+          } else {
+            const wasSubbedIn = homeSubInEvents.find(e => this.arePlayerNamesMatching(e.player, player.name));
+            minutos = wasSubbedIn ? Math.max(1, 90 - (Number(wasSubbedIn.minute) || 60)) : 0;
+          }
+          return {
+            ...player,
+            minutosJugados: minutos
+          };
+        });
+
+        const updatedSquadStamina = actualizarEnergiaPlantel(squadWithMinutes);
+
+        // Persistir la plantilla con su energía actualizada en fantasy_active_squad
+        const rawSquad = localStorage.getItem('fantasy_active_squad');
+        if (rawSquad) {
+          const parsed = JSON.parse(rawSquad);
+          if (Array.isArray(parsed.players)) {
+            parsed.players = updatedSquadStamina;
+            localStorage.setItem('fantasy_active_squad', JSON.stringify(parsed));
+          }
+        }
+      } catch (staminaErr) {
+        console.warn('[MatchService] Error actualizando stamina del plantel:', staminaErr);
+      }
+
+
       let matchMvp = null;
       let highestRating = -1;
 
@@ -577,3 +620,13 @@ export const matchService = {
 if (typeof window !== 'undefined') {
   window.matchService = matchService;
 }
+
+
+export {
+  calcularDesgaste,
+  calcularRecuperacion,
+  actualizarEnergiaPlantel,
+  aplicarPenalizacionFatiga,
+  MODIFICADORES_POSICION,
+  STAMINA_CONFIG
+};
