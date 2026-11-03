@@ -311,14 +311,18 @@ export const matchService = {
       try {
         const squadWithMinutes = cleanNinePlayers.map((player, idx) => {
           const isStarter = idx < 6;
-          // Verificar si fue sustituido
           let minutos = 0;
           if (isStarter) {
-            const wasSubbedOut = homeSubInEvents.find(e => this.arePlayerNamesMatching(e.playerOut, player.name));
-            minutos = wasSubbedOut ? Math.max(1, Number(wasSubbedOut.minute) || 60) : 90;
+            const wasSubbedOut = homeSubInEvents.find(e =>
+              this.isSamePlayer(e.playerOut, player.name) ||
+              (e.detail && e.detail.toLowerCase().includes((player.name || '').toLowerCase()))
+            );
+            minutos = wasSubbedOut ? Math.max(1, Number(wasSubbedOut.minute) || 54) : 90;
           } else {
-            const wasSubbedIn = homeSubInEvents.find(e => this.arePlayerNamesMatching(e.player, player.name));
-            minutos = wasSubbedIn ? Math.max(1, 90 - (Number(wasSubbedIn.minute) || 60)) : 0;
+            const wasSubbedIn = homeSubInEvents.find(e =>
+              this.isSamePlayer(e.playerIn || e.player, player.name)
+            );
+            minutos = wasSubbedIn ? Math.max(1, 90 - (Number(wasSubbedIn.minute) || 54)) : 0;
           }
           return {
             ...player,
@@ -328,15 +332,26 @@ export const matchService = {
 
         const updatedSquadStamina = actualizarEnergiaPlantel(squadWithMinutes);
 
-        // Persistir la plantilla con su energía actualizada en fantasy_active_squad
-        const rawSquad = localStorage.getItem('fantasy_active_squad');
-        if (rawSquad) {
-          const parsed = JSON.parse(rawSquad);
-          if (Array.isArray(parsed.players)) {
-            parsed.players = updatedSquadStamina;
-            localStorage.setItem('fantasy_active_squad', JSON.stringify(parsed));
-          }
+        // Persistir la plantilla de forma garantizada en fantasy_active_squad
+        let squadToSave = null;
+        try {
+          const rawSquad = localStorage.getItem('fantasy_active_squad');
+          if (rawSquad) squadToSave = JSON.parse(rawSquad);
+        } catch (_) {}
+
+        if (!squadToSave || typeof squadToSave !== 'object') {
+          squadToSave = {
+            name: matchData.homeTeam?.name || 'Tu Equipo',
+            formation: matchData.homeTeam?.formation || '1-2-2-1',
+            players: []
+          };
         }
+        squadToSave.players = updatedSquadStamina;
+        localStorage.setItem('fantasy_active_squad', JSON.stringify(squadToSave));
+        if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+          window.dispatchEvent(new CustomEvent('fantasy:squad-updated', { detail: squadToSave }));
+        }
+        console.info('[MatchService] Plantilla actualizada con nuevo estado de Stamina tras el partido.');
       } catch (staminaErr) {
         console.warn('[MatchService] Error actualizando stamina del plantel:', staminaErr);
       }
