@@ -369,12 +369,14 @@ export const matchService = {
           if (awayScore === 0) matchRating += 1.2;
           else if (awayScore >= 2) matchRating -= 0.3 * (awayScore - 1);
         } else if (role === 'POR') {
-          matchRating += Math.min(1.8, savesCount * 0.6);
+          matchRating += Math.min(1.8, savesCount * 0.5);
           if (awayScore === 0) {
             matchRating += 1.5;
             stats[pName].cleanSheets = (stats[pName].cleanSheets || 0) + 1;
+          } else if (awayScore === 1) {
+            matchRating -= 0.5;
           } else if (awayScore >= 2) {
-            matchRating -= 0.4 * (awayScore - 1);
+            matchRating -= 0.5 + 0.4 * (awayScore - 1);
           }
         }
 
@@ -391,18 +393,113 @@ export const matchService = {
         stats[pName].avgRating = Math.round((stats[pName].totalRating / stats[pName].matchesPlayed) * 10) / 10;
         stats[pName].lastMatchRating = matchRating;
 
-        // Candidato a MVP
+        // Candidato local a MVP
         if (matchRating > highestRating) {
           highestRating = matchRating;
-          matchMvp = { name: pName, role, matchRating, matchGoals };
+          matchMvp = {
+            name: pName,
+            role,
+            matchRating,
+            matchGoals,
+            savesCount,
+            cleanSheet: awayScore === 0,
+            goalsConceded: awayScore,
+            isRival: false,
+            teamName: matchData.homeTeam?.name || 'Tu Equipo'
+          };
         } else if (matchRating === highestRating && matchGoals > (matchMvp?.matchGoals || 0)) {
           highestRating = matchRating;
-          matchMvp = { name: pName, role, matchRating, matchGoals };
+          matchMvp = {
+            name: pName,
+            role,
+            matchRating,
+            matchGoals,
+            savesCount,
+            cleanSheet: awayScore === 0,
+            goalsConceded: awayScore,
+            isRival: false,
+            teamName: matchData.homeTeam?.name || 'Tu Equipo'
+          };
         }
       });
 
-      // Otorgar galardón MVP al jugador destacado
-      if (matchMvp && stats[matchMvp.name]) {
+      // Evaluación del Jugador Destacado Rival (Candidato rival a MVP)
+      const awayGoalEvents = events.filter(e =>
+        e.side === 'away' && (e.type === 'goal' || e.type === 'penalty-goal')
+      );
+      const awayStarters = matchData.lineups?.away || matchData.lineups?.awayStarters || [];
+      const awayTeamName = matchData.awayTeam?.name || 'Equipo Rival';
+
+      let rivalMvp = null;
+      if (awayGoalEvents.length > 0) {
+        // Contabilizar goles del rival por jugador
+        const awayScorerCounts = {};
+        awayGoalEvents.forEach(e => {
+          const sName = e.player || 'Delantero Rival';
+          awayScorerCounts[sName] = (awayScorerCounts[sName] || 0) + 1;
+        });
+
+        let topRivalScorer = null;
+        let maxGoals = 0;
+        Object.entries(awayScorerCounts).forEach(([name, count]) => {
+          if (count > maxGoals) {
+            maxGoals = count;
+            topRivalScorer = name;
+          }
+        });
+
+        const foundRival = awayStarters.find(p => this.isSamePlayer(p.name, topRivalScorer));
+        const rivalRole = foundRival?.role || 'DEL';
+
+        let rivalRating = 8.5;
+        if (maxGoals >= 3) rivalRating = 9.9;
+        else if (maxGoals === 2) rivalRating = 9.3;
+        else if (maxGoals === 1) rivalRating = awayScore > homeScore ? 8.8 : 8.1;
+
+        rivalMvp = {
+          name: topRivalScorer,
+          role: rivalRole,
+          matchRating: rivalRating,
+          matchGoals: maxGoals,
+          savesCount: 0,
+          cleanSheet: homeScore === 0,
+          goalsConceded: homeScore,
+          isRival: true,
+          teamName: awayTeamName
+        };
+      } else {
+        // El rival no anotó goles: arquero o líder de la zaga
+        const awaySaves = events.filter(e => e.side === 'away' && e.type === 'save').length;
+        const awayGk = awayStarters.find(p => p.role === 'POR') || { name: 'Arquero Rival', role: 'POR' };
+        const rivalRating = homeScore === 0 ? (8.4 + Math.min(1.2, awaySaves * 0.4)) : 7.0;
+
+        rivalMvp = {
+          name: awayGk.name,
+          role: 'POR',
+          matchRating: Math.round(rivalRating * 10) / 10,
+          matchGoals: 0,
+          savesCount: awaySaves,
+          cleanSheet: homeScore === 0,
+          goalsConceded: homeScore,
+          isRival: true,
+          teamName: awayTeamName
+        };
+      }
+
+      // Decisión del MVP del partido:
+      // Si el usuario pierde el partido (homeScore < awayScore), la figura del rival es el MVP oficial
+      if (homeScore < awayScore) {
+        matchMvp = rivalMvp || matchMvp;
+      } else if (homeScore === awayScore) {
+        // En empate, compiten en valoración
+        if ((rivalMvp?.matchRating || 0) > (matchMvp?.matchRating || 0)) {
+          matchMvp = rivalMvp;
+        }
+      }
+      // En victoria (homeScore > awayScore), matchMvp se mantiene con el mejor local
+
+      // Otorgar galardón MVP al jugador destacado ÚNICAMENTE si pertenece al equipo del usuario
+      if (matchMvp && !matchMvp.isRival && stats[matchMvp.name]) {
         stats[matchMvp.name].mvpAwards = (stats[matchMvp.name].mvpAwards || 0) + 1;
       }
 

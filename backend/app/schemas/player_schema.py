@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 
@@ -66,6 +67,7 @@ class PlayerResponse(BaseModel):
     precio: float = 0.0
     rating_general: int = 0
     media_juego: int = 0
+    image_filename: Optional[str] = None
 
 
     photo_url: str | None = None
