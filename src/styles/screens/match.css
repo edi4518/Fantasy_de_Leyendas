@@ -148,6 +148,33 @@
   transform: translateY(1px);
 }
 
+/* Estado de acción cuando el partido finaliza: Buscar Otro Rival */
+.btn-quick-sim.btn-search-rival-header {
+  background-color: var(--color-primary, #2D6A4F);
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(45, 106, 79, 0.35);
+  animation: btnPulseHeaderRival 2.2s infinite ease-in-out;
+}
+
+.btn-quick-sim.btn-search-rival-header:hover {
+  background-color: var(--color-primary-hover, #245640);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(45, 106, 79, 0.45);
+}
+
+@keyframes btnPulseHeaderRival {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(45, 106, 79, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.15);
+  }
+}
+
 /* ==========================================================================
    3. MARCADOR PRINCIPAL (Scoreboard Limpio)
    ========================================================================== */

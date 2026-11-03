@@ -70,3 +70,14 @@ class Player(Base):
     precio = Column(Float, nullable=False, default=0.0, index=True)
     rating_general = Column(Integer, nullable=False, default=0)
     media_juego = Column(Integer, nullable=False, default=0, index=True)
+
+    @property
+    def image_filename(self) -> str:
+        """Nombre de archivo webp en Supabase Storage derivado del nombre de la leyenda."""
+        import unicodedata
+        if not self.nombre:
+            return ""
+        normalizado = unicodedata.normalize("NFKD", self.nombre)
+        limpio = "".join([c for c in normalizado if not unicodedata.combining(c)])
+        slug = limpio.lower().strip().replace(" ", "_").replace("'", "")
+        return f"{slug}.webp"
