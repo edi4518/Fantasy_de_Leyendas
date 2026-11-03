@@ -1,12 +1,19 @@
 .market-screen {
-  max-width: none !important;       /* Quita el límite de ancho de celular */
-  width: 100% !important;           /* Ocupa todo el ancho disponible */
-  min-height: 100vh !important;     /* Asegura el alto total de la ventana */
+  max-width: none !important;
+  /* Quita el límite de ancho de celular */
+  width: 100% !important;
+  /* Ocupa todo el ancho disponible */
+  min-height: 100vh !important;
+  /* Asegura el alto total de la ventana */
   height: 100% !important;
-  margin: 0 !important;             /* Remueve centrados automáticos */
-  border-radius: 0 !important;      /* Quita los bordes redondeados tipo app */
-  box-shadow: none !important;      /* Elimina la sombra de simulación */
-  padding: 24px !important;         /* Espaciado interno cómodo para PC */
+  margin: 0 !important;
+  /* Remueve centrados automáticos */
+  border-radius: 0 !important;
+  /* Quita los bordes redondeados tipo app */
+  box-shadow: none !important;
+  /* Elimina la sombra de simulación */
+  padding: 24px !important;
+  /* Espaciado interno cómodo para PC */
 }
 
 .market-header {
@@ -64,7 +71,7 @@
   font-size: 0.85rem;
   color: #0f172a;
   outline: none;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .market-search-container input::placeholder {
@@ -122,7 +129,7 @@
   justify-content: center;
   gap: 8px;
   margin-bottom: 16px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .btn-compare-action:disabled {
@@ -157,7 +164,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   padding: 12px 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .player-info-left {
@@ -166,17 +173,37 @@
   gap: 12px;
 }
 
+/* Contenedor circular con el borde celeste y fondo oscuro */
 .player-avatar-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background-color: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 50%;
+  border: 2px solid #38bdf8;
+  background-color: #0b1528;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
-  color: #64748b;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+/* La imagen queda contenida dentro del círculo con margen óptico */
+.player-avatar-img {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  object-position: center center;
+  display: block;
+}
+
+/* Fallback SVG por si falla la conexión */
+.player-avatar-img.is-fallback {
+  width: 60%;
+  height: 60%;
+  object-fit: contain;
 }
 
 .player-name {

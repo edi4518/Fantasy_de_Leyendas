@@ -39,15 +39,28 @@ export function slugify(text) {
 export function getPlayerPhoto(player) {
   if (!player) return DEFAULT_AVATAR;
 
+  // 1. Si el backend ya mandó una URL completa y válida, usarla directamente
+  if (typeof player === 'object' && player.photo_url) {
+    return player.photo_url;
+  }
+
   let filename = '';
+
   if (typeof player === 'object') {
-    filename = slugify(player.name);
+    // Busca 'nombre' (como viene de MySQL/FastAPI) o 'name' por compatibilidad
+    const rawName = player.nombre || player.name || '';
+    filename = slugify(rawName);
   } else if (typeof player === 'string') {
     filename = slugify(player);
   } else {
     filename = String(player);
   }
 
-  // CAMBIO AQUÍ: Usamos .webp exactamente como están subidas en Supabase
+  // Si no se obtuvo un nombre válido, mostrar avatar por defecto
+  if (!filename || filename === 'undefined') {
+    return DEFAULT_AVATAR;
+  }
+
+  // 2. Construir la ruta hacia Supabase con el slug en .webp
   return `${SUPABASE_STORAGE_URL}${filename}.webp`;
 }

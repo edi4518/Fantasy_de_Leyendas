@@ -1,7 +1,7 @@
 import { playerService } from '../../services/player-service.js';
 
-// URL base de tu bucket público en Supabase
-const STORAGE_URL = "https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/";
+// Avatar genérico en SVG por si una imagen no existe o falla la red
+const DEFAULT_AVATAR = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="%2338bdf8"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
 
 const POSITION_MAP = {
   'POR': 'Portero',
@@ -52,18 +52,17 @@ async function initMarketLogic(container, router) {
       });
     });
 
-    // Evento para el botón de ordenar por precio (⇅)
     const sortIcon = container.querySelector('.sort-icon');
     if (sortIcon) {
       sortIcon.style.cursor = 'pointer';
       sortIcon.title = 'Ordenar por precio';
       sortIcon.addEventListener('click', () => {
         if (sortMode === 'default') {
-          sortMode = 'price-desc'; // Mayor a menor precio
+          sortMode = 'price-desc';
         } else if (sortMode === 'price-desc') {
-          sortMode = 'price-asc';  // Menor a mayor precio
+          sortMode = 'price-asc';
         } else {
-          sortMode = 'default';    // Orden original
+          sortMode = 'default';
         }
         
         sortIcon.style.color = sortMode !== 'default' ? '#2d6a4f' : '#64748b';
@@ -83,7 +82,6 @@ async function initMarketLogic(container, router) {
       return matchPos && matchSearch;
     });
 
-    // Aplicar ordenamiento según el modo activo
     if (sortMode === 'price-desc') {
       filtered.sort((a, b) => b.precio - a.precio);
     } else if (sortMode === 'price-asc') {
@@ -95,22 +93,22 @@ async function initMarketLogic(container, router) {
       return;
     }
 
+    // Se genera el HTML completamente limpio sin atributos onerror inline
     listContainer.innerHTML = filtered.map((player) => {
       const isSelected = selectedForCompare.has(player.id);
       const readablePosition = POSITION_MAP[player.posicion_base] || player.posicion_base;
-
-      // Construcción de la URL de la imagen combinando la base y el archivo del jugador
-      const playerImage = player.image_filename 
-        ? `${STORAGE_URL}${player.image_filename}` 
-        : null;
+      const playerImage = player.photo_url || DEFAULT_AVATAR;
 
       return `
-        <article class="player-item-card">
+        <article class="player-item-card" data-id="${player.id}">
           <div class="player-info-left">
-            <div class="player-avatar-box" style="overflow: hidden; display: flex; align-items: center; justify-content: center;">
-              ${playerImage 
-                ? `<img src="${playerImage}" alt="${player.nombre}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.outerHTML='👤'" />` 
-                : '👤'}
+            <div class="player-avatar-box">
+              <img 
+                src="${playerImage}" 
+                alt="${player.nombre}" 
+                class="player-avatar-img"
+                loading="lazy"
+              />
             </div>
             <div>
               <h3 class="player-name">${player.nombre}</h3>
@@ -126,6 +124,13 @@ async function initMarketLogic(container, router) {
         </article>
       `;
     }).join('');
+
+    // Manejador seguro para imágenes que no existan en Supabase
+    listContainer.querySelectorAll('.player-avatar-img').forEach((img) => {
+      img.addEventListener('error', () => {
+        img.src = DEFAULT_AVATAR;
+      }, { once: true });
+    });
 
     // Eventos de selección para comparar
     listContainer.querySelectorAll('.btn-add-player').forEach((btn) => {
