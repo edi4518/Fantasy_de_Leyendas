@@ -33,3 +33,8 @@ htmlcov/
 # Distribución y compilados
 dist/
 build/
+
+# Bases de datos locales
+*.db
+*.sqlite
+*.sqlite3

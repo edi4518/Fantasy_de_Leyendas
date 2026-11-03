@@ -271,11 +271,23 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
   const homeRoles = FORMATIONS_6V6[homeFormationKey]?.slots || ['POR', 'DEF', 'DEF', 'MC', 'MC', 'DEL'];
   const awayRoles = FORMATIONS_6V6[awayFormationKey]?.slots || ['POR', 'DEF', 'DEF', 'MC', 'MC', 'DEL'];
 
-  const homeRaw = (Array.isArray(homeTeamData?.players) && homeTeamData.players.length >= 6)
-    ? homeTeamData.players.map((p, i) => p || FALLBACK_DEFAULT_PLAYERS[i])
+  const homePlayerList = (Array.isArray(homeTeamData?.players) && homeTeamData.players.length >= 6)
+    ? homeTeamData.players
+    : (Array.isArray(homeTeamData?.jugadores) && homeTeamData.jugadores.length >= 6)
+      ? homeTeamData.jugadores
+      : null;
+
+  const awayPlayerList = (Array.isArray(awayTeamData?.players) && awayTeamData.players.length >= 6)
+    ? awayTeamData.players
+    : (Array.isArray(awayTeamData?.jugadores) && awayTeamData.jugadores.length >= 6)
+      ? awayTeamData.jugadores
+      : null;
+
+  const homeRaw = homePlayerList
+    ? homePlayerList.map((p, i) => p || FALLBACK_DEFAULT_PLAYERS[i])
     : FALLBACK_DEFAULT_PLAYERS;
-  const awayRaw = (Array.isArray(awayTeamData?.players) && awayTeamData.players.length >= 6)
-    ? awayTeamData.players.map((p, i) => p || FALLBACK_DEFAULT_PLAYERS[i])
+  const awayRaw = awayPlayerList
+    ? awayPlayerList.map((p, i) => p || FALLBACK_DEFAULT_PLAYERS[i])
     : FALLBACK_DEFAULT_PLAYERS;
 
   let homeStarters = homeRaw.slice(0, 6).map((p, i) => getAdjustedPlayer(p, homeRoles[i]));

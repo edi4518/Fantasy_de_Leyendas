@@ -485,28 +485,16 @@ export function setupHomeEventListeners(router) {
         <span>BUSCANDO RIVAL...</span>
       `;
 
-      // Guardar bandera en sessionStorage para forzar inicio automático del partido
-      sessionStorage.setItem('fantasy_match_autoplay', 'true');
-
-      // Fase 2: Rival encontrado con feedback visual
+      // Redireccion fluida a la pantalla intermedia de Matchmaking y Comparativa Tactica
       setTimeout(() => {
-        btnBuscarRival.classList.remove('is-searching');
-        btnBuscarRival.classList.add('is-found');
-        btnBuscarRival.innerHTML = `
-          <span>¡RIVAL ENCONTRADO!</span>
-        `;
-
-        // Fase 3: Redirección fluida al partido en directo
-        setTimeout(() => {
-          if (window.router && typeof window.router.navigate === 'function') {
-            window.router.navigate('/match/live?autoplay=true');
-          } else if (router && typeof router.navigate === 'function') {
-            router.navigate('/match/live?autoplay=true');
-          } else {
-            window.location.href = '/match/live?autoplay=true';
-          }
-        }, 400);
-      }, 1000);
+        if (window.router && typeof window.router.navigate === 'function') {
+          window.router.navigate('/matchmaking');
+        } else if (router && typeof router.navigate === 'function') {
+          router.navigate('/matchmaking');
+        } else {
+          window.location.hash = '/matchmaking';
+        }
+      }, 350);
     });
   }
 
