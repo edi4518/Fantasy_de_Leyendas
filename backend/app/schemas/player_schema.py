@@ -67,4 +67,7 @@ class PlayerResponse(BaseModel):
     rating_general: int = 0
     media_juego: int = 0
 
+
+    photo_url: str | None = None
+
     model_config = ConfigDict(from_attributes=True)
