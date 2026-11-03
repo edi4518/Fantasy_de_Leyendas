@@ -343,6 +343,29 @@ function renderPitchPlayers() {
 /**
  * Genera el HTML de una fila de jugadores en la cancha
  */
+
+/**
+ * Genera el marcado HTML para la píldora visual de stamina (rayo + barra ancha redondeada + %)
+ */
+function getStaminaPillHtml(energia = 100) {
+  const val = Math.max(0, Math.min(100, Math.round(Number(energia) || 100)));
+  let tier = 'stamina-high';
+  if (val < 60) tier = 'stamina-low';
+  else if (val < 80) tier = 'stamina-mid';
+
+  return `
+    <div class="stamina-pill" title="Energía física: ${val}%">
+      <svg class="stamina-pill__bolt ${tier}" width="9" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+      <div class="stamina-pill__track">
+        <div class="stamina-pill__fill ${tier}" style="width: ${val}%"></div>
+      </div>
+      <span class="stamina-pill__text">${val}%</span>
+    </div>
+  `;
+}
+
 function renderLineRow(slotsInRow, rowClass) {
   if (!slotsInRow || slotsInRow.length === 0) return '';
 
@@ -368,8 +391,10 @@ function renderLineRow(slotsInRow, rowClass) {
     const isPenalized = penaltyRate > 0;
     const rating = getPlayerRating(player);
 
+    const stamina = typeof player.energia === 'number' ? player.energia : 100;
+
     return `
-      <div class="pitch-slot ${isPenalized ? 'is-penalized' : ''} ${isSelected ? 'is-selected' : ''}" data-index="${index}" title="${player.name} (${naturalRole}) - Asignado: ${assignedRole}">
+      <div class="pitch-slot ${isPenalized ? 'is-penalized' : ''} ${isSelected ? 'is-selected' : ''}" data-index="${index}" title="${player.name} (${naturalRole}) - Asignado: ${assignedRole} - Energía: ${Math.round(stamina)}%">
         <div class="pitch-slot__token">
           <span>${getPlayerInitial(player.name)}</span>
           <span class="pitch-slot__rating-pill ${getRatingTierClass(rating)}" title="Valoración del jugador: ${rating}">${rating}</span>
@@ -378,6 +403,7 @@ function renderLineRow(slotsInRow, rowClass) {
         </div>
         <span class="pitch-slot__name">${player.name}</span>
         <span class="pitch-slot__role-badge">${assignedRole}</span>
+        ${getStaminaPillHtml(stamina)}
       </div>
     `;
   }).join('');
@@ -417,6 +443,7 @@ function renderReserves() {
         </div>
         <span class="reserve-slot__label">${hasPlayer ? player.name : `SUP ${subIndex + 1}`}</span>
         <span class="reserve-slot__role">${hasPlayer ? (player.role || 'MC') : 'Libre'}</span>
+        ${hasPlayer ? getStaminaPillHtml(player.energia) : ''}
       </div>
     `;
   }).join('');

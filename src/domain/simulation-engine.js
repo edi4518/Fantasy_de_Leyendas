@@ -53,7 +53,18 @@ export function getAdjustedPlayer(player, assignedRole) {
   const natural = (player.posicion_base || player.role || 'MC').toUpperCase();
   const assigned = (assignedRole || natural).toUpperCase();
   const penaltyRate = getPositionPenalty(natural, assigned);
-  const efficiency = 1 - penaltyRate;
+
+  // 1. Condicionamiento por Stamina / Energía previa (fatiga acumulada del jugador)
+  const stamina = typeof player.energia === 'number' ? player.energia : 100;
+  let staminaPenalty = 0;
+  if (stamina < 60) {
+    staminaPenalty = 0.15; // -15% fatiga severa (<60% energía)
+  } else if (stamina < 80) {
+    staminaPenalty = 0.05; // -5% fatiga media (60%-79% energía)
+  }
+
+  // Eficiencia compuesta (posición táctica * estado físico inicial)
+  const efficiency = (1 - penaltyRate) * (1 - staminaPenalty);
 
   return {
     ...player,
@@ -346,6 +357,8 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
           side: 'home',
           type: 'substitution',
           player: res.subInfo.in,
+          playerIn: res.subInfo.in,
+          playerOut: res.subInfo.out,
           detail: `(Entra por ${res.subInfo.out})`
         };
         isSubAction = true;
@@ -361,6 +374,8 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
           side: 'away',
           type: 'substitution',
           player: res.subInfo.in,
+          playerIn: res.subInfo.in,
+          playerOut: res.subInfo.out,
           detail: `(Entra por ${res.subInfo.out})`
         };
         isSubAction = true;
@@ -376,6 +391,8 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
           side: 'home',
           type: 'substitution',
           player: res.subInfo.in,
+          playerIn: res.subInfo.in,
+          playerOut: res.subInfo.out,
           detail: `(Entra por ${res.subInfo.out})`
         };
         isSubAction = true;
@@ -391,6 +408,8 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
           side: 'away',
           type: 'substitution',
           player: res.subInfo.in,
+          playerIn: res.subInfo.in,
+          playerOut: res.subInfo.out,
           detail: `(Entra por ${res.subInfo.out})`
         };
         isSubAction = true;
@@ -406,6 +425,8 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
           side: 'home',
           type: 'substitution',
           player: res.subInfo.in,
+          playerIn: res.subInfo.in,
+          playerOut: res.subInfo.out,
           detail: `(Entra por ${res.subInfo.out})`
         };
         isSubAction = true;
@@ -421,6 +442,8 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
           side: 'away',
           type: 'substitution',
           player: res.subInfo.in,
+          playerIn: res.subInfo.in,
+          playerOut: res.subInfo.out,
           detail: `(Entra por ${res.subInfo.out})`
         };
         isSubAction = true;

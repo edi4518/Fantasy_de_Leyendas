@@ -650,8 +650,8 @@ export async function playGoalCelebration(goalInfo = {}) {
   }
 
   // Duración del JSON: 3000 ms (90 frames a 30fps) + 400 ms de transición suave
-  const DURATION_MS = 3000;
-  const FADE_OUT_MS = 400;
+  const DURATION_MS = 2200;
+  const FADE_OUT_MS = 300;
 
   return new Promise((resolve) => {
     if (goalCelebrationTimeout) clearTimeout(goalCelebrationTimeout);
@@ -873,35 +873,8 @@ export async function startLiveMatchPlayback() {
           minute: goalEvent?.minute || step.minute || currentSimulatedMinute
         };
 
-        // Pausar inmediatamente la simulación durante la animación de gol
-        if (liveSimulationInterval) {
-          clearInterval(liveSimulationInterval);
-          liveSimulationInterval = null;
-          window.__fantasySimulationInterval = null;
-        }
-
-        // Reproducir la animación oficial gool.json (3s duración + 400ms fade out)
-        playGoalCelebration(goalInfo).then(() => {
-          if (!isMatchLive) return;
-
-          // Si el gol fue en el minuto 45, reanudar hacia el descanso
-          if (currentSimulatedMinute === 45) {
-            triggerHalftimePause();
-            return;
-          }
-
-          // Si el gol fue al minuto 90, finalizar el encuentro
-          if (currentSimulatedMinute >= 90) {
-            finishLiveMatch();
-            return;
-          }
-
-          // Reanudar el reloj del partido tras la celebración
-          liveSimulationInterval = setInterval(runSimulationTick, TICK_MS);
-          window.__fantasySimulationInterval = liveSimulationInterval;
-        });
-
-        return;
+        // Disparar celebración de gol interactiva en paralelo sin detener el avance del partido
+        playGoalCelebration(goalInfo);
       }
     }
 

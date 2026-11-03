@@ -1,3 +1,11 @@
+import {
+  calcularDesgaste,
+  calcularRecuperacion,
+  actualizarEnergiaPlantel,
+  aplicarPenalizacionFatiga,
+  MODIFICADORES_POSICION,
+  STAMINA_CONFIG
+} from './stamina-service.js?v=1';
 /**
  * @file match-service.js
  * @description Servicio modular para simulación de partidos, persistencia de resultados,
@@ -299,6 +307,56 @@ export const matchService = {
         e.side === 'home' && e.type === 'substitution'
       );
 
+      // Procesar sistema de Stamina / Energía para los 9 jugadores del plantel
+      try {
+        const squadWithMinutes = cleanNinePlayers.map((player, idx) => {
+          const isStarter = idx < 6;
+          let minutos = 0;
+          if (isStarter) {
+            const wasSubbedOut = homeSubInEvents.find(e =>
+              this.isSamePlayer(e.playerOut, player.name) ||
+              (e.detail && e.detail.toLowerCase().includes((player.name || '').toLowerCase()))
+            );
+            minutos = wasSubbedOut ? Math.max(1, Number(wasSubbedOut.minute) || 54) : 90;
+          } else {
+            const wasSubbedIn = homeSubInEvents.find(e =>
+              this.isSamePlayer(e.playerIn || e.player, player.name)
+            );
+            minutos = wasSubbedIn ? Math.max(1, 90 - (Number(wasSubbedIn.minute) || 54)) : 0;
+          }
+          return {
+            ...player,
+            minutosJugados: minutos
+          };
+        });
+
+        const updatedSquadStamina = actualizarEnergiaPlantel(squadWithMinutes);
+
+        // Persistir la plantilla de forma garantizada en fantasy_active_squad
+        let squadToSave = null;
+        try {
+          const rawSquad = localStorage.getItem('fantasy_active_squad');
+          if (rawSquad) squadToSave = JSON.parse(rawSquad);
+        } catch (_) {}
+
+        if (!squadToSave || typeof squadToSave !== 'object') {
+          squadToSave = {
+            name: matchData.homeTeam?.name || 'Tu Equipo',
+            formation: matchData.homeTeam?.formation || '1-2-2-1',
+            players: []
+          };
+        }
+        squadToSave.players = updatedSquadStamina;
+        localStorage.setItem('fantasy_active_squad', JSON.stringify(squadToSave));
+        if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+          window.dispatchEvent(new CustomEvent('fantasy:squad-updated', { detail: squadToSave }));
+        }
+        console.info('[MatchService] Plantilla actualizada con nuevo estado de Stamina tras el partido.');
+      } catch (staminaErr) {
+        console.warn('[MatchService] Error actualizando stamina del plantel:', staminaErr);
+      }
+
+
       let matchMvp = null;
       let highestRating = -1;
 
@@ -577,3 +635,13 @@ export const matchService = {
 if (typeof window !== 'undefined') {
   window.matchService = matchService;
 }
+
+
+export {
+  calcularDesgaste,
+  calcularRecuperacion,
+  actualizarEnergiaPlantel,
+  aplicarPenalizacionFatiga,
+  MODIFICADORES_POSICION,
+  STAMINA_CONFIG
+};
