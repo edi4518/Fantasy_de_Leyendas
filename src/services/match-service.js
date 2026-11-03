@@ -1,4 +1,5 @@
 import {
+  calcularCambioEnergia,
   calcularDesgaste,
   calcularRecuperacion,
   actualizarEnergiaPlantel,
@@ -638,6 +639,7 @@ if (typeof window !== 'undefined') {
 
 
 export {
+  calcularCambioEnergia,
   calcularDesgaste,
   calcularRecuperacion,
   actualizarEnergiaPlantel,
