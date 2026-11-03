@@ -644,6 +644,13 @@
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
+.player-slot__avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .player-slot__icon {
   width: 20px;
   height: 20px;
