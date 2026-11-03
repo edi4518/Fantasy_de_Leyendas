@@ -1451,6 +1451,22 @@
 }
 
 /* Ajuste fino en la sección de suplentes/reservas */
+/* Variante clara con transparencia para la sección de suplentes/reservas */
+.reserve-slot.has-player .stamina-pill,
 .reserve-slot .stamina-pill {
   margin-top: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.reserve-slot.has-player .stamina-pill__track,
+.reserve-slot .stamina-pill__track {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.reserve-slot.has-player .stamina-pill__text,
+.reserve-slot .stamina-pill__text {
+  color: #1F2937;
+  text-shadow: none;
 }
