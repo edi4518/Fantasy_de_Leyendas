@@ -1,12 +1,32 @@
+/**
+ * @file lineup.js
+ * @description Controlador de la Pizarra Táctica y Alineación (6 titulares en cancha + 3 suplentes).
+ * Sincronizado automáticamente con los fichajes del Mercado y con persistencia de posiciones personalizadas.
+ */
+
+import { FORMATIONS_6V6, isValidFormation } from '../../domain/formation-rules.js';
+import { getPositionPenalty } from '../../domain/simulation-engine.js';
+import { squadService } from '../../services/squad-service.js';
+import { teamState } from '../../services/team-state.js';
+
+export const DEFAULT_HOME_SQUAD = {
+  name: 'Tu Equipo',
+  formation: '1-2-2-1',
+  players: [
+    { name: 'Casillas', role: 'POR', rating_general: 89, rating_fisico: 82, rating_palmares: 88, rating_defensa: 30, rating_creacion: 20, rating_tecnica: 40, rating_ataque: 10, precio: 8.5 },
+    { name: 'Maldini', role: 'DEF', rating_defensa: 92, rating_fisico: 85, rating_palmares: 92, rating_creacion: 70, rating_tecnica: 78, rating_ataque: 40, precio: 10.5 },
+    { name: 'Baresi', role: 'DEF', rating_defensa: 93, rating_fisico: 79, rating_palmares: 90, rating_creacion: 68, rating_tecnica: 75, rating_ataque: 35, precio: 10.0 },
+    { name: 'Zidane', role: 'MC', rating_creacion: 96, rating_tecnica: 98, rating_fisico: 83, rating_palmares: 95, rating_ataque: 88, rating_defensa: 65, precio: 12.5 },
+    { name: 'Xavi', role: 'MC', rating_creacion: 97, rating_tecnica: 95, rating_fisico: 76, rating_palmares: 94, rating_ataque: 78, rating_defensa: 68, precio: 11.0 },
+    { name: 'Messi', role: 'DEL', rating_ataque: 99, rating_tecnica: 99, rating_creacion: 95, rating_fisico: 80, rating_palmares: 99, rating_defensa: 35, precio: 15.0 },
+    { name: 'Ronaldo', role: 'DEL', rating_ataque: 97, rating_tecnica: 95, rating_fisico: 86, rating_palmares: 91, rating_defensa: 30, rating_creacion: 75, precio: 13.0 },
+    { name: 'Iniesta', role: 'MC', rating_creacion: 94, rating_tecnica: 96, rating_fisico: 85, rating_palmares: 93, rating_ataque: 82, rating_defensa: 60, precio: 8.5 },
+    { name: 'Puyol', role: 'DEF', rating_defensa: 90, rating_fisico: 88, rating_palmares: 89, rating_ataque: 30, rating_creacion: 50, rating_tecnica: 60, precio: 7.5 }
+  ]
+};
 
 /**
- * Determina la clase CSS de la píldora de valoración según la categoría de la media:
- * - Bronce común: 00 - 47
- * - Bronce especial: 48 - 64
- * - Plata común: 65 - 74
- * - Plata especial: 75 - 85
- * - Oro común: 86 - 94
- * - Oro especial: 95 - 99
+ * Determina la clase CSS de la píldora de valoración según la categoría de la media
  */
 export function getRatingTierClass(rating) {
   const r = Number(rating) || 0;
@@ -31,16 +51,10 @@ export function getPlayerRating(player) {
   }
 
   const role = (player.role || player.posicion_base || 'MC').toUpperCase();
-  if (role === 'DEL') {
-    return Math.round(player.rating_ataque || 85);
-  }
-  if (role === 'DEF') {
-    return Math.round(player.rating_defensa || 85);
-  }
-  if (role === 'POR') {
-    return Math.round(player.rating_defensa || player.rating_general || 85);
-  }
-  // MC
+  if (role === 'DEL') return Math.round(player.rating_ataque || 85);
+  if (role === 'DEF') return Math.round(player.rating_defensa || 85);
+  if (role === 'POR') return Math.round(player.rating_defensa || player.rating_general || 85);
+  
   const cre = player.rating_creacion || 80;
   const tec = player.rating_tecnica || 80;
   return Math.round((cre * 0.5) + (tec * 0.5));
@@ -51,56 +65,18 @@ export function getPlayerRating(player) {
  */
 export function getPlayerPrice(player) {
   if (!player) return 0;
-  if (typeof player.precio === 'number' && player.precio > 0) {
-    return Number(player.precio);
-  }
-  if (typeof player.price === 'number' && player.price > 0) {
-    return Number(player.price);
-  }
+  if (typeof player.precio === 'number' && player.precio > 0) return Number(player.precio);
+  if (typeof player.price === 'number' && player.price > 0) return Number(player.price);
   const rating = getPlayerRating(player);
   const base = Math.max(2.0, ((rating - 60) * 0.35 + 3.0));
   return Math.round(base * 10) / 10;
 }
-/**
- * @file lineup.js
- * @description Controlador de la Pizarra Táctica y Alineación (6 titulares en cancha + 3 suplentes).
- * Soporta las 6 formaciones tácticas oficiales 6v6, selector desplegable dinámico,
- * cálculo reactivo de equilibrio/química, penalizaciones por posición y rotación/swap de jugadores.
- *
- * @exports { initLineup }
- */
-
-import { FORMATIONS_6V6, isValidFormation } from '../../domain/formation-rules.js';
-import { getPositionPenalty } from '../../domain/simulation-engine.js';
-export const DEFAULT_HOME_SQUAD = {
-  name: 'Tu Equipo',
-  formation: '1-2-2-1',
-  players: [
-    { name: 'Casillas', role: 'POR', rating_general: 89, rating_fisico: 82, rating_palmares: 88, rating_defensa: 30, rating_creacion: 20, rating_tecnica: 40, rating_ataque: 10, precio: 8.5 },
-    { name: 'Maldini', role: 'DEF', rating_defensa: 92, rating_fisico: 85, rating_palmares: 92, rating_creacion: 70, rating_tecnica: 78, rating_ataque: 40, precio: 10.5 },
-    { name: 'Baresi', role: 'DEF', rating_defensa: 93, rating_fisico: 79, rating_palmares: 90, rating_creacion: 68, rating_tecnica: 75, rating_ataque: 35, precio: 10.0 },
-    { name: 'Zidane', role: 'MC', rating_creacion: 96, rating_tecnica: 98, rating_fisico: 83, rating_palmares: 95, rating_ataque: 88, rating_defensa: 65, precio: 12.5 },
-    { name: 'Xavi', role: 'MC', rating_creacion: 97, rating_tecnica: 95, rating_fisico: 76, rating_palmares: 94, rating_ataque: 78, rating_defensa: 68, precio: 11.0 },
-    { name: 'Messi', role: 'DEL', rating_ataque: 99, rating_tecnica: 99, rating_creacion: 95, rating_fisico: 80, rating_palmares: 99, rating_defensa: 35, precio: 15.0 },
-    // 3 Suplentes reglamentarios
-    { name: 'Ronaldo', role: 'DEL', rating_ataque: 97, rating_tecnica: 95, rating_fisico: 86, rating_palmares: 91, rating_defensa: 30, rating_creacion: 75, precio: 13.0 },
-    { name: 'Iniesta', role: 'MC', rating_creacion: 94, rating_tecnica: 96, rating_fisico: 85, rating_palmares: 93, rating_ataque: 82, rating_defensa: 60, precio: 8.5 },
-    { name: 'Puyol', role: 'DEF', rating_defensa: 90, rating_fisico: 88, rating_palmares: 89, rating_ataque: 30, rating_creacion: 50, rating_tecnica: 60, precio: 7.5 }
-  ]
-};
-import { squadService } from '../../services/squad-service.js';
 
 // Estado local de la pantalla
 let activeSquad = null;
-let selectedSlot = null; // { type: 'starter' | 'reserve', index: number }
-
-
-// Variable para saber qué slot se está gestionando en el modal de acción
+let selectedSlot = null;
 let activeActionSlotIndex = null;
 
-/**
- * Persiste la alineación activa en localStorage y dispara el evento de sincronización global
- */
 export function persistActiveSquad() {
   if (!activeSquad) return;
   try {
@@ -111,10 +87,6 @@ export function persistActiveSquad() {
   }
 }
 
-/**
- * Inicializador principal llamado por el router
- */
-// Listener reactivo para actualizar estadísticas del jugador si el modal de acción está abierto
 window.addEventListener('fantasy:player-stats-updated', () => {
   if (activeActionSlotIndex !== null) {
     const sheet = document.getElementById('player-action-sheet');
@@ -133,116 +105,140 @@ export function initLineup(router) {
   renderScreen();
 }
 
-
 /**
- * Carga la plantilla activa desde localStorage o el fallback oficial
+ * Carga la plantilla activa respetando el orden personalizado del usuario,
+ * pero sincronizando e incorporando automáticamente cualquier nuevo fichaje del Mercado
+ * en los huecos libres (titulares o banquillo de suplentes).
  */
 function loadActiveSquad() {
   try {
+    let currentFormation = '1-2-2-1';
+    const marketState = teamState.getState();
+    const marketRoster = (marketState && Array.isArray(marketState.roster)) ? marketState.roster : [];
+
+    let currentPlayers = Array(9).fill(null);
+
+    // 1. Intentar cargar la alineación guardada previamente por el usuario
     const raw = localStorage.getItem('fantasy_active_squad');
     if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.players)) {
-        activeSquad = {
-          name: parsed.name || 'Tu Equipo',
-          formation: isValidFormation(parsed.formation) ? parsed.formation : '1-2-2-1',
-          players: [...parsed.players]
-        };
-
-        // Si la plantilla quedó incompleta por pruebas (menos de 6 jugadores válidos no nulos)
-        const validPlayersCount = activeSquad.players.filter(Boolean).length;
-        if (validPlayersCount < 6) {
-          activeSquad.players = DEFAULT_HOME_SQUAD.players.map(p => ({ ...p }));
-        } else {
-          fillSquadToNine();
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && isValidFormation(parsed.formation)) {
+          currentFormation = parsed.formation;
         }
-        persistActiveSquad();
-        return;
-      }
+        if (parsed && Array.isArray(parsed.players)) {
+          // Mantener los jugadores actuales, filtrando por si alguno fue vendido en el mercado
+          currentPlayers = parsed.players.map(p => {
+            if (!p) return null;
+            const stillExists = marketRoster.find(mp => mp.id === p.id || mp.name === p.name);
+            return stillExists ? p : null;
+          });
+        }
+      } catch (e) {}
     }
-  } catch (err) {
-    console.debug('[Lineup] Error al leer plantilla activa:', err);
-  }
 
-  // Fallback con copia profunda de DEFAULT_HOME_SQUAD
-  activeSquad = {
-    name: DEFAULT_HOME_SQUAD.name,
-    formation: DEFAULT_HOME_SQUAD.formation || '1-2-2-1',
-    players: DEFAULT_HOME_SQUAD.players.map(p => ({ ...p }))
+    // 2. Sincronización automática: Agregar los NUEVOS jugadores del mercado que aún no están en la plantilla
+    marketRoster.forEach(mp => {
+      const formattedMp = formatMarketPlayer(mp);
+      // Comprobar si este fichaje ya está ubicado en algún slot de la cancha o banquillo
+      const alreadyInSquad = currentPlayers.some(p => p && (p.id === formattedMp.id || p.name === formattedMp.name));
+
+      if (!alreadyInSquad) {
+        // Buscar el primer hueco libre (null) -> Si los 6 titulares están llenos, irá automáticamente a SUP 1, 2 o 3 (índices 6, 7 y 8)
+        const emptyIdx = currentPlayers.findIndex(slot => slot === null);
+        if (emptyIdx !== -1) {
+          currentPlayers[emptyIdx] = formattedMp;
+        }
+      }
+    });
+
+    activeSquad = {
+      name: 'Tu Equipo',
+      formation: currentFormation,
+      players: currentPlayers
+    };
+
+    fillSquadToNine();
+    persistActiveSquad();
+
+  } catch (err) {
+    console.debug('[Lineup] Error al sincronizar plantilla con el mercado:', err);
+    activeSquad = {
+      name: 'Tu Equipo',
+      formation: '1-2-2-1',
+      players: Array(9).fill(null)
+    };
+    fillSquadToNine();
+    persistActiveSquad();
+  }
+}
+function formatMarketPlayer(mp) {
+  return {
+    id: mp.id,
+    name: mp.name || mp.nombre || 'Leyenda',
+    role: (mp.role || mp.posicion_base || 'MC').toUpperCase(),
+    rating_general: mp.rating_general || mp.media_juego || 85,
+    rating_ataque: mp.rating_ataque || 80,
+    rating_defensa: mp.rating_defensa || 80,
+    rating_creacion: mp.rating_creacion || 80,
+    rating_tecnica: mp.rating_tecnica || 80,
+    rating_fisico: mp.rating_fisico || 80,
+    rating_palmares: mp.rating_palmares || 85,
+    precio: mp.precio || mp.price || 10.0,
+    energia: typeof mp.energia === 'number' ? mp.energia : 100
   };
-  fillSquadToNine();
-  persistActiveSquad();
 }
 
-/**
- * Asegura que la lista de jugadores tenga al menos 9 futbolistas
- */
 function fillSquadToNine() {
   if (!activeSquad.players) activeSquad.players = [];
   while (activeSquad.players.length < 9) {
     activeSquad.players.push(null);
   }
-  for (let i = 0; i < 9; i++) {
-    if (!activeSquad.players[i]) {
-      const fallbackPlayer = DEFAULT_HOME_SQUAD.players[i] || {
-        name: `Leyenda ${i + 1}`,
-        role: i === 0 ? 'POR' : (i < 3 ? 'DEF' : (i < 5 ? 'MC' : 'DEL')),
-        rating_general: 85,
-        rating_ataque: 75,
-        rating_defensa: 75,
-        precio: 8.0
-      };
-      activeSquad.players[i] = { ...fallbackPlayer };
-    }
-  }
 }
 
 /**
- * Restablece la plantilla completa oficial equilibrada con 6 titulares y 3 suplentes
+ * Restablece la plantilla por completo y limpia los fichajes del mercado
+ * para restaurar el presupuesto a 100M.
  */
 export function resetToBalancedSquad() {
-  // 1. Mapear y preservar estrictamente la stamina / energía actual de cada jugador
-  const staminaMap = new Map();
-  if (Array.isArray(activeSquad?.players)) {
-    activeSquad.players.forEach(p => {
-      if (p && p.name && typeof p.energia === 'number') {
-        staminaMap.set(p.name.toLowerCase().trim(), p.energia);
+  try {
+    // 1. Limpiar almacenamiento local de alineación y mercado
+    localStorage.removeItem('fantasy_active_squad');
+    localStorage.removeItem('fantasy_market_roster');
+    localStorage.removeItem('team_state');
+    localStorage.removeItem('fantasy_team_state');
+
+    // 2. Limpiar el estado en memoria de teamState si está disponible
+    if (typeof teamState !== 'undefined') {
+      if (typeof teamState.clear === 'function') {
+        teamState.clear();
+      } else if (typeof teamState.setState === 'function') {
+        teamState.setState({ roster: [], budget: 100.0, spent: 0 });
       }
-    });
+    }
+  } catch (err) {
+    console.debug('[Lineup] Error al limpiar almacenamiento:', err);
   }
 
-  // 2. Reubicar los futbolistas en sus posiciones naturales sin alterar su energía
+  // 3. Vaciar la plantilla activa
   activeSquad = {
-    name: activeSquad?.name || DEFAULT_HOME_SQUAD.name || 'Tu Equipo',
+    name: 'Tu Equipo',
     formation: '1-2-2-1',
-    players: DEFAULT_HOME_SQUAD.players.map(p => {
-      const currentEnergy = staminaMap.get(p.name.toLowerCase().trim());
-      return {
-        ...p,
-        energia: typeof currentEnergy === 'number' ? currentEnergy : (typeof p.energia === 'number' ? p.energia : 100)
-      };
-    })
+    players: Array(9).fill(null)
   };
+
   fillSquadToNine();
-
-  // Asegurar que ningún jugador generado en el relleno pierda su energía previa si ya existía
-  activeSquad.players = activeSquad.players.map(p => {
-    if (!p) return p;
-    const currentEnergy = staminaMap.get(p.name.toLowerCase().trim());
-    return {
-      ...p,
-      energia: typeof currentEnergy === 'number' ? currentEnergy : (typeof p.energia === 'number' ? p.energia : 100)
-    };
-  });
-
   persistActiveSquad();
+
+  // 4. Disparar eventos globales para actualizar Dashboard y Mercado al instante
+  window.dispatchEvent(new CustomEvent('fantasy:squad-updated', { detail: activeSquad }));
+  window.dispatchEvent(new CustomEvent('fantasy:market-updated'));
+
+  // 5. Renderizar y notificar
   renderScreen();
-  showToast('¡Jugadores reubicados en su posición natural (stamina conservada)!');
+  showToast('¡Plantilla vaciada y presupuesto restablecido a 100M!');
 }
 
-/**
- * Renderiza todos los elementos reactivos de la pantalla
- */
 function renderScreen() {
   renderFormationDropdown();
   renderPitchPlayers();
@@ -251,9 +247,6 @@ function renderScreen() {
   renderTacticalAdvice();
 }
 
-/**
- * Renderiza el selector desplegable de formación
- */
 const FORMATION_PRESETS = [
   { key: '1-2-2-1', tag: 'Equilibrada' },
   { key: '1-2-1-2', tag: 'Rombo' },
@@ -265,9 +258,7 @@ const FORMATION_PRESETS = [
 
 function renderFormationDropdown() {
   const currentText = document.getElementById('current-formation-text');
-  if (currentText) {
-    currentText.textContent = activeSquad.formation;
-  }
+  if (currentText) currentText.textContent = activeSquad.formation;
 
   const list = document.getElementById('formation-options-list');
   if (!list) return;
@@ -290,7 +281,6 @@ function renderFormationDropdown() {
     `;
   }).join('');
 
-  // Eventos de selección de formación
   list.querySelectorAll('.formation-dropdown__item').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -303,29 +293,21 @@ function renderFormationDropdown() {
   });
 }
 
-/**
- * Cambia la formación activa y actualiza la pizarra
- */
 function changeFormation(newFormationKey) {
   if (!isValidFormation(newFormationKey)) return;
   activeSquad.formation = newFormationKey;
-  selectedSlot = null; // Reset de selección
+  selectedSlot = null;
   persistActiveSquad();
   renderScreen();
   showToast(`Formación cambiada a ${newFormationKey}`);
 }
 
-/**
- * Renderiza los 6 jugadores titulares distribuidos en filas tácticas según la formación
- */
 function renderPitchPlayers() {
   const container = document.getElementById('pitch-players-layer');
   if (!container) return;
 
   const formationData = FORMATIONS_6V6[activeSquad.formation] || FORMATIONS_6V6['1-2-2-1'];
-  const slots = formationData.slots; // ['POR', 'DEF', 'DEF', 'MC', 'MC', 'DEL']
-
-  // Los 6 titulares son los primeros 6 elementos del array (pueden tener jugador o null)
+  const slots = formationData.slots;
   const starters = activeSquad.players.slice(0, 6);
 
   const slotObjects = slots.map((assignedRole, index) => ({
@@ -339,26 +321,21 @@ function renderPitchPlayers() {
   const defRow = slotObjects.filter(s => s.assignedRole === 'DEF');
   const porRow = slotObjects.filter(s => s.assignedRole === 'POR');
 
-  const rowsHtml = [
+  container.innerHTML = [
     renderLineRow(delRow, 'row-del'),
     renderLineRow(mcRow, 'row-mc'),
     renderLineRow(defRow, 'row-def'),
     renderLineRow(porRow, 'row-por')
   ].join('');
 
-  container.innerHTML = rowsHtml;
-
-  // Asignar eventos de click a cada ficha
   container.querySelectorAll('.pitch-slot').forEach(el => {
     el.addEventListener('click', (e) => {
-      // Si hizo clic en el botón de quitar, no ejecutar selección
       if (e.target.closest('.pitch-slot__remove-btn')) return;
       const index = parseInt(el.getAttribute('data-index'), 10);
       handleSlotClick('starter', index);
     });
   });
 
-  // Asignar eventos a botones de quitar jugador
   container.querySelectorAll('.pitch-slot__remove-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -368,13 +345,6 @@ function renderPitchPlayers() {
   });
 }
 
-/**
- * Genera el HTML de una fila de jugadores en la cancha
- */
-
-/**
- * Genera el marcado HTML para la píldora visual de stamina (rayo + barra ancha redondeada + %)
- */
 function getStaminaPillHtml(energia = 100) {
   const val = Math.max(0, Math.min(100, Math.round(Number(energia) || 100)));
   let tier = 'stamina-high';
@@ -400,10 +370,9 @@ function renderLineRow(slotsInRow, rowClass) {
   const slotsHtml = slotsInRow.map(({ index, assignedRole, player }) => {
     const isSelected = selectedSlot && selectedSlot.type === 'starter' && selectedSlot.index === index;
 
-    // 1. CASO: Lugar vacío (quitaron al jugador) -> círculo punteado semi-transparente con '+'
     if (!player) {
       return `
-        <div class="pitch-slot is-empty ${isSelected ? 'is-selected' : ''}" data-index="${index}" title="Puesto libre para ${assignedRole}. Haz clic para asignar un jugador.">
+        <div class="pitch-slot is-empty ${isSelected ? 'is-selected' : ''}" data-index="${index}" title="Puesto libre para ${assignedRole}">
           <div class="pitch-slot__token">
             <span class="pitch-slot__empty-plus">+</span>
           </div>
@@ -413,21 +382,19 @@ function renderLineRow(slotsInRow, rowClass) {
       `;
     }
 
-    // 2. CASO: Lugar ocupado con jugador
     const naturalRole = (player.role || player.posicion_base || 'MC').toUpperCase();
     const penaltyRate = getPositionPenalty(naturalRole, assignedRole);
     const isPenalized = penaltyRate > 0;
     const rating = getPlayerRating(player);
-
     const stamina = typeof player.energia === 'number' ? player.energia : 100;
 
     return `
-      <div class="pitch-slot ${isPenalized ? 'is-penalized' : ''} ${isSelected ? 'is-selected' : ''}" data-index="${index}" title="${player.name} (${naturalRole}) - Asignado: ${assignedRole} - Energía: ${Math.round(stamina)}%">
+      <div class="pitch-slot ${isPenalized ? 'is-penalized' : ''} ${isSelected ? 'is-selected' : ''}" data-index="${index}" title="${player.name} (${naturalRole}) - Asignado: ${assignedRole}">
         <div class="pitch-slot__token">
           <span>${getPlayerInitial(player.name)}</span>
-          <span class="pitch-slot__rating-pill ${getRatingTierClass(rating)}" title="Valoración del jugador: ${rating}">${rating}</span>
+          <span class="pitch-slot__rating-pill ${getRatingTierClass(rating)}" title="Valoración: ${rating}">${rating}</span>
           ${isPenalized ? '<span class="pitch-slot__penalty-dot" title="Fuera de posición natural (-15% eficacia)"></span>' : ''}
-          <button type="button" class="pitch-slot__remove-btn" data-index="${index}" title="Mover ${player.name} al banquillo de reservas">✕</button>
+          <button type="button" class="pitch-slot__remove-btn" data-index="${index}" title="Mover al banquillo">✕</button>
         </div>
         <span class="pitch-slot__name">${player.name}</span>
         <span class="pitch-slot__role-badge">${assignedRole}</span>
@@ -439,9 +406,6 @@ function renderLineRow(slotsInRow, rowClass) {
   return `<div class="pitch-line-row ${rowClass}">${slotsHtml}</div>`;
 }
 
-/**
- * Renderiza los 3 suplentes en la sección de reservas
- */
 function renderReserves() {
   const container = document.getElementById('reserves-slots-container');
   if (!container) return;
@@ -449,9 +413,7 @@ function renderReserves() {
   const reserves = [activeSquad.players[6], activeSquad.players[7], activeSquad.players[8]];
   const filledCount = reserves.filter(Boolean).length;
   const countLabel = document.getElementById('reserves-count-label');
-  if (countLabel) {
-    countLabel.textContent = `${filledCount} / 3 jugadores`;
-  }
+  if (countLabel) countLabel.textContent = `${filledCount} / 3 jugadores`;
 
   container.innerHTML = [0, 1, 2].map(subIndex => {
     const globalIndex = 6 + subIndex;
@@ -461,12 +423,12 @@ function renderReserves() {
     const rating = hasPlayer ? getPlayerRating(player) : null;
 
     return `
-      <div class="reserve-slot ${hasPlayer ? 'has-player' : 'is-empty'} ${isSelected ? 'is-selected' : ''}" data-index="${globalIndex}" title="${hasPlayer ? `${player.name} (${player.role || 'MC'})` : 'Banquillo libre'}">
+      <div class="reserve-slot ${hasPlayer ? 'has-player' : 'is-empty'} ${isSelected ? 'is-selected' : ''}" data-index="${globalIndex}">
         <div class="reserve-slot__circle">
           ${hasPlayer ? `
-            <button type="button" class="reserve-slot__remove-btn" data-index="${globalIndex}" title="Gestionar / Vender suplente">✕</button>
+            <button type="button" class="reserve-slot__remove-btn" data-index="${globalIndex}">✕</button>
             <span>${getPlayerInitial(player.name)}</span>
-            <span class="reserve-slot__rating-pill ${getRatingTierClass(rating)}" title="Valoración: ${rating}">${rating}</span>
+            <span class="reserve-slot__rating-pill ${getRatingTierClass(rating)}">${rating}</span>
           ` : '<span class="reserve-slot__plus">+</span>'}
         </div>
         <span class="reserve-slot__label">${hasPlayer ? player.name : `SUP ${subIndex + 1}`}</span>
@@ -476,7 +438,6 @@ function renderReserves() {
     `;
   }).join('');
 
-  // Eventos de click en reservas
   container.querySelectorAll('.reserve-slot').forEach(el => {
     el.addEventListener('click', (e) => {
       if (e.target.closest('.reserve-slot__remove-btn')) return;
@@ -485,7 +446,6 @@ function renderReserves() {
     });
   });
 
-  // Botón 'X' en reservas para vender o gestionar
   container.querySelectorAll('.reserve-slot__remove-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -495,16 +455,10 @@ function renderReserves() {
   });
 }
 
-/**
- * Abre el menú modal de acción al pulsar la 'X' o querer gestionar un jugador
- */
 function removePlayerToBench(slotIndex) {
   openPlayerActionModal(slotIndex);
 }
 
-/**
- * Abre el menú para Vender, Mover al Banquillo o Intercambiar al jugador
- */
 function openPlayerActionModal(slotIndex) {
   if (!activeSquad || !activeSquad.players || !activeSquad.players[slotIndex]) {
     loadActiveSquad();
@@ -526,7 +480,6 @@ function openPlayerActionModal(slotIndex) {
   if (roleEl) roleEl.textContent = `${player.role || 'MC'} · Rating ${getPlayerRating(player)}`;
   if (tokenEl) tokenEl.textContent = getPlayerInitial(player.name);
 
-  // Cargar estadísticas reales acumuladas del jugador
   const statsBox = document.getElementById('player-action-stats-box');
   if (statsBox) {
     let playerStats = {};
@@ -535,17 +488,7 @@ function openPlayerActionModal(slotIndex) {
       if (raw) playerStats = JSON.parse(raw);
     } catch (e) {}
 
-    function isSamePlayerName(a, b) {
-      if (!a || !b) return false;
-      const cleanA = a.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
-      const cleanB = b.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
-      return cleanA === cleanB || cleanA.includes(cleanB) || cleanB.includes(cleanA);
-    }
-
-    const pStats = playerStats[player.name] ||
-      Object.values(playerStats).find(v => isSamePlayerName(v.name, player.name)) ||
-      Object.entries(playerStats).find(([k]) => isSamePlayerName(k, player.name))?.[1] ||
-      {};
+    const pStats = playerStats[player.name] || {};
     const hasPlayed = (pStats.matchesPlayed || 0) > 0;
     const matches = pStats.matchesPlayed || 0;
     const goals = pStats.goals || 0;
@@ -553,46 +496,27 @@ function openPlayerActionModal(slotIndex) {
     const mvps = pStats.mvpAwards || 0;
 
     statsBox.innerHTML = `
-      <div class="action-stat-pill" title="Partidos Jugados">
-        <span class="action-stat-label">PJ</span>
-        <strong class="action-stat-val">${matches}</strong>
-      </div>
-      <div class="action-stat-pill" title="Goles Marcados">
-        <span class="action-stat-label">Goles</span>
-        <strong class="action-stat-val">${goals}</strong>
-      </div>
-      <div class="action-stat-pill action-stat-pill--rating" title="Nota Media">
-        <span class="action-stat-label">Nota</span>
-        <strong class="action-stat-val">${rating}</strong>
-      </div>
-      <div class="action-stat-pill action-stat-pill--mvp" title="Premios MVP">
-        <span class="action-stat-label">MVP</span>
-        <strong class="action-stat-val">${mvps}</strong>
-      </div>
+      <div class="action-stat-pill"><span class="action-stat-label">PJ</span><strong class="action-stat-val">${matches}</strong></div>
+      <div class="action-stat-pill"><span class="action-stat-label">Goles</span><strong class="action-stat-val">${goals}</strong></div>
+      <div class="action-stat-pill action-stat-pill--rating"><span class="action-stat-label">Nota</span><strong class="action-stat-val">${rating}</strong></div>
+      <div class="action-stat-pill action-stat-pill--mvp"><span class="action-stat-label">MVP</span><strong class="action-stat-val">${mvps}</strong></div>
     `;
   }
 
-  // Verificar si hay hueco libre en el banquillo
   let hasFreeReserve = false;
   for (let i = 6; i <= 8; i++) {
-    if (!activeSquad.players[i]) {
-      hasFreeReserve = true;
-      break;
-    }
+    if (!activeSquad.players[i]) { hasFreeReserve = true; break; }
   }
 
-  // Si ya está en el banquillo o el banquillo está lleno
   if (benchBtn) {
     if (!isStarter) {
       benchBtn.style.display = 'none';
     } else if (!hasFreeReserve) {
       benchBtn.style.display = 'flex';
       benchBtn.classList.add('is-disabled');
-      benchBtn.title = 'El banquillo está lleno (3/3)';
     } else {
       benchBtn.style.display = 'flex';
       benchBtn.classList.remove('is-disabled');
-      benchBtn.title = '';
     }
   }
 
@@ -611,9 +535,7 @@ function closePlayerActionModal() {
   const sheet = document.getElementById('player-action-sheet');
   const emptySheet = document.getElementById('empty-slot-sheet');
 
-  if (backdrop) {
-    backdrop.classList.remove('is-open');
-  }
+  if (backdrop) backdrop.classList.remove('is-open');
   if (sheet) sheet.classList.remove('is-open');
   if (emptySheet) emptySheet.classList.remove('is-open');
 
@@ -625,13 +547,9 @@ function closePlayerActionModal() {
   }, 280);
 }
 
-/**
- * Abre el modal cuando se toca un puesto vacío (+)
- */
-function openEmptySlotModal(slotIndex, router) {
+function openEmptySlotModal(slotIndex) {
   activeActionSlotIndex = slotIndex;
   const isStarter = slotIndex < 6;
-
   const formationData = FORMATIONS_6V6[activeSquad.formation] || FORMATIONS_6V6['1-2-2-1'];
   const expectedRole = isStarter ? formationData.slots[slotIndex] : 'SUP';
 
@@ -641,28 +559,18 @@ function openEmptySlotModal(slotIndex, router) {
   const subtitleEl = document.getElementById('empty-slot-subtitle');
   const reservesBox = document.getElementById('empty-slot-reserves-container');
 
-  if (titleEl) {
-    titleEl.textContent = `Puesto Vacío (${expectedRole})`;
-  }
-  if (subtitleEl) {
-    subtitleEl.textContent = isStarter
-      ? `Asigna un suplente o ficha en el mercado`
-      : `Banquillo libre. Ve al mercado a fichar un suplente`;
-  }
+  if (titleEl) titleEl.textContent = `Puesto Vacío (${expectedRole})`;
+  if (subtitleEl) subtitleEl.textContent = isStarter ? `Asigna un suplente o ficha en el mercado` : `Banquillo libre`;
 
   if (reservesBox) {
-    // Buscar qué suplentes están disponibles en el banquillo
     const availableReserves = [];
     for (let i = 6; i <= 8; i++) {
-      if (activeSquad.players[i]) {
-        availableReserves.push({ index: i, player: activeSquad.players[i] });
-      }
+      if (activeSquad.players[i]) availableReserves.push({ index: i, player: activeSquad.players[i] });
     }
 
     if (availableReserves.length > 0 && isStarter) {
-      reservesBox.innerHTML = `
-        <span style="font-size: 0.7rem; font-weight: 700; color: #64748b; margin-bottom: 2px;">SUPLENTES DISPONIBLES EN BANQUILLO:</span>
-        ` + availableReserves.map(item => `
+      reservesBox.innerHTML = `<span style="font-size: 0.7rem; font-weight: 700; color: #64748b; margin-bottom: 2px;">SUPLENTES DISPONIBLES:</span>` + 
+        availableReserves.map(item => `
           <button type="button" class="empty-slot-reserve-item" data-reserve-index="${item.index}">
             <span>${item.player.name} (${item.player.role || 'MC'})</span>
             <span style="color: #2D6A4F; font-weight: 800;">Media: ${getPlayerRating(item.player)}</span>
@@ -695,9 +603,6 @@ function openEmptySlotModal(slotIndex, router) {
   }
 }
 
-/**
- * Configura los eventos de los botones del modal de gestión de jugador
- */
 function setupActionModalEvents(router) {
   const closeBtn = document.getElementById('btn-close-action-modal');
   const closeEmptyBtn = document.getElementById('btn-close-empty-modal');
@@ -707,7 +612,6 @@ function setupActionModalEvents(router) {
   if (closeEmptyBtn) closeEmptyBtn.addEventListener('click', closePlayerActionModal);
   if (backdrop) backdrop.addEventListener('click', closePlayerActionModal);
 
-  // 1. Mover al banquillo
   const benchBtn = document.getElementById('btn-action-bench');
   if (benchBtn) {
     benchBtn.addEventListener('click', () => {
@@ -716,14 +620,11 @@ function setupActionModalEvents(router) {
 
       let targetReserveIndex = -1;
       for (let i = 6; i <= 8; i++) {
-        if (!activeSquad.players[i]) {
-          targetReserveIndex = i;
-          break;
-        }
+        if (!activeSquad.players[i]) { targetReserveIndex = i; break; }
       }
 
       if (targetReserveIndex === -1) {
-        showToast('El banquillo está lleno (3/3). Vende a un suplente o realiza un intercambio.');
+        showToast('El banquillo está lleno (3/3).');
         closePlayerActionModal();
         return;
       }
@@ -733,11 +634,10 @@ function setupActionModalEvents(router) {
       persistActiveSquad();
       closePlayerActionModal();
       renderScreen();
-      showToast(`${player.name} movido al banquillo de reservas.`);
+      showToast(`${player.name} movido al banquillo.`);
     });
   }
 
-  // 2. Intercambiar por un suplente
   const swapBtn = document.getElementById('btn-action-swap');
   if (swapBtn) {
     swapBtn.addEventListener('click', () => {
@@ -745,11 +645,10 @@ function setupActionModalEvents(router) {
       selectedSlot = { type: activeActionSlotIndex < 6 ? 'starter' : 'reserve', index: activeActionSlotIndex };
       closePlayerActionModal();
       renderScreen();
-      showToast(`Seleccionado: ${activeSquad.players[activeActionSlotIndex]?.name}. Toca el jugador de reemplazo.`);
+      showToast(`Seleccionado: ${activeSquad.players[activeActionSlotIndex]?.name}. Toca otro jugador para intercambiar.`);
     });
   }
 
-  // 3. Vender / Liberar al mercado
   const sellBtn = document.getElementById('btn-action-sell');
   if (sellBtn) {
     sellBtn.addEventListener('click', () => {
@@ -757,41 +656,19 @@ function setupActionModalEvents(router) {
       const player = activeSquad.players[activeActionSlotIndex];
       const playerName = player?.name || 'Jugador';
 
-      // Quitar de la plantilla
+      if (player && player.id) {
+        teamState.removePlayer(player.id);
+      }
+
       activeSquad.players[activeActionSlotIndex] = null;
       selectedSlot = null;
-
-      // Persistir de inmediato
-      persistActiveSquad();
-
-      closePlayerActionModal();
-      renderScreen();
-      showToast(`¡${playerName} vendido al mercado! Puesto libre para fichar una nueva leyenda.`);
-    });
-  }
-
-  // 4. Restaurar leyenda equilibrada para este puesto vacío
-  const restoreSlotBtn = document.getElementById('btn-empty-restore-default');
-  if (restoreSlotBtn) {
-    restoreSlotBtn.addEventListener('click', () => {
-      if (activeActionSlotIndex === null) return;
-      const fallback = DEFAULT_HOME_SQUAD.players[activeActionSlotIndex] || {
-        name: `Leyenda ${activeActionSlotIndex + 1}`,
-        role: activeActionSlotIndex === 0 ? 'POR' : (activeActionSlotIndex < 3 ? 'DEF' : (activeActionSlotIndex < 5 ? 'MC' : 'DEL')),
-        rating_general: 88,
-        rating_ataque: 80,
-        rating_defensa: 80,
-        precio: 10.0
-      };
-      activeSquad.players[activeActionSlotIndex] = { ...fallback };
       persistActiveSquad();
       closePlayerActionModal();
       renderScreen();
-      showToast(`¡${fallback.name} incorporado a tu plantilla en esta posición!`);
+      showToast(`¡${playerName} vendido al mercado!`);
     });
   }
 
-  // 5. Ir al mercado a fichar
   const gotoMarketBtn = document.getElementById('btn-empty-goto-market');
   if (gotoMarketBtn) {
     gotoMarketBtn.addEventListener('click', () => {
@@ -805,29 +682,21 @@ function setupActionModalEvents(router) {
   }
 }
 
-
-/**
- * Maneja el click en un slot para seleccionar, mover o intercambiar jugadores
- */
 function handleSlotClick(type, index) {
   const playerAtClicked = activeSquad.players[index];
 
-  // 1. Si no hay selección previa
   if (!selectedSlot) {
-    // Si hace clic en un lugar vacío y no tiene a nadie seleccionado, abrir opciones / mercado
     if (!playerAtClicked) {
       openEmptySlotModal(index);
       return;
     }
-
     selectedSlot = { type, index };
     renderPitchPlayers();
     renderReserves();
-    showToast(`Seleccionado: ${playerAtClicked.name}. Haz clic en otro puesto o suplente para mover/intercambiar.`);
+    showToast(`Seleccionado: ${playerAtClicked.name}. Toca otro puesto.`);
     return;
   }
 
-  // 2. Si hace clic en el mismo slot, deseleccionamos
   if (selectedSlot.type === type && selectedSlot.index === index) {
     selectedSlot = null;
     renderPitchPlayers();
@@ -835,7 +704,6 @@ function handleSlotClick(type, index) {
     return;
   }
 
-  // 3. Intercambio o asignación a puesto vacío
   const firstIndex = selectedSlot.index;
   const secondIndex = index;
   const playerFirst = activeSquad.players[firstIndex];
@@ -845,21 +713,11 @@ function handleSlotClick(type, index) {
   activeSquad.players[secondIndex] = playerFirst;
 
   selectedSlot = null;
-  persistActiveSquad();
+  persistActiveSquad(); // Guarda automáticamente las posiciones al intercambiar
   renderScreen();
-
-  if (playerFirst && !playerSecond) {
-    showToast(`¡${playerFirst.name} ubicado en la posición!`);
-  } else if (!playerFirst && playerSecond) {
-    showToast(`¡${playerSecond.name} reubicado!`);
-  } else if (playerFirst && playerSecond) {
-    showToast(`¡Intercambio realizado entre ${playerFirst.name} y ${playerSecond.name}!`);
-  }
+  showToast('¡Intercambio realizado y guardado con éxito!');
 }
 
-/**
- * Calcula y muestra el equilibrio y química del equipo
- */
 function renderMetrics() {
   const formationData = FORMATIONS_6V6[activeSquad.formation] || FORMATIONS_6V6['1-2-2-1'];
   const slots = formationData.slots;
@@ -867,7 +725,6 @@ function renderMetrics() {
 
   let totalPenalty = 0;
   let totalRating = 0;
-
   const filledStarters = starters.filter(Boolean);
   const missingCount = 6 - filledStarters.length;
 
@@ -880,7 +737,6 @@ function renderMetrics() {
     totalRating += getPlayerRating(player);
   });
 
-  // Química: 100% si todos están en posición natural, se resta penalización
   const balancePct = missingCount > 0
     ? Math.max(20, Math.round((filledStarters.length / 6) * 100 - (totalPenalty * 30)))
     : Math.max(50, Math.round(100 - (totalPenalty * 50)));
@@ -898,11 +754,11 @@ function renderMetrics() {
   const synergyTextEl = document.getElementById('lineup-synergy-text');
   if (synergyTextEl) {
     if (missingCount > 0) {
-      synergyTextEl.textContent = `Alineación incompleta: faltan ${missingCount} jugador(es) en cancha`;
+      synergyTextEl.textContent = `Alineación incompleta: faltan ${missingCount} jugador(es)`;
     } else if (totalPenalty === 0) {
-      synergyTextEl.textContent = 'Química óptima: todos los jugadores en su rol natural';
+      synergyTextEl.textContent = 'Química óptima: todos en su rol natural';
     } else {
-      synergyTextEl.textContent = `${Math.round(totalPenalty * 100 / 0.15)} jugador(es) fuera de su posición natural`;
+      synergyTextEl.textContent = `Jugadores fuera de posición natural`;
     }
   }
 
@@ -911,7 +767,6 @@ function renderMetrics() {
     avgRatingEl.innerHTML = `Media: <strong>${avgRating}</strong>`;
   }
 
-  // Actualizar estado del botón de Confirmar Alineación
   const saveBtn = document.getElementById('btn-save-lineup');
   if (saveBtn) {
     const reserves = [activeSquad.players[6], activeSquad.players[7], activeSquad.players[8]];
@@ -927,43 +782,22 @@ function renderMetrics() {
   }
 }
 
-/**
- * Diccionario de consejos tácticos enriquecidos e interactivos por formación
- */
 const TACTICAL_ADVICES = {
-  '1-2-2-1': '<strong>Equilibrio Puro:</strong> Estructura clásica que permite control tanto en el fondo como en el centro del campo. Ideal para transiciones seguras y neutralizar rivales ultra ofensivos.',
-  '1-2-1-2': '<strong>Rombo Ofensivo:</strong> Disposición en rombo que conecta la zaga con dos puntas móviles. Excelente para el juego combinativo y desbordar defensas estáticas.',
-  '1-1-2-2': '<strong>Ataque Frontal:</strong> Sacrifica ancho defensivo para sobrecargar la ofensiva con dos puntas. Ideal si cuentas con mediocampistas de buen pie y finalizadores letales.',
-  '1-3-1-1': '<strong>Cerrojo y Presión:</strong> Tres defensores para neutralizar el centro y ahogar circuitos rivales. Muy efectiva contra formaciones basadas en la posesión en la medular.',
-  '1-1-3-1': '<strong>Dominio del Medio:</strong> Superioridad numérica con tres mediocampistas. Garantiza el control de la pelota y abastece constantemente al delantero centro.',
-  '1-1-1-3': '<strong>Ultra Ofensivo (All-In):</strong> Esquema agresivo con tres delanteros en punta. Dinamita defensas cerradas, aunque exige máxima concentración en las contras rivales.'
+  '1-2-2-1': '<strong>Equilibrio Puro:</strong> Estructura clásica que permite control tanto en el fondo como en el centro del campo.',
+  '1-2-1-2': '<strong>Rombo Ofensivo:</strong> Disposición en rombo que conecta la zaga con dos puntas móviles.',
+  '1-1-2-2': '<strong>Ataque Frontal:</strong> Sacrifica ancho defensivo para sobrecargar la ofensiva con dos puntas.',
+  '1-3-1-1': '<strong>Cerrojo y Presión:</strong> Tres defensores para neutralizar el centro y ahogar circuitos rivales.',
+  '1-1-3-1': '<strong>Dominio del Medio:</strong> Superioridad numérica con tres mediocampistas.',
+  '1-1-1-3': '<strong>Ultra Ofensivo (All-In):</strong> Esquema agresivo con tres delanteros en punta.'
 };
 
-/**
- * Renderiza el consejo táctico dinámico e interactivo según la formación activa
- */
 function renderTacticalAdvice() {
   const adviceEl = document.getElementById('tactical-advice-text');
   if (!adviceEl) return;
-
-  const currentAdvice = TACTICAL_ADVICES[activeSquad.formation] ||
-    FORMATIONS_6V6[activeSquad.formation]?.description ||
-    'Formación táctica equilibrada en el terreno de juego.';
-
-  // Transición visual fluida al cambiar de formación
-  if (adviceEl.innerHTML.trim() !== currentAdvice.trim()) {
-    adviceEl.style.opacity = '0';
-    setTimeout(() => {
-      adviceEl.innerHTML = currentAdvice;
-      adviceEl.style.opacity = '1';
-    }, 150);
-  }
+  const currentAdvice = TACTICAL_ADVICES[activeSquad.formation] || 'Formación táctica equilibrada.';
+  adviceEl.innerHTML = currentAdvice;
 }
 
-/**
- * Configura los eventos del dropdown flotante de formación
- */
-// Referencia al listener de clic global para evitar fugas de memoria y listeners duplicados en la SPA
 let dropdownDocumentClickListener = null;
 
 function setupDropdownEvents() {
@@ -973,20 +807,17 @@ function setupDropdownEvents() {
 
   if (!trigger || !dropdown) return;
 
-  // 1. Limpiar listener previo en document para evitar acumulación al navegar en SPA
   if (dropdownDocumentClickListener) {
     document.removeEventListener('click', dropdownDocumentClickListener);
     dropdownDocumentClickListener = null;
   }
 
-  // 2. Click en el botón de formación
   trigger.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     toggleDropdown();
   };
 
-  // 3. Click en el wrapper exterior
   if (wrapper) {
     wrapper.onclick = (e) => {
       if (!dropdown.contains(e.target)) {
@@ -997,7 +828,6 @@ function setupDropdownEvents() {
     };
   }
 
-  // 4. Click fuera del wrapper para cerrar
   dropdownDocumentClickListener = (e) => {
     const currentWrapper = document.querySelector('.formation-dropdown-wrapper');
     if (currentWrapper && !currentWrapper.contains(e.target)) {
@@ -1015,21 +845,15 @@ function toggleDropdown() {
   if (!dropdown) return;
 
   const isClosed = dropdown.hasAttribute('hidden') || !dropdown.classList.contains('is-open');
-  if (isClosed) {
-    openDropdown();
-  } else {
-    closeDropdown();
-  }
+  if (isClosed) openDropdown();
+  else closeDropdown();
 }
 
 function openDropdown() {
   const dropdown = document.getElementById('formation-dropdown');
   const trigger = document.getElementById('formation-selector-btn');
   const wrapper = document.querySelector('.formation-dropdown-wrapper');
-  if (dropdown) {
-    dropdown.removeAttribute('hidden');
-    dropdown.classList.add('is-open');
-  }
+  if (dropdown) { dropdown.removeAttribute('hidden'); dropdown.classList.add('is-open'); }
   if (trigger) trigger.setAttribute('aria-expanded', 'true');
   if (wrapper) wrapper.classList.add('is-open');
 }
@@ -1038,48 +862,18 @@ function closeDropdown() {
   const dropdown = document.getElementById('formation-dropdown');
   const trigger = document.getElementById('formation-selector-btn');
   const wrapper = document.querySelector('.formation-dropdown-wrapper');
-  if (dropdown) {
-    dropdown.setAttribute('hidden', '');
-    dropdown.classList.remove('is-open');
-  }
+  if (dropdown) { dropdown.setAttribute('hidden', ''); dropdown.classList.remove('is-open'); }
   if (trigger) trigger.setAttribute('aria-expanded', 'false');
   if (wrapper) wrapper.classList.remove('is-open');
 }
 
-/**
- * Configura el botón de información táctica
- */
 const FORMATION_DETAILS = [
-  {
-    key: '1-2-2-1',
-    name: '1-2-2-1 (Equilibrio puro)',
-    desc: 'Estructura clásica que permite control tanto en el fondo como en el centro del campo, ideal para transiciones seguras.'
-  },
-  {
-    key: '1-2-1-2',
-    name: '1-2-1-2 (Rombo)',
-    desc: 'Disposición en rombo en el medio campo que conecta la zaga con dos puntas móviles, perfecta para el juego combinativo y vertical por el centro.'
-  },
-  {
-    key: '1-1-2-2',
-    name: '1-1-2-2 (Ataque Frontal)',
-    desc: 'Sacrifica ancho defensivo para acumular poder de fuego arriba. Ideal si se ficha a creadores y finalizadores letales.'
-  },
-  {
-    key: '1-3-1-1',
-    name: '1-3-1-1 (Alta Presión y Creación)',
-    desc: 'Enfoque en ahogar al rival en su campo y surtir de balones constantes al único delantero centro.'
-  },
-  {
-    key: '1-1-3-1',
-    name: '1-1-3-1 (Dominio del Medio)',
-    desc: 'Enfoque en ahogar al rival en su campo y surtir de balones constantes al único delantero centro, priorizando el control de la pelota.'
-  },
-  {
-    key: '1-1-1-3',
-    name: '1-1-1-3 (Ultra Ofensivo / All-In)',
-    desc: 'Formación kamikaze. Todo el presupuesto se gasta en el tridente de ataque, confiando en que el equipo hará más goles de los que va a recibir.'
-  }
+  { key: '1-2-2-1', name: '1-2-2-1 (Equilibrio puro)', desc: 'Estructura clásica que permite control total.' },
+  { key: '1-2-1-2', name: '1-2-1-2 (Rombo)', desc: 'Disposición en rombo en el medio campo.' },
+  { key: '1-1-2-2', name: '1-1-2-2 (Ataque Frontal)', desc: 'Poder de fuego arriba.' },
+  { key: '1-3-1-1', name: '1-3-1-1 (Alta Presión)', desc: 'Ahogar al rival en su campo.' },
+  { key: '1-1-3-1', name: '1-1-3-1 (Dominio del Medio)', desc: 'Superioridad numérica en la medular.' },
+  { key: '1-1-1-3', name: '1-1-1-3 (Ultra Ofensivo)', desc: 'Todo al ataque con tridente.' }
 ];
 
 function setupInfoButton() {
@@ -1094,18 +888,9 @@ function setupInfoButton() {
   if (closeBtn) closeBtn.addEventListener('click', closeTacticalModal);
 
   const resetBtn = document.getElementById('btn-reset-squad');
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      resetToBalancedSquad();
-    });
-  }
-  modalBackdrop.addEventListener('click', closeTacticalModal);
+  if (resetBtn) resetBtn.addEventListener('click', resetToBalancedSquad);
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !modalSheet.hasAttribute('hidden')) {
-      closeTacticalModal();
-    }
-  });
+  modalBackdrop.addEventListener('click', closeTacticalModal);
 }
 
 function openTacticalModal() {
@@ -1115,7 +900,6 @@ function openTacticalModal() {
 
   if (!modalBackdrop || !modalSheet || !listContainer) return;
 
-  // Renderizar las 6 tarjetas de formación
   listContainer.innerHTML = FORMATION_DETAILS.map(f => {
     const isActive = f.key === activeSquad.formation;
     return `
@@ -1125,34 +909,22 @@ function openTacticalModal() {
             <h3 class="formation-card__title">${f.name}</h3>
             ${isActive ? '<span class="formation-card__badge">ACTIVA</span>' : ''}
           </div>
-          ${isActive ? `
-            <div class="formation-card__check">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
-          ` : ''}
         </div>
         <p class="formation-card__desc">${f.desc}</p>
       </article>
     `;
   }).join('');
 
-  // Evento para cambiar formación directamente haciendo click en una tarjeta
   listContainer.querySelectorAll('.formation-card').forEach(card => {
     card.addEventListener('click', () => {
       const formKey = card.getAttribute('data-formation');
-      if (formKey && formKey !== activeSquad.formation) {
-        changeFormation(formKey);
-      }
+      if (formKey && formKey !== activeSquad.formation) changeFormation(formKey);
       closeTacticalModal();
     });
   });
 
-  // Mostrar con animación de abajo hacia arriba
   modalBackdrop.removeAttribute('hidden');
   modalSheet.removeAttribute('hidden');
-
   requestAnimationFrame(() => {
     modalBackdrop.classList.add('is-open');
     modalSheet.classList.add('is-open');
@@ -1162,7 +934,6 @@ function openTacticalModal() {
 function closeTacticalModal() {
   const modalBackdrop = document.getElementById('tactical-modal-backdrop');
   const modalSheet = document.getElementById('tactical-modal-sheet');
-
   if (!modalBackdrop || !modalSheet) return;
 
   modalBackdrop.classList.remove('is-open');
@@ -1174,60 +945,32 @@ function closeTacticalModal() {
   }, 280);
 }
 
-/**
- * Configura el botón de confirmar y guardar alineación con validación estricta de 9 jugadores
- */
 function setupSaveButton(router) {
   const saveBtn = document.getElementById('btn-save-lineup');
   if (!saveBtn) return;
 
   saveBtn.addEventListener('click', async () => {
-    const starters = activeSquad.players.slice(0, 6);
-    const reserves = [activeSquad.players[6], activeSquad.players[7], activeSquad.players[8]];
+    const starters = activeSquad.players.slice(0, 6).filter(Boolean);
+    const reserves = [activeSquad.players[6], activeSquad.players[7], activeSquad.players[8]].filter(Boolean);
+    const totalFilled = starters.length + reserves.length;
 
-    const filledStarters = starters.filter(Boolean).length;
-    const filledReserves = reserves.filter(Boolean).length;
-    const totalFilled = filledStarters + filledReserves;
-
-    // Validación obligatoria: Exactamente 6 titulares y 3 suplentes
     if (totalFilled < 9) {
-      const missingStarters = 6 - filledStarters;
-      const missingReserves = 3 - filledReserves;
-
-      let msg = 'No puedes confirmar la alineación: ';
-      if (missingStarters > 0 && missingReserves > 0) {
-        msg += `Faltan ${missingStarters} titular(es) y ${missingReserves} suplente(s).`;
-      } else if (missingStarters > 0) {
-        msg += `Faltan ${missingStarters} jugador(es) en la cancha.`;
-      } else {
-        msg += `Faltan ${missingReserves} suplente(s) en el banquillo.`;
-      }
-      msg += ' Ve al Mercado para fichar y completar tu equipo (9 jugadores en total).';
-
-      showToast(msg);
+      showToast('Debes completar los 9 jugadores (6 titulares y 3 suplentes) para confirmar.');
       return;
     }
 
     try {
       saveBtn.disabled = true;
       saveBtn.textContent = 'Guardando...';
-
-      // 1. Persistencia local inmediata
       persistActiveSquad();
-
-      // 2. Sincronización con el backend (si está disponible)
       try {
         await squadService.saveSquad({
           formation: activeSquad.formation,
           players: activeSquad.players
         });
-      } catch (e) {
-        console.debug('[Lineup] Guardado local offline completado.');
-      }
-
-      showToast('¡Alineación oficial confirmada con éxito (6 titulares y 3 suplentes)!');
+      } catch (e) {}
+      showToast('¡Alineación oficial confirmada con éxito!');
     } catch (err) {
-      console.error('[Lineup] Error al guardar alineación:', err);
       showToast('Error al guardar la alineación.');
     } finally {
       saveBtn.disabled = false;
@@ -1236,18 +979,12 @@ function setupSaveButton(router) {
   });
 }
 
-/**
- * Obtiene la inicial del jugador para el token
- */
 function getPlayerInitial(name = '') {
   if (!name) return 'J';
   const clean = name.replace(/^[A-Z]\.\s*/, '');
   return clean.charAt(0).toUpperCase();
 }
 
-/**
- * Muestra un toast feedback no invasivo
- */
 function showToast(message) {
   let toast = document.getElementById('lineup-feedback-toast');
   if (!toast) {

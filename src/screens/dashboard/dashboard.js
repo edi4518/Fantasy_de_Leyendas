@@ -1,4 +1,5 @@
 import { getPlayerRating, getPlayerPrice, DEFAULT_HOME_SQUAD } from '../lineup/lineup.js';
+import { getPlayerPhoto } from '../../services/player-service.js';
 /**
  * @file dashboard.js
  * @description Módulo controlador para la vista principal (Dashboard / Inicio) de Fantasy de Leyendas.
@@ -188,28 +189,39 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
     }
 
     const teamSlotsContainer = document.getElementById('team-slots-container');
-    if (teamSlotsContainer && Array.isArray(data.team?.players) && data.team.players.length > 0) {
-      teamSlotsContainer.innerHTML = data.team.players
-        .map((player) => {
-          const role = (player.role || 'JUG').toUpperCase();
-          const roleClass = role.toLowerCase();
-          const name = player.name || `Jugador ${role}`;
-          return `
-            <div class="player-slot player-slot--${roleClass}" role="listitem" title="${name}">
-              <div class="player-slot__avatar" data-position="${role}" aria-label="${name} - ${role}">
-                ${
-                  player.avatarUrl
-                    ? `<img src="${player.avatarUrl}" alt="${name}">`
-                    : `<svg class="player-slot__icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                      </svg>`
-                }
-              </div>
-              <span class="player-slot__role">${role}</span>
-            </div>
-          `;
-        })
-        .join('');
+    if (teamSlotsContainer && Array.isArray(data.team?.players)) {
+      const slots = teamSlotsContainer.querySelectorAll('.player-slot');
+      slots.forEach((slot, index) => {
+        const player = data.team.players[index] || null;
+        const avatar = slot.querySelector('.player-slot__avatar');
+        const roleLabel = slot.querySelector('.player-slot__role');
+        if (!avatar || !roleLabel) return;
+
+        const role = roleLabel.textContent.trim();
+        const name = player?.name || '';
+        const label = name ? `${name} - ${role}` : `Puesto ${role} sin asignar`;
+        const icon = avatar.querySelector('.player-slot__icon');
+        const currentImage = avatar.querySelector('img');
+        currentImage?.remove();
+
+        slot.classList.toggle('is-empty', !player);
+        slot.title = label;
+        avatar.setAttribute('aria-label', label);
+
+        if (player?.avatarUrl) {
+          const image = document.createElement('img');
+          image.src = player.avatarUrl;
+          image.alt = name || role;
+          avatar.appendChild(image);
+          image.addEventListener('error', () => {
+            image.remove();
+            if (icon) icon.hidden = false;
+          }, { once: true });
+          if (icon) icon.hidden = true;
+        } else if (icon) {
+          icon.hidden = false;
+        }
+      });
     }
 
     // 6. Racha Reciente (Totalmente dinámica y reactiva)
@@ -354,7 +366,8 @@ export async function fetchHomeData() {
     console.debug('[Dashboard] Error leyendo fantasy_player_stats:', e);
   }
 
-  const starters = activeSquad.players.slice(0, 6).filter(Boolean);
+  const starterSlots = activeSquad.players.slice(0, 6);
+  const starters = starterSlots.filter(Boolean);
   const reserves = activeSquad.players.slice(6, 9).filter(Boolean);
   const allSquadPlayers = activeSquad.players.filter(Boolean);
 
@@ -427,13 +440,13 @@ export async function fetchHomeData() {
     team: {
       count: starters.length,
       max: 6,
-      players: starters.map((p, idx) => ({
-        id: idx + 1,
-        name: p.name,
-        role: p.role,
+      players: starterSlots.map((p) => p ? ({
+        id: p.id,
+        name: p.name || p.nombre,
+        role: p.role || p.posicion_base,
         rating: getPlayerRating(p),
-        avatarUrl: p.photo_url || p.avatarUrl || null
-      }))
+        avatarUrl: p.photo_url || p.avatarUrl || getPlayerPhoto(p)
+      }) : null)
     },
     mvp: topPlayer ? {
       name: topPlayer.name,
