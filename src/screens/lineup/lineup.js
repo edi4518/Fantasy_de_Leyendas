@@ -201,15 +201,43 @@ function fillSquadToNine() {
  * Restablece la plantilla completa oficial equilibrada con 6 titulares y 3 suplentes
  */
 export function resetToBalancedSquad() {
+  // 1. Mapear y preservar estrictamente la stamina / energía actual de cada jugador
+  const staminaMap = new Map();
+  if (Array.isArray(activeSquad?.players)) {
+    activeSquad.players.forEach(p => {
+      if (p && p.name && typeof p.energia === 'number') {
+        staminaMap.set(p.name.toLowerCase().trim(), p.energia);
+      }
+    });
+  }
+
+  // 2. Reubicar los futbolistas en sus posiciones naturales sin alterar su energía
   activeSquad = {
-    name: DEFAULT_HOME_SQUAD.name || 'Tu Equipo',
+    name: activeSquad?.name || DEFAULT_HOME_SQUAD.name || 'Tu Equipo',
     formation: '1-2-2-1',
-    players: DEFAULT_HOME_SQUAD.players.map(p => ({ ...p }))
+    players: DEFAULT_HOME_SQUAD.players.map(p => {
+      const currentEnergy = staminaMap.get(p.name.toLowerCase().trim());
+      return {
+        ...p,
+        energia: typeof currentEnergy === 'number' ? currentEnergy : (typeof p.energia === 'number' ? p.energia : 100)
+      };
+    })
   };
   fillSquadToNine();
+
+  // Asegurar que ningún jugador generado en el relleno pierda su energía previa si ya existía
+  activeSquad.players = activeSquad.players.map(p => {
+    if (!p) return p;
+    const currentEnergy = staminaMap.get(p.name.toLowerCase().trim());
+    return {
+      ...p,
+      energia: typeof currentEnergy === 'number' ? currentEnergy : (typeof p.energia === 'number' ? p.energia : 100)
+    };
+  });
+
   persistActiveSquad();
   renderScreen();
-  showToast('¡Plantilla equilibrada oficial restaurada (6 titulares y 3 suplentes)!');
+  showToast('¡Jugadores reubicados en su posición natural (stamina conservada)!');
 }
 
 /**
