@@ -286,36 +286,6 @@
   flex-direction: column;
 }
 
-.mvp-name-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.mvp-team-badge {
-  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: var(--radius-sm, 6px);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  line-height: 1.2;
-}
-
-.mvp-team-badge--home {
-  background-color: #EAF3EE;
-  color: var(--color-primary, #2D6A4F);
-  border: 1px solid #A7D7C5;
-}
-
-.mvp-team-badge--rival {
-  background-color: #FEF3C7;
-  color: #92400E;
-  border: 1px solid #FDE68A;
-}
-
 .mvp-name {
   font-size: var(--font-size-md, 0.875rem);
   font-weight: var(--font-weight-bold, 700);
@@ -345,30 +315,6 @@
   font-weight: var(--font-weight-extrabold, 800);
   color: var(--color-primary, #2D6A4F);
   font-variant-numeric: tabular-nums;
-}
-
-/* ==========================================================================
-   ESTILOS JUGADOR DESTACADO RIVAL (Tema Ámbar / Oro)
-   ========================================================================== */
-
-.mvp-subcard--rival {
-  border-left: 3.5px solid #D97706;
-  background-color: #FFFDF9;
-}
-
-.mvp-subcard--rival .subcard-micro-label {
-  color: #B45309;
-  font-weight: 800;
-}
-
-.mvp-avatar-circle--rival {
-  border-color: #F59E0B;
-  background-color: #FEF3C7;
-  color: #B45309;
-}
-
-.rating-value--rival {
-  color: #B45309 !important;
 }
 
 /* Sub-card 2: Actualización de Clasificación */

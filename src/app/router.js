@@ -33,7 +33,6 @@ const routes = {
     fullScreen: true,
   },
   "/dashboard": { screen: "dashboard", authRequired: false },
-  "/matchmaking": { screen: "matchmaking", authRequired: false, fullScreen: true },
   "/market": { screen: "market", authRequired: false },
   "/comparison": { screen: "comparison", authRequired: true },
   "/lineup": { screen: "lineup", authRequired: false },
@@ -358,18 +357,6 @@ async function loadScreenController(route) {
         }
       } catch (err) {
         console.warn("[Router] Controlador profile.js no inicializado:", err);
-      }
-      break;
-    }
-
-    case "matchmaking": {
-      try {
-        const module = await import(`../screens/matchmaking/matchmaking.js?t=${Date.now()}`);
-        if (typeof module.initMatchmaking === "function") {
-          module.initMatchmaking(routerInstance);
-        }
-      } catch (err) {
-        console.warn("[Router] Controlador matchmaking.js no inicializado:", err);
       }
       break;
     }

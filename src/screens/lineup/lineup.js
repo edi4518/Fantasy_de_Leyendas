@@ -908,87 +908,36 @@ function renderTacticalAdvice() {
 /**
  * Configura los eventos del dropdown flotante de formación
  */
-// Referencia al listener de clic global para evitar fugas de memoria y listeners duplicados en la SPA
-let dropdownDocumentClickListener = null;
-
 function setupDropdownEvents() {
   const trigger = document.getElementById('formation-selector-btn');
   const dropdown = document.getElementById('formation-dropdown');
-  const wrapper = document.querySelector('.formation-dropdown-wrapper');
 
-  if (!trigger || !dropdown) return;
-
-  // 1. Limpiar listener previo en document para evitar acumulación al navegar en SPA
-  if (dropdownDocumentClickListener) {
-    document.removeEventListener('click', dropdownDocumentClickListener);
-    dropdownDocumentClickListener = null;
-  }
-
-  // 2. Click en el botón de formación
-  trigger.onclick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    toggleDropdown();
-  };
-
-  // 3. Click en el wrapper exterior
-  if (wrapper) {
-    wrapper.onclick = (e) => {
-      if (!dropdown.contains(e.target)) {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleDropdown();
+  if (trigger && dropdown) {
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = dropdown.hasAttribute('hidden');
+      if (isHidden) {
+        dropdown.removeAttribute('hidden');
+        trigger.setAttribute('aria-expanded', 'true');
+      } else {
+        dropdown.setAttribute('hidden', '');
+        trigger.setAttribute('aria-expanded', 'false');
       }
-    };
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target) && !trigger.contains(e.target)) {
+        closeDropdown();
+      }
+    });
   }
-
-  // 4. Click fuera del wrapper para cerrar
-  dropdownDocumentClickListener = (e) => {
-    const currentWrapper = document.querySelector('.formation-dropdown-wrapper');
-    if (currentWrapper && !currentWrapper.contains(e.target)) {
-      closeDropdown();
-    }
-  };
-
-  document.addEventListener('click', dropdownDocumentClickListener);
-}
-
-function toggleDropdown() {
-  const dropdown = document.getElementById('formation-dropdown');
-  const trigger = document.getElementById('formation-selector-btn');
-  const wrapper = document.querySelector('.formation-dropdown-wrapper');
-  if (!dropdown) return;
-
-  const isClosed = dropdown.hasAttribute('hidden') || !dropdown.classList.contains('is-open');
-  if (isClosed) {
-    openDropdown();
-  } else {
-    closeDropdown();
-  }
-}
-
-function openDropdown() {
-  const dropdown = document.getElementById('formation-dropdown');
-  const trigger = document.getElementById('formation-selector-btn');
-  const wrapper = document.querySelector('.formation-dropdown-wrapper');
-  if (dropdown) {
-    dropdown.removeAttribute('hidden');
-    dropdown.classList.add('is-open');
-  }
-  if (trigger) trigger.setAttribute('aria-expanded', 'true');
-  if (wrapper) wrapper.classList.add('is-open');
 }
 
 function closeDropdown() {
   const dropdown = document.getElementById('formation-dropdown');
   const trigger = document.getElementById('formation-selector-btn');
-  const wrapper = document.querySelector('.formation-dropdown-wrapper');
-  if (dropdown) {
-    dropdown.setAttribute('hidden', '');
-    dropdown.classList.remove('is-open');
-  }
+  if (dropdown) dropdown.setAttribute('hidden', '');
   if (trigger) trigger.setAttribute('aria-expanded', 'false');
-  if (wrapper) wrapper.classList.remove('is-open');
 }
 
 /**
