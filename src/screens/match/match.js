@@ -4,10 +4,10 @@
  * Sincronizado con formaciones reales de usuario, modal de resultados y flujo con "Buscar Rival" (autoplay).
  */
 
-import { openMatchResultModal } from '../../components/modal/modal.js';
-import { simulateMatchEngine, FORMATIONS_6V6 } from '../../domain/simulation-engine.js';
-import { getRandomCpuTeam } from '../../domain/cpu-teams.js';
-import { matchService } from '../../services/match-service.js';
+import { openMatchResultModal, getInitials } from '../../components/modal/modal.js?v=6';
+import { simulateMatchEngine, FORMATIONS_6V6 } from '../../domain/simulation-engine.js?v=6';
+import { getRandomCpuTeam } from '../../domain/cpu-teams.js?v=6';
+import { matchService } from '../../services/match-service.js?v=6';
 
 export const DEFAULT_HOME_SQUAD = {
   name: 'Tu Equipo',
@@ -132,6 +132,34 @@ export function getUserSquad() {
 /**
  * Renderizado reactivo en el DOM.
  */
+/**
+ * Actualiza el botón de acción de la cabecera:
+ * - Durante el partido: "SIMULACIÓN RÁPIDA"
+ * - Al finalizar: "BUSCAR OTRO RIVAL" (redirige a /matchmaking)
+ */
+export function updateHeaderActionButton(isFinished = false) {
+  const quickSimBtn = document.getElementById('btn-quick-sim');
+  if (!quickSimBtn) return;
+
+  if (isFinished) {
+    quickSimBtn.setAttribute('data-mode', 'search-rival');
+    quickSimBtn.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      BUSCAR OTRO RIVAL
+    `;
+    quickSimBtn.classList.add('btn-search-rival-header');
+    quickSimBtn.title = 'Buscar un nuevo rival en Matchmaking';
+  } else {
+    quickSimBtn.setAttribute('data-mode', 'quick-sim');
+    quickSimBtn.textContent = 'SIMULACIÓN RÁPIDA';
+    quickSimBtn.classList.remove('btn-search-rival-header');
+    quickSimBtn.title = 'Resolver el partido al instante';
+  }
+}
+
 export function renderMatchDetails(match = DEFAULT_MATCH_DATA) {
   const homeNameEl = document.getElementById('home-team-name');
   if (homeNameEl) homeNameEl.textContent = match.homeTeam?.name || 'Tu Equipo';
@@ -178,6 +206,9 @@ export function renderMatchDetails(match = DEFAULT_MATCH_DATA) {
 
   renderTimeline(match.events);
   renderStats(match.stats);
+
+  const isFinished = match.status === 'FINAL' || (!match.isLive && match.status && !match.status.includes('EN VIVO') && !match.status.includes('DESCANSO'));
+  updateHeaderActionButton(isFinished);
   renderLineups(match.lineups, match.homeTeam, match.awayTeam);
 }
 
@@ -672,15 +703,27 @@ export async function startLiveMatchPlayback() {
   // 1. Obtener la plantilla real del usuario y un rival CPU aleatorio de los 20 equipos del sistema
   currentFullMatch = null;
   const homeSquad = getUserSquad();
-  const awaySquad = getRandomCpuTeam() || DEFAULT_AWAY_SQUAD;
+  let awaySquad = null;
+  try {
+    const rawRival = sessionStorage.getItem('fantasy_selected_rival');
+    if (rawRival) {
+      awaySquad = JSON.parse(rawRival);
+      sessionStorage.removeItem('fantasy_selected_rival');
+    }
+  } catch (e) {}
+  if (!awaySquad) {
+    awaySquad = getRandomCpuTeam() || DEFAULT_AWAY_SQUAD;
+  }
   console.info(`[Match] Simulación en vivo contra CPU: ${homeSquad.name} vs ${awaySquad.name} (Formación: ${awaySquad.formation})`);
 
   // 2. Simulación (Backend con fallback local offline)
   currentFullMatch = await matchService.simulateMatch(homeSquad, awaySquad);
+  window.__fantasyCurrentFullMatch = currentFullMatch;
   const snapshots = currentFullMatch.cycleSnapshots || [];
   let activeSnapshotIndex = -1;
   currentSimulatedMinute = 1;
   isMatchLive = true;
+  updateHeaderActionButton(false);
 
   // Estado inicial en el minuto 1 (con hito inicial en cronología)
   renderMatchDetails({
@@ -818,12 +861,16 @@ export async function startLiveMatchPlayback() {
       if (step.hasGoalThisCycle) {
         triggerScoreBump();
 
-        // Extraer autor y equipo del gol para la celebración
-        const goalEvent = (step.events || []).slice().reverse().find(e => e.type === 'goal' || e.type === 'penalty-goal');
+        // Extraer autor y equipo del gol para la celebración (evento más reciente al frente)
+        const goalEvent = (step.events || []).find(e =>
+          (e.type === 'goal' || e.type === 'penalty-goal') &&
+          (e.minute === step.minute || Math.abs((e.minute || 0) - currentSimulatedMinute) <= 5)
+        ) || (step.events || []).find(e => e.type === 'goal' || e.type === 'penalty-goal');
+
         const goalInfo = {
           player: goalEvent?.player || '',
           team: goalEvent?.side === 'home' ? homeSquad.name : (goalEvent?.side === 'away' ? awaySquad.name : ''),
-          minute: step.minute || currentSimulatedMinute
+          minute: goalEvent?.minute || step.minute || currentSimulatedMinute
         };
 
         // Pausar inmediatamente la simulación durante la animación de gol
@@ -896,6 +943,7 @@ function finishLiveMatch() {
   if (statusTextEl) statusTextEl.textContent = 'FINAL';
   const statusDot = document.getElementById('status-dot');
   if (statusDot) statusDot.classList.remove('is-live');
+  updateHeaderActionButton(true);
 
   if (currentFullMatch) {
     if (!currentFullMatch.saveOutcome) {
@@ -915,19 +963,55 @@ export async function executeQuickSimulation() {
   console.debug('[Match] Simulación Rápida: Resolviendo al instante...');
   clearGlobalSimulationTimers();
 
-  const liveBtn = document.getElementById('btn-live-sim');
-  if (liveBtn) liveBtn.classList.remove('is-running');
+  // 1. Obtener valores visibles actuales del marcador en pantalla
+  const homeScoreEl = document.getElementById('home-score');
+  const awayScoreEl = document.getElementById('away-score');
+  const domHome = homeScoreEl ? (parseInt(homeScoreEl.textContent, 10) || 0) : 0;
+  const domAway = awayScoreEl ? (parseInt(awayScoreEl.textContent, 10) || 0) : 0;
+
+  // 2. Recuperar el partido activo (local o global de window)
+  if (!currentFullMatch && window.__fantasyCurrentFullMatch) {
+    currentFullMatch = window.__fantasyCurrentFullMatch;
+  }
 
   if (!currentFullMatch) {
     const homeSquad = getUserSquad();
-    const awaySquad = getRandomCpuTeam() || DEFAULT_AWAY_SQUAD;
+    let awaySquad = null;
+    try {
+      const rawRival = sessionStorage.getItem('fantasy_selected_rival');
+      if (rawRival) awaySquad = JSON.parse(rawRival);
+    } catch (e) {}
+    if (!awaySquad) awaySquad = getRandomCpuTeam() || DEFAULT_AWAY_SQUAD;
     currentFullMatch = await matchService.simulateMatch(homeSquad, awaySquad);
+    window.__fantasyCurrentFullMatch = currentFullMatch;
   }
+
+  // 3. Respetar el marcador en desarrollo como piso mínimo
+  if (currentFullMatch.homeTeam) {
+    currentFullMatch.homeTeam.score = Math.max(currentFullMatch.homeTeam.score ?? 0, domHome);
+  }
+  if (currentFullMatch.awayTeam) {
+    currentFullMatch.awayTeam.score = Math.max(currentFullMatch.awayTeam.score ?? 0, domAway);
+  }
+
+  // 4. Si existen snapshots, sincronizar el último snapshot con el resultado final
+  const snapshots = currentFullMatch.cycleSnapshots || [];
+  if (snapshots.length > 0) {
+    const lastSnap = snapshots[snapshots.length - 1];
+    lastSnap.homeScore = currentFullMatch.homeTeam.score;
+    lastSnap.awayScore = currentFullMatch.awayTeam.score;
+    currentFullMatch.events = lastSnap.events || currentFullMatch.events;
+    currentFullMatch.stats = lastSnap.stats || currentFullMatch.stats;
+  }
+
+  currentFullMatch.status = 'FINAL';
+  currentFullMatch.isLive = false;
 
   const statusTextEl = document.getElementById('match-status-text');
   if (statusTextEl) statusTextEl.textContent = 'FINAL';
   const statusDot = document.getElementById('status-dot');
   if (statusDot) statusDot.classList.remove('is-live');
+  updateHeaderActionButton(true);
 
   if (!currentFullMatch.saveOutcome) {
     currentFullMatch.saveOutcome = matchService.saveMatchResult(currentFullMatch);
@@ -937,36 +1021,131 @@ export async function executeQuickSimulation() {
   showMatchResultModal(currentFullMatch);
 }
 
+
+function safeGetInitials(name = '') {
+  if (typeof getInitials === 'function') {
+    try { return getInitials(name); } catch (_) {}
+  }
+  if (!name) return 'LM';
+  const parts = String(name).trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 function showMatchResultModal(match) {
+  try {
   const homeScore = match.homeTeam?.score ?? 0;
   const awayScore = match.awayTeam?.score ?? 0;
   const isWin = homeScore > awayScore;
+  const isLoss = homeScore < awayScore;
   const isDraw = homeScore === awayScore;
 
   const resultType = isWin ? 'VICTORIA' : (isDraw ? 'EMPATE' : 'DERROTA');
   const fallbackPoints = isWin ? '+15 Puntos' : (isDraw ? '+5 Puntos' : '-15 Puntos');
 
-  // Persistir resultado, puntos ganados, racha del mánager y notas de jugadores
   const saveOutcome = match.saveOutcome || matchService.saveMatchResult(match);
   match.saveOutcome = saveOutcome;
 
-  // Extracción del MVP dinámico a partir del resultado de simulación oficial
-  const matchMvp = saveOutcome?.matchMvp;
-  const homeLeader = match.lineups?.home?.[0]?.name || 'Messi';
-  let mvpName = matchMvp ? matchMvp.name : homeLeader;
-  let mvpRating = matchMvp ? matchMvp.matchRating : (homeScore > awayScore ? 8.8 : 7.5);
-  let mvpStats = matchMvp?.matchGoals > 0
-    ? `${matchMvp.matchGoals} ${matchMvp.matchGoals > 1 ? 'Goles' : 'Gol'}`
-    : (matchMvp?.role === 'POR' ? 'Valla invicta y atajadas clave' : 'Rendimiento destacado');
+  let matchMvp = saveOutcome?.matchMvp;
+  const awayTeamName = match.awayTeam?.name || 'Equipo Rival';
+  const homeTeamName = match.homeTeam?.name || 'Tu Equipo';
+
+  // REGLA DE ORO DE COMPETICIÓN:
+  // Si el usuario pierde el partido (DERROTA), el MVP DEBE PERTENECER AL EQUIPO RIVAL GANADOR
+  if (isLoss) {
+    if (!matchMvp || !matchMvp.isRival) {
+      const awayGoalEvents = (match.events || []).filter(e =>
+        e.side === 'away' && (e.type === 'goal' || e.type === 'penalty-goal')
+      );
+      const awayStarters = match.lineups?.away || match.lineups?.awayStarters || [];
+
+      let topScorer = null;
+      let maxGoals = 0;
+      if (awayGoalEvents.length > 0) {
+        const counts = {};
+        awayGoalEvents.forEach(e => {
+          const n = e.player || 'Delantero Rival';
+          counts[n] = (counts[n] || 0) + 1;
+          if (counts[n] > maxGoals) { maxGoals = counts[n]; topScorer = n; }
+        });
+      }
+
+      if (!topScorer) {
+        const fwd = awayStarters.find(p => p.role === 'DEL') || awayStarters[awayStarters.length - 1];
+        topScorer = fwd?.name || 'Goleador Rival';
+        maxGoals = Math.max(1, awayScore);
+      }
+
+      const foundRival = awayStarters.find(p => p.name === topScorer);
+      matchMvp = {
+        name: topScorer,
+        role: foundRival?.role || 'DEL',
+        matchRating: maxGoals >= 2 ? 9.3 : 8.8,
+        matchGoals: maxGoals,
+        savesCount: 0,
+        cleanSheet: homeScore === 0,
+        goalsConceded: homeScore,
+        isRival: true,
+        teamName: awayTeamName
+      };
+    }
+  } else if (isWin) {
+    if (!matchMvp || matchMvp.isRival) {
+      const homeStarters = match.lineups?.home || match.lineups?.homeStarters || [];
+      const leader = homeStarters.find(p => p.role === 'DEL' || p.role === 'MC') || homeStarters[0] || { name: 'Messi', role: 'DEL' };
+      matchMvp = {
+        name: leader.name,
+        role: leader.role || 'DEL',
+        matchRating: 9.2,
+        matchGoals: Math.max(1, homeScore),
+        savesCount: 0,
+        cleanSheet: awayScore === 0,
+        goalsConceded: awayScore,
+        isRival: false,
+        teamName: homeTeamName
+      };
+    }
+  }
+
+  const isRivalMvp = Boolean(matchMvp?.isRival);
+  const mvpName = matchMvp?.name || (isRivalMvp ? awayTeamName : 'Messi');
+  const mvpRating = matchMvp?.matchRating || (isWin ? 9.2 : (isLoss ? 9.0 : 8.0));
+  const mvpTeamName = matchMvp?.teamName || (isRivalMvp ? awayTeamName : homeTeamName);
+
+  let mvpStats = 'Rendimiento destacado';
+  if (isRivalMvp) {
+    if (matchMvp?.matchGoals > 0) {
+      mvpStats = `${matchMvp.matchGoals} ${matchMvp.matchGoals > 1 ? 'Goles anotados' : 'Gol anotado'}`;
+    } else if (matchMvp?.role === 'POR') {
+      mvpStats = matchMvp.cleanSheet ? 'Valla invicta y atajadas clave' : `${matchMvp.savesCount || 2} atajadas clave`;
+    } else {
+      mvpStats = 'Figura del triunfo rival';
+    }
+  } else {
+    if (matchMvp?.role === 'POR') {
+      const isCleanSheet = awayScore === 0;
+      const saves = matchMvp.savesCount || 0;
+      if (isCleanSheet) {
+        mvpStats = saves > 0 ? `Valla invicta y ${saves} ${saves === 1 ? 'atajada clave' : 'atajadas clave'}` : 'Valla invicta';
+      } else {
+        mvpStats = saves > 0 ? `${saves} ${saves === 1 ? 'atajada clave' : 'atajadas clave'}` : 'Seguridad bajo los tres palos';
+      }
+    } else if (matchMvp?.matchGoals > 0) {
+      mvpStats = `${matchMvp.matchGoals} ${matchMvp.matchGoals > 1 ? 'Goles anotados' : 'Gol anotado'}`;
+    } else if (matchMvp?.role === 'DEL') {
+      mvpStats = 'Desmarque y presión ofensiva';
+    } else if (matchMvp?.role === 'MC') {
+      mvpStats = 'Control del mediocampo y visión de juego';
+    } else if (matchMvp?.role === 'DEF') {
+      mvpStats = awayScore === 0 ? 'Solidez y portería a cero' : 'Liderazgo y cortes defensivos';
+    }
+  }
+
   let pointsText;
   if (saveOutcome && typeof saveOutcome.pointsGained === 'number') {
-    if (saveOutcome.pointsGained > 0) {
-      pointsText = `+${saveOutcome.pointsGained} Puntos`;
-    } else if (saveOutcome.pointsGained < 0) {
-      pointsText = `${saveOutcome.pointsGained} Puntos`;
-    } else {
-      pointsText = `0 Puntos`;
-    }
+    if (saveOutcome.pointsGained > 0) pointsText = `+${saveOutcome.pointsGained} Puntos`;
+    else if (saveOutcome.pointsGained < 0) pointsText = `${saveOutcome.pointsGained} Puntos`;
+    else pointsText = `0 Puntos`;
   } else {
     pointsText = fallbackPoints;
   }
@@ -974,16 +1153,18 @@ function showMatchResultModal(match) {
 
   openMatchResultModal(
     {
-      homeTeam: match.homeTeam?.name || 'Tu Equipo',
-      awayTeam: match.awayTeam?.name || 'Equipo Rival',
+      homeTeam: homeTeamName,
+      awayTeam: awayTeamName,
       homeScore,
       awayScore,
       resultType,
       mvp: {
         name: mvpName,
-        initials: getInitials(mvpName),
+        teamName: mvpTeamName,
+        initials: safeGetInitials(mvpName),
         stats: mvpStats,
-        rating: mvpRating
+        rating: mvpRating,
+        isRival: isRivalMvp
       },
       ranking: {
         pointsGained: pointsText,
@@ -992,142 +1173,59 @@ function showMatchResultModal(match) {
     },
     {
       onNextMatch: () => {
-        startLiveMatchPlayback();
+        clearGlobalSimulationTimers();
+        if (window.router && typeof window.router.navigate === 'function') {
+          window.router.navigate('/matchmaking');
+        } else {
+          window.location.hash = '/matchmaking';
+        }
       },
       onGoHome: () => {
         if (window.router && window.router.navigate) window.router.navigate('/dashboard'); else window.location.href = '/dashboard';
       }
     }
   );
-}
-
-function getInitials(name = '') {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-/**
- * Genera una lista coherente de eventos de cronología cuando el partido
- * proviene de un marcador histórico sin eventos guardados.
- */
-function generateEventsForScore(homeName, awayName, homeScore, awayScore) {
-  const evs = [];
-  evs.push({ minute: 90, isPeriodBreak: true, label: 'FIN DEL PARTIDO' });
-
-  const homeMinutes = [14, 28, 41, 57, 72, 86, 33, 62].slice(0, homeScore);
-  const homeScorers = ['L. Messi', 'Z. Zidane', 'X. Hernández', 'R. Nazário', 'P. Maldini', 'A. Iniesta'];
-
-  homeMinutes.forEach((min, idx) => {
-    evs.push({
-      minute: min,
-      side: 'home',
-      type: 'goal',
-      player: homeScorers[idx % homeScorers.length],
-      detail: '(Gol)'
+  } catch (modalError) {
+    console.error('[Match] Error procesando showMatchResultModal:', modalError);
+    // Modal de rescate asegurado para garantizar visualización
+    const homeScore = match?.homeTeam?.score ?? 0;
+    const awayScore = match?.awayTeam?.score ?? 0;
+    const isWin = homeScore > awayScore;
+    const isLoss = homeScore < awayScore;
+    openMatchResultModal({
+      homeTeam: match?.homeTeam?.name || 'Tu Equipo',
+      awayTeam: match?.awayTeam?.name || 'Equipo Rival',
+      homeScore,
+      awayScore,
+      resultType: isWin ? 'VICTORIA' : (isLoss ? 'DERROTA' : 'EMPATE'),
+      mvp: {
+        name: isLoss ? (match?.awayTeam?.name || 'Rival') : 'Messi',
+        teamName: isLoss ? (match?.awayTeam?.name || 'Rival') : 'Tu Equipo',
+        initials: isLoss ? 'RV' : 'ME',
+        stats: 'Figura del partido',
+        rating: 9.0,
+        isRival: isLoss
+      },
+      ranking: {
+        pointsGained: isWin ? '+15 Puntos' : (isLoss ? '-15 Puntos' : '+5 Puntos'),
+        currentRank: '#430'
+      }
+    }, {
+      onNextMatch: () => {
+        clearGlobalSimulationTimers();
+        if (window.router && typeof window.router.navigate === 'function') {
+          window.router.navigate('/matchmaking');
+        } else {
+          window.location.hash = '/matchmaking';
+        }
+      },
+      onGoHome: () => {
+        if (window.router && window.router.navigate) window.router.navigate('/dashboard'); else window.location.href = '/dashboard';
+      }
     });
-  });
-
-  const awayMinutes = [19, 36, 52, 69, 78, 88].slice(0, awayScore);
-  const awayScorers = ['Pelé', 'D. Maradona', 'J. Cruyff', 'Rivaldo', 'T. Henry', 'A. Di Stéfano'];
-
-  awayMinutes.forEach((min, idx) => {
-    evs.push({
-      minute: min,
-      side: 'away',
-      type: 'goal',
-      player: awayScorers[idx % awayScorers.length],
-      detail: '(Gol)'
-    });
-  });
-
-  evs.push({ minute: 45, isPeriodBreak: true, label: 'DESCANSO' });
-
-  if (homeScore === 0) {
-    evs.push({ minute: 64, side: 'away', type: 'save', player: 'Portero Rival', detail: '(Atajada Clave)' });
   }
-  if (awayScore === 0) {
-    evs.push({ minute: 38, side: 'home', type: 'save', player: 'I. Casillas', detail: '(Atajada Clave)' });
-  }
-
-  evs.push({ minute: 0, isPeriodBreak: true, label: 'INICIO DEL PARTIDO' });
-
-  return evs.sort((a, b) => b.minute - a.minute);
 }
 
-/**
- * Normaliza un registro de historial (de localStorage o fallback) a la estructura
- * completa requerida por renderMatchDetails.
- */
-function formatHistoryMatchToDetail(item) {
-  let homeScore = item.homeScore ?? item.home_score;
-  let awayScore = item.awayScore ?? item.away_score;
-
-  if (homeScore === undefined && item.score) {
-    const parts = item.score.split('-').map(s => parseInt(s.trim(), 10));
-    homeScore = isNaN(parts[0]) ? 0 : parts[0];
-    awayScore = isNaN(parts[1]) ? 0 : parts[1];
-  }
-
-  homeScore = homeScore ?? 0;
-  awayScore = awayScore ?? 0;
-
-  const homeTeamName = (item.homeTeam && typeof item.homeTeam === 'object' ? item.homeTeam.name : item.homeTeam) || 'Tu Equipo';
-  const awayTeamName = (item.awayTeam && typeof item.awayTeam === 'object' ? item.awayTeam.name : item.awayTeam) || item.rival || item.opponent || 'Equipo Rival';
-
-  // Si ya tiene eventos guardados, usarlos; de lo contrario generar acordes al marcador
-  let events = item.events;
-  if (!events || events.length === 0) {
-    events = generateEventsForScore(homeTeamName, awayTeamName, homeScore, awayScore);
-  }
-
-  // Si ya tiene estadísticas guardadas, usarlas; sino calcular coherentes
-  let stats = item.stats;
-  if (!stats || !stats.possession) {
-    const isHomeSuperior = homeScore > awayScore;
-    const isAwaySuperior = awayScore > homeScore;
-    const possHome = isHomeSuperior ? Math.min(68, 50 + (homeScore - awayScore) * 5) : (isAwaySuperior ? Math.max(34, 50 - (awayScore - homeScore) * 5) : 50);
-    const shotsHome = Math.max(homeScore, homeScore + Math.floor(Math.random() * 4) + 2);
-    const shotsAway = Math.max(awayScore, awayScore + Math.floor(Math.random() * 4) + 1);
-
-    stats = {
-      possession: { home: possHome, away: 100 - possHome, label: 'Posesión' },
-      shots: { home: shotsHome, away: shotsAway, label: 'Tiros a Puerta' },
-      fouls: { home: 8 + Math.floor(Math.random() * 6), away: 7 + Math.floor(Math.random() * 6), label: 'Faltas' }
-    };
-  }
-
-  const lineups = item.lineups && item.lineups.home ? item.lineups : DEFAULT_MATCH_DATA.lineups;
-
-  return {
-    id: item.id,
-    status: 'FINAL',
-    isLive: false,
-    homeTeam: {
-      name: homeTeamName,
-      score: homeScore,
-      formation: (item.homeTeam && item.homeTeam.formation) || '1-2-2-1'
-    },
-    awayTeam: {
-      name: awayTeamName,
-      score: awayScore,
-      formation: (item.awayTeam && item.awayTeam.formation) || '1-1-3-1'
-    },
-    liveAction: {
-      team: homeScore >= awayScore ? homeTeamName : awayTeamName,
-      status: 'FINAL DEL PARTIDO'
-    },
-    events,
-    stats,
-    lineups
-  };
-}
-
-/**
- * Obtiene los detalles de un partido por su ID desde LocalStorage, Backend o Mock histórico.
- * @param {string|number} matchId
- * @returns {Promise<Object>}
- */
 export async function fetchMatchDetail(matchId) {
   const idStr = String(matchId);
 
@@ -1167,16 +1265,17 @@ export async function fetchMatchDetail(matchId) {
 export async function initMatchDetailView() {
   setupMatchTabs();
 
-  // Configurar botón volver para retornar a la pantalla previa (ej. /history o /dashboard)
+  // Configurar botón volver para retornar al home del juego (/dashboard) y pausar simulación
   const backBtn = document.getElementById('btn-back');
   if (backBtn && !backBtn.hasAttribute('data-bound')) {
     backBtn.setAttribute('data-bound', 'true');
     backBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      if (window.history.length > 1) {
-        window.history.back();
+      clearGlobalSimulationTimers();
+      if (window.router && typeof window.router.navigate === 'function') {
+        window.router.navigate('/dashboard');
       } else {
-        window.location.href = '/history';
+        window.location.hash = '/dashboard';
       }
     });
   }
@@ -1207,18 +1306,28 @@ export async function initMatchDetailView() {
   const quickSimBtn = document.getElementById('btn-quick-sim');
   if (quickSimBtn && !quickSimBtn.hasAttribute('data-bound')) {
     quickSimBtn.setAttribute('data-bound', 'true');
-    quickSimBtn.addEventListener('click', () => {
-      executeQuickSimulation();
+    quickSimBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const statusText = document.getElementById('match-status-text')?.textContent || '';
+      const isFinished = !isMatchLive && (
+        statusText === 'FINAL' ||
+        quickSimBtn.getAttribute('data-mode') === 'search-rival'
+      );
+
+      if (isFinished) {
+        clearGlobalSimulationTimers();
+        if (window.router && typeof window.router.navigate === 'function') {
+          window.router.navigate('/matchmaking');
+        } else {
+          window.location.hash = '/matchmaking';
+        }
+      } else {
+        executeQuickSimulation();
+      }
     });
   }
 
-  const liveSimBtn = document.getElementById('btn-live-sim');
-  if (liveSimBtn && !liveSimBtn.hasAttribute('data-bound')) {
-    liveSimBtn.setAttribute('data-bound', 'true');
-    liveSimBtn.addEventListener('click', () => {
-      startLiveMatchPlayback();
-    });
-  }
+  // El botón btn-live-sim fue retirado por diseño simplificado de la cabecera
 
   const statusBadge = document.getElementById('match-status-badge');
   if (statusBadge && !statusBadge.hasAttribute('data-bound')) {

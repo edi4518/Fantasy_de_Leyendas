@@ -95,22 +95,27 @@ export function openMatchResultModal(data = DEFAULT_MATCH_RESULT_DATA, options =
           </section>
 
           <!-- JUGADOR DEL PARTIDO (MVP) -->
-          <article class="modal-subcard mvp-subcard" aria-labelledby="mvp-subcard-title">
-            <span class="subcard-micro-label" id="mvp-subcard-title">JUGADOR DEL PARTIDO</span>
+          <article class="modal-subcard mvp-subcard ${data.mvp?.isRival ? 'mvp-subcard--rival' : ''}" aria-labelledby="mvp-subcard-title">
+            <span class="subcard-micro-label" id="mvp-subcard-title">${data.mvp?.isRival ? 'JUGADOR DEL PARTIDO · RIVAL' : 'JUGADOR DEL PARTIDO'}</span>
             <div class="mvp-subcard__content">
               <div class="mvp-subcard__player">
-                <div class="mvp-avatar-circle" id="modal-mvp-avatar" aria-label="Iniciales del jugador">
+                <div class="mvp-avatar-circle ${data.mvp?.isRival ? 'mvp-avatar-circle--rival' : ''}" id="modal-mvp-avatar" aria-label="Iniciales del jugador">
                   ${data.mvp?.initials || 'LM'}
                 </div>
                 <div class="mvp-info">
-                  <h3 class="mvp-name" id="modal-mvp-name">${data.mvp?.name || 'L. Messi'}</h3>
+                  <div class="mvp-name-row">
+                    <h3 class="mvp-name" id="modal-mvp-name">${data.mvp?.name || 'L. Messi'}</h3>
+                    <span class="mvp-team-badge ${data.mvp?.isRival ? 'mvp-team-badge--rival' : 'mvp-team-badge--home'}" id="modal-mvp-team">
+                      ${data.mvp?.teamName || (data.mvp?.isRival ? 'Equipo Rival' : 'Tu Equipo')}
+                    </span>
+                  </div>
                   <span class="mvp-stats" id="modal-mvp-stats">${data.mvp?.stats || '2 Goles, 1 Asistencia'}</span>
                 </div>
               </div>
 
               <div class="mvp-rating-box">
                 <span class="rating-label">Valoración</span>
-                <strong class="rating-value" id="modal-mvp-rating">${Number(data.mvp?.rating ?? 9.8).toFixed(1)}</strong>
+                <strong class="rating-value ${data.mvp?.isRival ? 'rating-value--rival' : ''}" id="modal-mvp-rating">${Number(data.mvp?.rating ?? 9.8).toFixed(1)}</strong>
               </div>
             </div>
           </article>
@@ -200,13 +205,47 @@ function populateModalData(data = DEFAULT_MATCH_RESULT_DATA) {
     rankEl.textContent = data.ranking.currentRank;
   }
 
-  // Avatar de iniciales o imagen
+  // Actualización dinámica del MVP (soporte local y rival con badge de equipo)
+  const mvpSubcard = document.querySelector('.mvp-subcard');
+  const mvpTitleEl = document.getElementById('mvp-subcard-title');
+  const mvpNameEl = document.getElementById('modal-mvp-name');
+  const mvpTeamEl = document.getElementById('modal-mvp-team');
+  const mvpStatsEl = document.getElementById('modal-mvp-stats');
+  const mvpRatingEl = document.getElementById('modal-mvp-rating');
   const mvpAvatarEl = document.getElementById('modal-mvp-avatar');
-  if (mvpAvatarEl) {
-    if (data.mvp?.avatarUrl) {
-      mvpAvatarEl.innerHTML = `<img src="${data.mvp.avatarUrl}" alt="${data.mvp.name}">`;
+
+  if (data.mvp) {
+    if (mvpNameEl && data.mvp.name) mvpNameEl.textContent = data.mvp.name;
+    if (mvpTeamEl) {
+      const tName = data.mvp.teamName || (data.mvp.isRival ? 'Equipo Rival' : 'Tu Equipo');
+      mvpTeamEl.textContent = tName;
+      mvpTeamEl.className = `mvp-team-badge ${data.mvp.isRival ? 'mvp-team-badge--rival' : 'mvp-team-badge--home'}`;
+    }
+    if (mvpStatsEl) {
+      mvpStatsEl.textContent = data.mvp.stats || 'Rendimiento destacado';
+    }
+    if (mvpRatingEl && data.mvp.rating !== undefined) {
+      mvpRatingEl.textContent = Number(data.mvp.rating).toFixed(1);
+    }
+
+    if (data.mvp.isRival) {
+      if (mvpSubcard) mvpSubcard.classList.add('mvp-subcard--rival');
+      if (mvpTitleEl) mvpTitleEl.textContent = 'JUGADOR DEL PARTIDO · RIVAL';
+      if (mvpAvatarEl) mvpAvatarEl.classList.add('mvp-avatar-circle--rival');
+      if (mvpRatingEl) mvpRatingEl.classList.add('rating-value--rival');
     } else {
-      mvpAvatarEl.textContent = data.mvp?.initials || getInitials(data.mvp?.name || 'LM');
+      if (mvpSubcard) mvpSubcard.classList.remove('mvp-subcard--rival');
+      if (mvpTitleEl) mvpTitleEl.textContent = 'JUGADOR DEL PARTIDO';
+      if (mvpAvatarEl) mvpAvatarEl.classList.remove('mvp-avatar-circle--rival');
+      if (mvpRatingEl) mvpRatingEl.classList.remove('rating-value--rival');
+    }
+
+    if (mvpAvatarEl) {
+      if (data.mvp.avatarUrl) {
+        mvpAvatarEl.innerHTML = `<img src="${data.mvp.avatarUrl}" alt="${data.mvp.name}">`;
+      } else {
+        mvpAvatarEl.textContent = data.mvp.initials || getInitials(data.mvp.name || 'LM');
+      }
     }
   }
 }
@@ -214,7 +253,7 @@ function populateModalData(data = DEFAULT_MATCH_RESULT_DATA) {
 /**
  * Obtiene iniciales a partir de un nombre (ej. "Lionel Messi" -> "LM").
  */
-function getInitials(name = '') {
+export function getInitials(name = '') {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();

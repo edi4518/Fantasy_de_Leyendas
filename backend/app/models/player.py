@@ -1,22 +1,6 @@
-import os
-import re
-import unicodedata
 from sqlalchemy import Column, Integer, String, Float, Enum
 from app.core.database import Base
 
-# Bucket público de Supabase con tu ID de proyecto
-SUPABASE_STORAGE_URL = os.getenv(
-    "SUPABASE_STORAGE_URL",
-    "https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/"
-)
-
-def _to_slug(text: str) -> str:
-    """Convierte el nombre al formato de archivo en Supabase (ej: 'Lionel Messi' -> 'lionel_messi')."""
-    if not text:
-        return ""
-    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
-    text = re.sub(r'[^\w\s]', '', text).strip().lower()
-    return re.sub(r'[\s\-]+', '_', text)  # <-- CAMBIO AQUÍ: reemplaza espacios por guion bajo (_)
 
 class Player(Base):
     """Modelo ORM que mapea la tabla 'players' con las 80 leyendas y sus atributos estadísticos."""
@@ -87,9 +71,13 @@ class Player(Base):
     rating_general = Column(Integer, nullable=False, default=0)
     media_juego = Column(Integer, nullable=False, default=0, index=True)
 
-    # Propiedad dinámica para exponer la foto a Pydantic y FastAPI
     @property
-    def photo_url(self) -> str:
-        """Genera dinámicamente la URL de Supabase usando el nombre del jugador."""
-        slug = _to_slug(self.nombre)
-        return f"{SUPABASE_STORAGE_URL}{slug}.webp" if slug else ""
+    def image_filename(self) -> str:
+        """Nombre de archivo webp en Supabase Storage derivado del nombre de la leyenda."""
+        import unicodedata
+        if not self.nombre:
+            return ""
+        normalizado = unicodedata.normalize("NFKD", self.nombre)
+        limpio = "".join([c for c in normalizado if not unicodedata.combining(c)])
+        slug = limpio.lower().strip().replace(" ", "_").replace("'", "")
+        return f"{slug}.webp"

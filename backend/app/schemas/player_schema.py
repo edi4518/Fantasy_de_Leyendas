@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 
@@ -66,8 +67,6 @@ class PlayerResponse(BaseModel):
     precio: float = 0.0
     rating_general: int = 0
     media_juego: int = 0
-
-
-    photo_url: str | None = None
+    image_filename: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

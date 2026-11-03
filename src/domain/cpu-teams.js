@@ -1,3 +1,5 @@
+import { FORMATIONS_6V6 } from './formation-rules.js';
+
 /**
  * @file cpu-teams.js
  * @description 20 Equipos CPU con nombres limpios, formaciones oficiales y stats completas.
@@ -2870,33 +2872,73 @@ export function getRandomCpuTeam() {
   if (!Array.isArray(CPU_TEAMS) || CPU_TEAMS.length === 0) return null;
   const index = Math.floor(Math.random() * CPU_TEAMS.length);
   const raw = CPU_TEAMS[index];
+
+  const slots = FORMATIONS_6V6[raw.formacion]?.slots || ['POR', 'DEF', 'DEF', 'MC', 'MC', 'DEL'];
+
+  // Asignar titulares según los slots tácticos de la formación y reservar los 3 suplentes
+  const pool = [...raw.jugadores];
+  const starters = [];
+  for (const roleNeeded of slots) {
+    const pIndex = pool.findIndex(p => (p.role || p.posicion_base) === roleNeeded);
+    if (pIndex !== -1) {
+      starters.push(pool.splice(pIndex, 1)[0]);
+    } else {
+      starters.push(pool.shift());
+    }
+  }
+  const orderedSquad = [...starters, ...pool];
+
+  const players = orderedSquad.map(j => {
+    const role = j.role || j.posicion_base || 'MC';
+    let general = Math.max(80, Math.min(94, Math.round(Number(j.media_juego || j.rating_general) || 84)));
+    if (general < 82) general = 82 + (general % 6);
+
+    let rawAtk = Number(j.rating_ataque) || general;
+    let rawDef = Number(j.rating_defensa) || general;
+    let rawCre = Number(j.rating_creacion) || general;
+    let rawTec = Number(j.rating_tecnica) || general;
+    let fis = Math.max(76, Math.min(92, Math.round(Number(j.rating_fisico) || 82)));
+
+    let atk, def, cre;
+    if (role === 'DEL') {
+      atk = Math.max(84, Math.min(96, Math.round(rawAtk > 50 ? rawAtk : 88)));
+      def = Math.min(55, Math.max(30, Math.round(rawDef < 50 ? rawDef : 42)));
+      cre = Math.max(70, Math.min(88, Math.round(rawCre > 50 ? rawCre : 76)));
+    } else if (role === 'DEF') {
+      def = Math.max(84, Math.min(96, Math.round(rawDef > 50 ? rawDef : 88)));
+      atk = Math.min(55, Math.max(30, Math.round(rawAtk < 50 ? rawAtk : 40)));
+      cre = Math.max(65, Math.min(82, Math.round(rawCre > 50 ? rawCre : 72)));
+    } else if (role === 'POR') {
+      def = Math.max(85, Math.min(96, Math.round(rawDef > 50 ? rawDef : 89)));
+      atk = 20;
+      cre = 50;
+    } else { // MC
+      cre = Math.max(83, Math.min(95, Math.round(rawCre > 50 ? rawCre : 86)));
+      atk = Math.max(72, Math.min(88, Math.round(rawAtk > 50 ? rawAtk : 78)));
+      def = Math.max(62, Math.min(84, Math.round(rawDef > 50 ? rawDef : 70)));
+    }
+    const tec = Math.max(72, Math.min(95, Math.round(rawTec > 50 ? rawTec : 82)));
+    const palm = Math.max(70, Math.min(98, Math.round(Number(j.rating_palmares) || 80)));
+
+    return {
+      name: j.nombre,
+      role,
+      posicion_base: role,
+      rating_general: general,
+      rating_ataque: atk,
+      rating_defensa: def,
+      rating_creacion: cre,
+      rating_tecnica: tec,
+      rating_fisico: fis,
+      rating_palmares: palm
+    };
+  });
+
   return {
     name: raw.nombre_equipo,
     formation: raw.formacion,
     cost: raw.costo_total,
     rating: raw.rating_promedio,
-    players: raw.jugadores.map(j => {
-      // Nivelación competitiva de estadísticas para equipos CPU
-      const general = Math.max(74, Math.round(Number(j.media_juego || j.rating_general) || 75));
-      const def = Math.max(45, Math.round(Number(j.rating_defensa) || general));
-      const atk = Math.max(35, Math.round(Number(j.rating_ataque) || general));
-      const crea = Math.max(50, Math.round(Number(j.rating_creacion) || general));
-      const tec = Math.max(50, Math.round(Number(j.rating_tecnica) || general));
-      const fis = Math.max(65, Math.round(Number(j.rating_fisico) || 75));
-      const palm = Math.max(55, Math.round(Number(j.rating_palmares) || 70));
-
-      return {
-        name: j.nombre,
-        role: j.role || j.posicion_base || 'MC',
-        posicion_base: j.posicion_base || j.role || 'MC',
-        rating_general: general,
-        rating_ataque: atk,
-        rating_defensa: def,
-        rating_creacion: crea,
-        rating_tecnica: tec,
-        rating_fisico: fis,
-        rating_palmares: palm
-      };
-    })
+    players
   };
 }
