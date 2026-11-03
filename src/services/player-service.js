@@ -6,6 +6,19 @@
 const SUPABASE_STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.storage.supabase.co/storage/v1/s3';
 const DEFAULT_AVATAR = '/public/images/default-avatar.png';
 
+const API_BASE_URL = 'http://localhost:8000/api';
+
+export const playerService = {
+  async getAllPlayers() {
+    const response = await fetch(`${API_BASE_URL}/players`);
+    if (!response.ok) {
+      throw new Error('No se pudo conectar con el servidor de FastAPI');
+    }
+    return await response.json();
+  },
+  // ... demás métodos del servicio
+};
+
 /**
  * Normaliza nombres a slug limpio (sin acentos ni espacios).
  */

@@ -1,19 +1,16 @@
 /**
  * @file layout.css
- * @description Estructura de layout y App Shell con enfoque Mobile-First para PWA.
- * Define el contenedor unificado del smartphone (tarjeta centrada de 412px con bordes redondeados en desktop)
- * y la barra de navegación inferior perfectamente anclada al marco en todas las pantallas.
+ * @description Layout adaptativo profesional (Header de marca con logo en PC, Navegación superior tipo portal deportivo / Móvil app fija).
  */
 
 /* ==========================================================================
    1. FONDO GENERAL Y APP BODY
    ========================================================================== */
-
 body.app-body {
   margin: 0;
   padding: 0;
   background-color: var(--color-background, #f8fafc);
-  color: var(--color-text, #0f172a);
+  color: var(--color-text, #1f6415);
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
   min-height: 100dvh;
@@ -40,7 +37,6 @@ body.app-body {
 /* ==========================================================================
    2. CONTENEDOR PRINCIPAL: APP SHELL (100vh continuo, sin bordes redondeados)
    ========================================================================== */
-
 .app-layout {
   width: 100%;
   max-width: 100%;

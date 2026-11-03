@@ -1,16 +1,44 @@
-<!-- Vista HTML: Mercado de fichajes de leyendas -->
-<section class="screen-market">
+<div class="market-screen">
+  <!-- Cabecera del Mercado -->
   <header class="market-header">
-    <h2>Mercado de Leyendas (80 Disponibles)</h2>
-    <div class="market-filters">
-      <button class="filter-pill active" data-pos="ALL">Todos</button>
-      <button class="filter-pill" data-pos="POR">POR</button>
-      <button class="filter-pill" data-pos="DEF">DEF</button>
-      <button class="filter-pill" data-pos="MED">MED</button>
-      <button class="filter-pill" data-pos="DEL">DEL</button>
+    <div class="market-title-area">
+      <h1 class="market-title">Mercado de<br>Fichajes</h1>
+    </div>
+    <div class="market-budget-card">
+      <span class="budget-label">PRESUPUESTO DISPONIBLE</span>
+      <span class="budget-value">16.6M €</span>
+      <span class="plantilla-count">Plantilla: <span id="market-squad-count">4</span> / 9</span>
     </div>
   </header>
-  <div id="market-players-grid" class="market-grid">
-    <!-- Renderizado dinámico de cartas de leyendas -->
+
+  <!-- Buscador -->
+  <div class="market-search-container">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="market-search-input" placeholder="Buscar futbolistas..." autocomplete="off">
   </div>
-</section>
+
+  <!-- Botones de Filtro por Posición -->
+  <div class="market-filters">
+    <button class="filter-btn active" data-position="ALL">Todos</button>
+    <button class="filter-btn" data-position="POR">POR</button>
+    <button class="filter-btn" data-position="DEF">DEF</button>
+    <button class="filter-btn" data-position="MC">MC</button>
+    <button class="filter-btn" data-position="DEL">DEL</button>
+  </div>
+
+  <!-- Botón de Comparar Jugadores -->
+  <button id="btn-go-to-compare" class="btn-compare-action" disabled>
+    <span class="compare-icon">⇄</span> Comparar Jugadores (<span id="compare-count">0</span>/3)
+  </button>
+
+  <!-- Sección de Jugadores Disponibles -->
+  <div class="market-section-header">
+    <span class="section-label">JUGADORES DISPONIBLES</span>
+    <span class="sort-icon">⇅</span>
+  </div>
+
+  <!-- Lista de Tarjetas de Jugadores -->
+  <div id="market-player-list" class="market-player-list">
+    <!-- Se inyectan dinámicamente -->
+  </div>
+</div>

@@ -1,2 +1,282 @@
-/* Estilos para la comparativa frente a frente de atributos de dos leyendas */
-.comparison-wrapper { display: flex; gap: var(--space-md); }
+.comparison-screen {
+  max-width: none !important;       /* Quita el límite de ancho de celular */
+  width: 100% !important;           /* Ocupa todo el ancho disponible */
+  min-height: 100vh !important;     /* Asegura el alto total de la ventana */
+  height: 100% !important;
+  margin: 0 !important;             /* Remueve centrados automáticos */
+  border-radius: 0 !important;      /* Quita los bordes redondeados tipo app */
+  box-shadow: none !important;      /* Elimina la sombra de simulación */
+  padding: 24px !important;         /* Espaciado interno cómodo para PC */
+}
+
+.comp-header {
+  background: #ffffff;
+  padding: 12px 16px;
+  border-radius: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.comp-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: #1e293b;
+}
+
+.comp-title-group {
+  text-align: center;
+}
+
+.comp-title-group h2 {
+  font-size: 1rem;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+}
+
+.badge-sim {
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: #e6f4ea;
+  color: #2d6a4f;
+  padding: 2px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
+}
+
+.comp-bar-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #334155;
+}
+
+.btn-add-pill {
+  background: #2d6a4f;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.comp-color-bar {
+  display: flex;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.bar-segment { flex: 1; }
+.color-green { background-color: #2d6a4f; }
+.color-yellow { background-color: #d97706; }
+.color-blue { background-color: #2563eb; }
+
+/* --- CARRUSEL HORIZONTAL DE TARJETAS --- */
+.comp-cards-scroll {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+
+.comp-player-card {
+  flex: 0 0 160px !important;
+  width: 160px !important;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 10px;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar-circle {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  border-radius: 50%;
+  border: 2px solid #2d6a4f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.75rem;
+  background: #f1f5f9;
+}
+
+.pos-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  display: inline-block;
+  margin-top: 2px;
+}
+
+.btn-remove-card {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.card-stats-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 0.65rem;
+}
+
+.card-stats-row small { color: #64748b; font-weight: 600; display: block; }
+.card-stats-row strong { font-size: 0.85rem; font-weight: 800; }
+
+/* Contenedores de Radar y Benchmarks */
+.comp-section-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 1px solid #f1f5f9;
+}
+
+.section-title-badge {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #475569;
+  margin-bottom: 10px;
+}
+
+.radar-container {
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  height: 220px;
+}
+
+/* Forzar que la leyenda del radar sea horizontal y limpia */
+.radar-legend {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+/* Benchmark Estadístico */
+.benchmark-card {
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.bench-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.bench-title {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.bench-badge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.bench-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.7rem;
+}
+
+.bench-name {
+  width: 80px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bench-bar-track {
+  flex: 1;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bench-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.bench-val {
+  width: 32px;
+  text-align: right;
+  font-weight: 800;
+  color: #0f172a;
+}
