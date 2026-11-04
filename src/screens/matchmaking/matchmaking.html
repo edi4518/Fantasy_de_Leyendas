@@ -1,233 +1,205 @@
-<!-- Vista HTML: Pantalla Intermedia de Matchmaking y Comparativa Táctica (Versus) -->
-<div class="matchmaking-container" data-purpose="matchmaking-versus-screen">
-  <!-- Fondo táctico sutil -->
-  <div class="matchmaking-tactical-bg" aria-hidden="true"></div>
+<!DOCTYPE html>
+<html lang="es">
 
-  <!-- TOP BAR: Status & League Indicator -->
-  <header class="matchmaking-topbar">
-    <div class="matchmaking-badge matchmaking-badge--p2p">
-      <span class="matchmaking-badge__ping"></span>
-      <span class="matchmaking-badge__dot"></span>
-      <span class="matchmaking-badge__label">Matchmaking P2P</span>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matchmaking - Comparativa Táctica</title>
+    <link rel="stylesheet" href="../../styles/screens/matchmaking.css">
+</head>
+
+<body>
+    <div class="matchmaking-container">
+
+        <!-- Header: Badges / Pills Superiores -->
+        <header class="matchmaking-header">
+            <div class="pill-badge pill-p2p">
+                <span class="status-dot"></span>
+                <span>MATCHMAKING P2P</span>
+            </div>
+            <div class="pill-badge pill-league">
+                <svg class="icon-pin" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                    <path
+                        d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z" />
+                </svg>
+                <span>Liga de Leyendas</span>
+            </div>
+        </header>
+
+        <!-- Tarjeta Versus (Equipos enfrentados) -->
+        <section class="card versus-card">
+            <!-- Equipo Usuario -->
+            <div class="team-side team-user">
+                <div class="avatar-wrapper user-border">
+                    <div class="avatar-circle">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="34" height="34">
+                            <path
+                                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                    </div>
+                    <span class="ovr-badge ovr-user" id="user-ovr">94 OVR</span>
+                </div>
+                <h3 class="team-name" id="user-name">Tu Equipo</h3>
+                <p class="team-owner">Tú</p>
+                <span class="rank-badge rank-user" id="user-rank">★ Rank: #450</span>
+            </div>
+
+            <!-- Centro Duelo -->
+            <div class="versus-center">
+                <div class="vs-circle">VS</div>
+                <span class="vs-label">DUELO</span>
+            </div>
+
+            <!-- Equipo Rival -->
+            <div class="team-side team-rival">
+                <div class="avatar-wrapper rival-border">
+                    <div class="avatar-circle">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="34" height="34">
+                            <path
+                                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                    </div>
+                    <span class="ovr-badge ovr-rival" id="rival-ovr">75 OVR</span>
+                </div>
+                <h3 class="team-name" id="rival-name">Dinamo Histórico</h3>
+                <p class="team-owner" id="rival-owner">Mister Dinamo</p>
+                <span class="rank-badge rank-rival" id="rival-rank">★ Rank: #421</span>
+            </div>
+        </section>
+
+        <!-- Tarjeta Comparativa Táctica -->
+        <section class="card stats-card">
+            <div class="stats-header">
+                <span class="tag-label tag-user"><i class="dot user-dot"></i> Tu Plantilla</span>
+                <span class="title-tactics">COMPARATIVA TÁCTICA</span>
+                <span class="tag-label tag-rival">Rival <i class="dot rival-dot"></i></span>
+            </div>
+
+            <div class="stats-list">
+                <!-- Rating Global -->
+                <div class="stat-row" data-stat="rating">
+                    <div class="stat-top">
+                        <span class="stat-val user-val" id="stat-user-rating">94</span>
+                        <span class="stat-name">RATING GLOBAL</span>
+                        <span class="stat-val rival-val" id="stat-rival-rating">75</span>
+                    </div>
+                    <div class="stat-bars">
+                        <div class="bar-track user-track">
+                            <div class="bar-fill user-fill" id="bar-user-rating" style="width: 94%;"></div>
+                        </div>
+                        <div class="bar-track rival-track">
+                            <div class="bar-fill rival-fill" id="bar-rival-rating" style="width: 75%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ataque -->
+                <div class="stat-row" data-stat="ataque">
+                    <div class="stat-top">
+                        <span class="stat-val user-val" id="stat-user-ataque">93</span>
+                        <span class="stat-name">ATAQUE</span>
+                        <span class="stat-val rival-val" id="stat-rival-ataque">65</span>
+                    </div>
+                    <div class="stat-bars">
+                        <div class="bar-track user-track">
+                            <div class="bar-fill user-fill" id="bar-user-ataque" style="width: 93%;"></div>
+                        </div>
+                        <div class="bar-track rival-track">
+                            <div class="bar-fill rival-fill" id="bar-rival-ataque" style="width: 65%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Creación -->
+                <div class="stat-row" data-stat="creacion">
+                    <div class="stat-top">
+                        <span class="stat-val user-val" id="stat-user-creacion">91</span>
+                        <span class="stat-name">CREACIÓN</span>
+                        <span class="stat-val rival-val" id="stat-rival-creacion">81</span>
+                    </div>
+                    <div class="stat-bars">
+                        <div class="bar-track user-track">
+                            <div class="bar-fill user-fill" id="bar-user-creacion" style="width: 91%;"></div>
+                        </div>
+                        <div class="bar-track rival-track">
+                            <div class="bar-fill rival-fill" id="bar-rival-creacion" style="width: 81%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Defensa -->
+                <div class="stat-row" data-stat="defensa">
+                    <div class="stat-top">
+                        <span class="stat-val user-val" id="stat-user-defensa">93</span>
+                        <span class="stat-name">DEFENSA</span>
+                        <span class="stat-val rival-val" id="stat-rival-defensa">65</span>
+                    </div>
+                    <div class="stat-bars">
+                        <div class="bar-track user-track">
+                            <div class="bar-fill user-fill" id="bar-user-defensa" style="width: 93%;"></div>
+                        </div>
+                        <div class="bar-track rival-track">
+                            <div class="bar-fill rival-fill" id="bar-rival-defensa" style="width: 65%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Físico -->
+                <div class="stat-row" data-stat="fisico">
+                    <div class="stat-top">
+                        <span class="stat-val user-val" id="stat-user-fisico">84</span>
+                        <span class="stat-name">FÍSICO</span>
+                        <span class="stat-val rival-val" id="stat-rival-fisico">82</span>
+                    </div>
+                    <div class="stat-bars">
+                        <div class="bar-track user-track">
+                            <div class="bar-fill user-fill" id="bar-user-fisico" style="width: 84%;"></div>
+                        </div>
+                        <div class="bar-track rival-track">
+                            <div class="bar-fill rival-fill" id="bar-rival-fisico" style="width: 82%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insight / Ventaja táctica -->
+            <div class="tactical-insight" id="tactical-insight-box">
+                <div class="insight-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <circle cx="12" cy="12" r="10" />
+                        <circle cx="12" cy="12" r="6" />
+                        <circle cx="12" cy="12" r="2" />
+                    </svg>
+                </div>
+                <p class="insight-text" id="insight-text">
+                    <strong>Ventaja ofensiva:</strong> Tu delantera (93) supera la zaga rival (65) por +28 pts.
+                </p>
+            </div>
+        </section>
+
+        <!-- Estado y Botón de Inicio -->
+        <section class="card status-card">
+            <div class="spinner-wrapper">
+                <div class="pulse-spinner is-stopped"></div>
+            </div>
+            <h4 class="match-found-title" id="status-title">¡Rival encontrado: Dinamo Histórico!</h4>
+            <p class="match-found-desc">Alineaciones confirmadas. Pulsa abajo para dar el pitido inicial.</p>
+            <div class="ready-line"></div>
+        </section>
+
+        <button type="button" class="btn-start-match" id="btn-start-match">
+            <span>¡EMPEZAR PARTIDO!</span>
+            <span class="arrow-icon">▶</span>
+        </button>
+
+        <!-- Footer -->
+        <footer class="matchmaking-footer">
+            <span class="footer-chip">CONEXIÓN CIFRADA PWA • SALA #2833-A</span>
+        </footer>
+
     </div>
+    <script type="module" src="matchmaking.js"></script>
 
-    <div class="matchmaking-badge matchmaking-badge--league">
-      <svg class="matchmaking-badge__icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-        <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-      </svg>
-      <span>Liga de Leyendas</span>
-    </div>
-  </header>
+</body>
 
-  <!-- SECTION 2: CABECERA - EL CARA A CARA (VERSUS) -->
-  <section class="matchmaking-versus-card" aria-label="Cara a cara del partido">
-    <!-- Local / Tu Plantilla -->
-    <div class="matchmaking-team matchmaking-team--home">
-      <div class="matchmaking-avatar-wrap">
-        <div class="matchmaking-avatar matchmaking-avatar--home">
-          <div id="home-avatar-slot" class="matchmaking-avatar__inner">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-            </svg>
-          </div>
-        </div>
-        <span id="home-team-ovr" class="matchmaking-ovr-badge matchmaking-ovr-badge--home">88 OVR</span>
-      </div>
-      <h3 id="home-team-name" class="matchmaking-team__name">Tu Equipo</h3>
-      <p id="home-manager-name" class="matchmaking-team__manager">Manager</p>
-      <div class="matchmaking-rank-pill matchmaking-rank-pill--home">
-        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-        <span id="home-team-rank">Rank: #450</span>
-      </div>
-    </div>
-
-    <!-- Centro: VS / DUELO -->
-    <div class="matchmaking-vs-separator">
-      <div class="matchmaking-vs-circle">VS</div>
-      <span class="matchmaking-vs-label">DUELO</span>
-    </div>
-
-    <!-- Rival / Visitante CPU -->
-    <div class="matchmaking-team matchmaking-team--away">
-      <div class="matchmaking-avatar-wrap">
-        <div id="away-avatar-box" class="matchmaking-avatar matchmaking-avatar--away">
-          <div id="away-avatar-slot" class="matchmaking-avatar__inner">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </div>
-        </div>
-        <span id="away-team-ovr" class="matchmaking-ovr-badge matchmaking-ovr-badge--away">-- OVR</span>
-      </div>
-      <h3 id="away-team-name" class="matchmaking-team__name">Buscando...</h3>
-      <p id="away-manager-name" class="matchmaking-team__manager">Oponente</p>
-      <div class="matchmaking-rank-pill matchmaking-rank-pill--away">
-        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-        <span id="away-team-rank">Rank: #---</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- SECTION 3: SECCIÓN CENTRAL - ESTADÍSTICAS DEL EQUIPO (HEAD-TO-HEAD) -->
-  <section class="matchmaking-comparison-card" aria-label="Comparativa táctica cara a cara">
-    <!-- Header de la Tarjeta de Estadísticas -->
-    <div class="matchmaking-comparison__header">
-      <div class="matchmaking-side-tag matchmaking-side-tag--home">
-        <span class="matchmaking-side-dot"></span>
-        <span>Tu Plantilla</span>
-      </div>
-      <span class="matchmaking-comparison__title">Comparativa Táctica</span>
-      <div class="matchmaking-side-tag matchmaking-side-tag--away">
-        <span>Rival</span>
-        <span class="matchmaking-side-dot"></span>
-      </div>
-    </div>
-
-    <!-- Lista de Barras Divergentes Horizontales -->
-    <div class="matchmaking-stats-list">
-      <!-- 1. Rating Global -->
-      <div class="matchmaking-stat-row">
-        <div class="matchmaking-stat-row__labels">
-          <span id="stat-val-home-ovr" class="matchmaking-stat-val matchmaking-stat-val--home">88</span>
-          <span class="matchmaking-stat-title">Rating Global</span>
-          <span id="stat-val-away-ovr" class="matchmaking-stat-val matchmaking-stat-val--away">89</span>
-        </div>
-        <div class="matchmaking-divergent-track">
-          <div class="matchmaking-divergent-half matchmaking-divergent-half--left">
-            <div id="bar-home-ovr" class="matchmaking-divergent-bar matchmaking-divergent-bar--home"></div>
-          </div>
-          <div class="matchmaking-divergent-half matchmaking-divergent-half--right">
-            <div id="bar-away-ovr" class="matchmaking-divergent-bar matchmaking-divergent-bar--away"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. Ataque -->
-      <div class="matchmaking-stat-row">
-        <div class="matchmaking-stat-row__labels">
-          <span id="stat-val-home-att" class="matchmaking-stat-val matchmaking-stat-val--home">92</span>
-          <span class="matchmaking-stat-title">Ataque</span>
-          <span id="stat-val-away-att" class="matchmaking-stat-val matchmaking-stat-val--away">86</span>
-        </div>
-        <div class="matchmaking-divergent-track">
-          <div class="matchmaking-divergent-half matchmaking-divergent-half--left">
-            <div id="bar-home-att" class="matchmaking-divergent-bar matchmaking-divergent-bar--home"></div>
-          </div>
-          <div class="matchmaking-divergent-half matchmaking-divergent-half--right">
-            <div id="bar-away-att" class="matchmaking-divergent-bar matchmaking-divergent-bar--away"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. Creación -->
-      <div class="matchmaking-stat-row">
-        <div class="matchmaking-stat-row__labels">
-          <span id="stat-val-home-cre" class="matchmaking-stat-val matchmaking-stat-val--home">85</span>
-          <span class="matchmaking-stat-title">Creación</span>
-          <span id="stat-val-away-cre" class="matchmaking-stat-val matchmaking-stat-val--away">90</span>
-        </div>
-        <div class="matchmaking-divergent-track">
-          <div class="matchmaking-divergent-half matchmaking-divergent-half--left">
-            <div id="bar-home-cre" class="matchmaking-divergent-bar matchmaking-divergent-bar--home"></div>
-          </div>
-          <div class="matchmaking-divergent-half matchmaking-divergent-half--right">
-            <div id="bar-away-cre" class="matchmaking-divergent-bar matchmaking-divergent-bar--away"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. Defensa -->
-      <div class="matchmaking-stat-row">
-        <div class="matchmaking-stat-row__labels">
-          <span id="stat-val-home-def" class="matchmaking-stat-val matchmaking-stat-val--home">87</span>
-          <span class="matchmaking-stat-title">Defensa</span>
-          <span id="stat-val-away-def" class="matchmaking-stat-val matchmaking-stat-val--away">82</span>
-        </div>
-        <div class="matchmaking-divergent-track">
-          <div class="matchmaking-divergent-half matchmaking-divergent-half--left">
-            <div id="bar-home-def" class="matchmaking-divergent-bar matchmaking-divergent-bar--home"></div>
-          </div>
-          <div class="matchmaking-divergent-half matchmaking-divergent-half--right">
-            <div id="bar-away-def" class="matchmaking-divergent-bar matchmaking-divergent-bar--away"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 5. Físico -->
-      <div class="matchmaking-stat-row">
-        <div class="matchmaking-stat-row__labels">
-          <span id="stat-val-home-fis" class="matchmaking-stat-val matchmaking-stat-val--home">84</span>
-          <span class="matchmaking-stat-title">Físico</span>
-          <span id="stat-val-away-fis" class="matchmaking-stat-val matchmaking-stat-val--away">84</span>
-        </div>
-        <div class="matchmaking-divergent-track">
-          <div class="matchmaking-divergent-half matchmaking-divergent-half--left">
-            <div id="bar-home-fis" class="matchmaking-divergent-bar matchmaking-divergent-bar--home"></div>
-          </div>
-          <div class="matchmaking-divergent-half matchmaking-divergent-half--right">
-            <div id="bar-away-fis" class="matchmaking-divergent-bar matchmaking-divergent-bar--away"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Indicador de Ventaja Táctica Dinámico -->
-    <div id="matchmaking-tactical-factor" class="matchmaking-tactical-factor is-neutral">
-      <div id="matchmaking-factor-icon-wrap" class="matchmaking-tactical-factor__icon-wrap">
-        <svg class="matchmaking-tactical-factor__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-        </svg>
-      </div>
-      <span id="matchmaking-factor-text">Analizando comparativa táctica...</span>
-    </div>
-  </section>
-
-  <!-- SECTION 4: FOOTER - ESTADO DE CARGA, BOTÓN DE INICIO Y CIFRADO -->
-  <footer class="matchmaking-footer">
-    <!-- Card Inferior de Carga Dinámica -->
-    <div class="matchmaking-status-card">
-      <!-- Spinner e Icono Táctico -->
-      <div class="matchmaking-spinner-wrap">
-        <div class="matchmaking-spinner"></div>
-        <div class="matchmaking-spinner__center"></div>
-      </div>
-
-      <!-- Texto Dinámico de Carga -->
-      <div class="matchmaking-status-texts">
-        <p id="countdown-text" class="matchmaking-status-title">
-          Buscando rival en la liga...
-        </p>
-        <p id="countdown-subtitle" class="matchmaking-status-sub">
-          Sincronizando nódulos tácticos y alineaciones oficiales
-        </p>
-      </div>
-
-      <!-- Barra de Progreso Lineal -->
-      <div class="matchmaking-progress-track">
-        <div id="matchmaking-progress-bar" class="matchmaking-progress-fill"></div>
-      </div>
-    </div>
-
-    <!-- BOTÓN ACCIÓN PRINCIPAL: EMPEZAR PARTIDO -->
-    <div class="matchmaking-action-dock">
-      <button id="btn-start-match" class="matchmaking-start-btn" type="button" disabled aria-label="Empezar partido contra el rival">
-        <span class="matchmaking-start-btn__spinner" aria-hidden="true"></span>
-        <span id="btn-start-match-label" class="matchmaking-start-btn__label">BUSCANDO RIVAL...</span>
-        <svg class="matchmaking-start-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polygon points="5 3 19 12 5 21 5 3"></polygon>
-        </svg>
-      </button>
-    </div>
-
-    <!-- Nota de conexión segura -->
-    <div class="matchmaking-encrypted-badge">
-      <span>Conexión cifrada PWA</span>
-      <span class="matchmaking-dot-separator">•</span>
-      <span id="matchmaking-room-id">Sala #8841-A</span>
-    </div>
-  </footer>
-</div>
+</html>

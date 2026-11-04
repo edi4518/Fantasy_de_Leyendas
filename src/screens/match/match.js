@@ -96,7 +96,6 @@ export function getUserSquad() {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && Array.isArray(parsed.players)) {
-        // Rellenar cualquier posición nula con DEFAULT_HOME_SQUAD para que la plantilla siempre esté completa
         const filledPlayers = parsed.players.map((p, i) => p || DEFAULT_HOME_SQUAD.players[i] || {
           name: `Leyenda ${i + 1}`,
           role: i === 0 ? 'POR' : (i < 3 ? 'DEF' : (i < 5 ? 'MC' : 'DEL')),
@@ -129,14 +128,6 @@ export function getUserSquad() {
   return DEFAULT_HOME_SQUAD;
 }
 
-/**
- * Renderizado reactivo en el DOM.
- */
-/**
- * Actualiza el botón de acción de la cabecera:
- * - Durante el partido: "SIMULACIÓN RÁPIDA"
- * - Al finalizar: "BUSCAR OTRO RIVAL" (redirige a /matchmaking)
- */
 export function updateHeaderActionButton(isFinished = false) {
   const quickSimBtn = document.getElementById('btn-quick-sim');
   if (!quickSimBtn) return;
@@ -527,19 +518,6 @@ export function setupMatchTabs() {
   });
 }
 
-/**
- * =============================================================================
- * CONTROL DEL PARTIDO EN VIVO (10 CICLOS DE 9 MIN) Y SIMULACIÓN RÁPIDA
- * =============================================================================
- */
-
-
-/**
- * =============================================================================
- * CELEBRACIÓN DE GOL INTERACTIVA (Lottie gool.json)
- * =============================================================================
- */
-
 let cachedGoalAnimationData = null;
 let currentLottieGoalAnim = null;
 let goalCelebrationTimeout = null;
@@ -590,7 +568,7 @@ export function dismissGoalCelebration() {
     overlay.setAttribute('aria-hidden', 'true');
   }
   if (currentLottieGoalAnim) {
-    try { currentLottieGoalAnim.destroy(); } catch (e) {}
+    try { currentLottieGoalAnim.destroy(); } catch (e) { }
     currentLottieGoalAnim = null;
   }
 }
@@ -610,7 +588,6 @@ export async function playGoalCelebration(goalInfo = {}) {
 
   if (!lottieInstance || !animData) return;
 
-  // Actualizar rótulo y autor del gol
   if (titleEl) titleEl.textContent = '¡GOOOOOOOOL!';
   if (authorEl) {
     const scorerText = goalInfo.player ? `${goalInfo.player}` : '';
@@ -619,14 +596,12 @@ export async function playGoalCelebration(goalInfo = {}) {
     authorEl.textContent = [scorerText, minuteText, teamText].filter(Boolean).join(' ');
   }
 
-  // Destruir animación anterior si hubiese
   if (currentLottieGoalAnim) {
-    try { currentLottieGoalAnim.destroy(); } catch (e) {}
+    try { currentLottieGoalAnim.destroy(); } catch (e) { }
     currentLottieGoalAnim = null;
   }
   container.innerHTML = '';
 
-  // Renderizar Lottie con el JSON oficial gool.json
   currentLottieGoalAnim = lottieInstance.loadAnimation({
     container: container,
     renderer: 'svg',
@@ -635,13 +610,11 @@ export async function playGoalCelebration(goalInfo = {}) {
     animationData: animData
   });
 
-  // Mostrar el overlay con animación de entrada suave
   overlay.removeAttribute('hidden');
   overlay.setAttribute('aria-hidden', 'false');
-  void overlay.offsetWidth; // Forzar reflow
+  void overlay.offsetWidth;
   overlay.classList.add('is-active');
 
-  // Permitir cierre anticipado al hacer clic en el overlay
   if (!overlay.hasAttribute('data-click-bound')) {
     overlay.setAttribute('data-click-bound', 'true');
     overlay.addEventListener('click', () => {
@@ -649,7 +622,6 @@ export async function playGoalCelebration(goalInfo = {}) {
     });
   }
 
-  // Duración del JSON: 3000 ms (90 frames a 30fps) + 400 ms de transición suave
   const DURATION_MS = 2200;
   const FADE_OUT_MS = 300;
 
@@ -663,7 +635,7 @@ export async function playGoalCelebration(goalInfo = {}) {
         overlay.setAttribute('hidden', '');
         overlay.setAttribute('aria-hidden', 'true');
         if (currentLottieGoalAnim) {
-          try { currentLottieGoalAnim.destroy(); } catch (e) {}
+          try { currentLottieGoalAnim.destroy(); } catch (e) { }
           currentLottieGoalAnim = null;
         }
         resolve();
@@ -671,7 +643,6 @@ export async function playGoalCelebration(goalInfo = {}) {
     }, DURATION_MS);
   });
 }
-
 
 function clearGlobalSimulationTimers() {
   dismissGoalCelebration();
@@ -700,23 +671,37 @@ export async function startLiveMatchPlayback() {
   const liveBtn = document.getElementById('btn-live-sim');
   if (liveBtn) liveBtn.classList.add('is-running');
 
-  // 1. Obtener la plantilla real del usuario y un rival CPU aleatorio de los 20 equipos del sistema
   currentFullMatch = null;
   const homeSquad = getUserSquad();
   let awaySquad = null;
+
   try {
     const rawRival = sessionStorage.getItem('fantasy_selected_rival');
     if (rawRival) {
-      awaySquad = JSON.parse(rawRival);
+      const parsedRival = JSON.parse(rawRival);
       sessionStorage.removeItem('fantasy_selected_rival');
+
+      // Si el rival viene formateado desde matchmaking, garantizar estructura con formación y jugadores
+      if (parsedRival && parsedRival.name) {
+        awaySquad = {
+          name: parsedRival.name,
+          formation: parsedRival.formation || '1-1-3-1',
+          players: Array.isArray(parsedRival.players) && parsedRival.players.length >= 6
+            ? parsedRival.players
+            : (DEFAULT_AWAY_SQUAD.players || [])
+        };
+      }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.debug('[Match] Fallback al cargar rival de sesión:', e.message);
+  }
+
   if (!awaySquad) {
     awaySquad = getRandomCpuTeam() || DEFAULT_AWAY_SQUAD;
   }
+
   console.info(`[Match] Simulación en vivo contra CPU: ${homeSquad.name} vs ${awaySquad.name} (Formación: ${awaySquad.formation})`);
 
-  // 2. Simulación (Backend con fallback local offline)
   currentFullMatch = await matchService.simulateMatch(homeSquad, awaySquad);
   window.__fantasyCurrentFullMatch = currentFullMatch;
   const snapshots = currentFullMatch.cycleSnapshots || [];
@@ -725,7 +710,6 @@ export async function startLiveMatchPlayback() {
   isMatchLive = true;
   updateHeaderActionButton(false);
 
-  // Estado inicial en el minuto 1 (con hito inicial en cronología)
   renderMatchDetails({
     status: "EN VIVO 1'",
     isLive: true,
@@ -741,16 +725,14 @@ export async function startLiveMatchPlayback() {
     lineups: currentFullMatch.lineups
   });
 
-  const TICK_MS = 150; // Timing acelerado (~150ms por minuto simulado)
+  const TICK_MS = 150;
 
   function runSimulationTick() {
     if (!isMatchLive) return;
 
     currentSimulatedMinute++;
 
-    // 1. Caso: Descanso al minuto 45
     if (currentSimulatedMinute === 45) {
-      // Aplicar el snapshot correspondiente al descanso (ciclo 10)
       while (
         activeSnapshotIndex + 1 < snapshots.length &&
         snapshots[activeSnapshotIndex + 1].minute <= 45
@@ -770,7 +752,6 @@ export async function startLiveMatchPlayback() {
         });
       }
 
-      // Detener temporalmente el reloj para el descanso
       if (liveSimulationInterval) {
         clearInterval(liveSimulationInterval);
         liveSimulationInterval = null;
@@ -784,8 +765,8 @@ export async function startLiveMatchPlayback() {
       triggerHalftimePause();
       return;
     }
+
     function triggerHalftimePause() {
-      // Detener temporalmente el reloj para el descanso
       if (liveSimulationInterval) {
         clearInterval(liveSimulationInterval);
         liveSimulationInterval = null;
@@ -797,10 +778,9 @@ export async function startLiveMatchPlayback() {
       const statusDot = document.getElementById('status-dot');
       if (statusDot) statusDot.classList.remove('is-live');
 
-      // Pausa táctica de entretiempo (1.1 segundos) antes de reanudar el segundo tiempo
       halftimeTimeout = setTimeout(() => {
         if (!isMatchLive) return;
-        currentSimulatedMinute = 45; // El siguiente tick avanzará a 46'
+        currentSimulatedMinute = 45;
         if (statusDot) statusDot.classList.add('is-live');
         liveSimulationInterval = setInterval(runSimulationTick, TICK_MS);
         window.__fantasySimulationInterval = liveSimulationInterval;
@@ -808,10 +788,7 @@ export async function startLiveMatchPlayback() {
       window.__fantasyHalftimeTimeout = halftimeTimeout;
     }
 
-
-    // 2. Caso: Fin del partido al minuto 90
     if (currentSimulatedMinute >= 90) {
-      // Aplicar todos los snapshots restantes hasta el final
       while (activeSnapshotIndex + 1 < snapshots.length) {
         activeSnapshotIndex++;
         const step = snapshots[activeSnapshotIndex];
@@ -837,7 +814,6 @@ export async function startLiveMatchPlayback() {
       return;
     }
 
-    // 3. Minuto a minuto acelerado regular (1..44 y 46..89)
     let appliedNewSnapshot = false;
     while (
       activeSnapshotIndex + 1 < snapshots.length &&
@@ -861,7 +837,6 @@ export async function startLiveMatchPlayback() {
       if (step.hasGoalThisCycle) {
         triggerScoreBump();
 
-        // Extraer autor y equipo del gol para la celebración (evento más reciente al frente)
         const goalEvent = (step.events || []).find(e =>
           (e.type === 'goal' || e.type === 'penalty-goal') &&
           (e.minute === step.minute || Math.abs((e.minute || 0) - currentSimulatedMinute) <= 5)
@@ -873,12 +848,10 @@ export async function startLiveMatchPlayback() {
           minute: goalEvent?.minute || step.minute || currentSimulatedMinute
         };
 
-        // Disparar celebración de gol interactiva en paralelo sin detener el avance del partido
         playGoalCelebration(goalInfo);
       }
     }
 
-    // Si este minuto no coincidió con un snapshot, avanzar el contador minuto a minuto en el badge
     if (!appliedNewSnapshot) {
       const statusTextEl = document.getElementById('match-status-text');
       if (statusTextEl) {
@@ -929,20 +902,15 @@ function finishLiveMatch() {
   }
 }
 
-/**
- * SIMULACIÓN RÁPIDA: Salto inmediato al minuto 90.
- */
 export async function executeQuickSimulation() {
   console.debug('[Match] Simulación Rápida: Resolviendo al instante...');
   clearGlobalSimulationTimers();
 
-  // 1. Obtener valores visibles actuales del marcador en pantalla
   const homeScoreEl = document.getElementById('home-score');
   const awayScoreEl = document.getElementById('away-score');
   const domHome = homeScoreEl ? (parseInt(homeScoreEl.textContent, 10) || 0) : 0;
   const domAway = awayScoreEl ? (parseInt(awayScoreEl.textContent, 10) || 0) : 0;
 
-  // 2. Recuperar el partido activo (local o global de window)
   if (!currentFullMatch && window.__fantasyCurrentFullMatch) {
     currentFullMatch = window.__fantasyCurrentFullMatch;
   }
@@ -953,13 +921,12 @@ export async function executeQuickSimulation() {
     try {
       const rawRival = sessionStorage.getItem('fantasy_selected_rival');
       if (rawRival) awaySquad = JSON.parse(rawRival);
-    } catch (e) {}
+    } catch (e) { }
     if (!awaySquad) awaySquad = getRandomCpuTeam() || DEFAULT_AWAY_SQUAD;
     currentFullMatch = await matchService.simulateMatch(homeSquad, awaySquad);
     window.__fantasyCurrentFullMatch = currentFullMatch;
   }
 
-  // 3. Respetar el marcador en desarrollo como piso mínimo
   if (currentFullMatch.homeTeam) {
     currentFullMatch.homeTeam.score = Math.max(currentFullMatch.homeTeam.score ?? 0, domHome);
   }
@@ -967,7 +934,6 @@ export async function executeQuickSimulation() {
     currentFullMatch.awayTeam.score = Math.max(currentFullMatch.awayTeam.score ?? 0, domAway);
   }
 
-  // 4. Si existen snapshots, sincronizar el último snapshot con el resultado final
   const snapshots = currentFullMatch.cycleSnapshots || [];
   if (snapshots.length > 0) {
     const lastSnap = snapshots[snapshots.length - 1];
@@ -994,10 +960,9 @@ export async function executeQuickSimulation() {
   showMatchResultModal(currentFullMatch);
 }
 
-
 function safeGetInitials(name = '') {
   if (typeof getInitials === 'function') {
-    try { return getInitials(name); } catch (_) {}
+    try { return getInitials(name); } catch (_) { }
   }
   if (!name) return 'LM';
   const parts = String(name).trim().split(/\s+/);
@@ -1007,160 +972,157 @@ function safeGetInitials(name = '') {
 
 function showMatchResultModal(match) {
   try {
-  const homeScore = match.homeTeam?.score ?? 0;
-  const awayScore = match.awayTeam?.score ?? 0;
-  const isWin = homeScore > awayScore;
-  const isLoss = homeScore < awayScore;
-  const isDraw = homeScore === awayScore;
+    const homeScore = match.homeTeam?.score ?? 0;
+    const awayScore = match.awayTeam?.score ?? 0;
+    const isWin = homeScore > awayScore;
+    const isLoss = homeScore < awayScore;
+    const isDraw = homeScore === awayScore;
 
-  const resultType = isWin ? 'VICTORIA' : (isDraw ? 'EMPATE' : 'DERROTA');
-  const fallbackPoints = isWin ? '+15 Puntos' : (isDraw ? '+5 Puntos' : '-15 Puntos');
+    const resultType = isWin ? 'VICTORIA' : (isDraw ? 'EMPATE' : 'DERROTA');
+    const fallbackPoints = isWin ? '+15 Puntos' : (isDraw ? '+5 Puntos' : '-15 Puntos');
 
-  const saveOutcome = match.saveOutcome || matchService.saveMatchResult(match);
-  match.saveOutcome = saveOutcome;
+    const saveOutcome = match.saveOutcome || matchService.saveMatchResult(match);
+    match.saveOutcome = saveOutcome;
 
-  let matchMvp = saveOutcome?.matchMvp;
-  const awayTeamName = match.awayTeam?.name || 'Equipo Rival';
-  const homeTeamName = match.homeTeam?.name || 'Tu Equipo';
+    let matchMvp = saveOutcome?.matchMvp;
+    const awayTeamName = match.awayTeam?.name || 'Equipo Rival';
+    const homeTeamName = match.homeTeam?.name || 'Tu Equipo';
 
-  // REGLA DE ORO DE COMPETICIÓN:
-  // Si el usuario pierde el partido (DERROTA), el MVP DEBE PERTENECER AL EQUIPO RIVAL GANADOR
-  if (isLoss) {
-    if (!matchMvp || !matchMvp.isRival) {
-      const awayGoalEvents = (match.events || []).filter(e =>
-        e.side === 'away' && (e.type === 'goal' || e.type === 'penalty-goal')
-      );
-      const awayStarters = match.lineups?.away || match.lineups?.awayStarters || [];
+    if (isLoss) {
+      if (!matchMvp || !matchMvp.isRival) {
+        const awayGoalEvents = (match.events || []).filter(e =>
+          e.side === 'away' && (e.type === 'goal' || e.type === 'penalty-goal')
+        );
+        const awayStarters = match.lineups?.away || match.lineups?.awayStarters || [];
 
-      let topScorer = null;
-      let maxGoals = 0;
-      if (awayGoalEvents.length > 0) {
-        const counts = {};
-        awayGoalEvents.forEach(e => {
-          const n = e.player || 'Delantero Rival';
-          counts[n] = (counts[n] || 0) + 1;
-          if (counts[n] > maxGoals) { maxGoals = counts[n]; topScorer = n; }
-        });
+        let topScorer = null;
+        let maxGoals = 0;
+        if (awayGoalEvents.length > 0) {
+          const counts = {};
+          awayGoalEvents.forEach(e => {
+            const n = e.player || 'Delantero Rival';
+            counts[n] = (counts[n] || 0) + 1;
+            if (counts[n] > maxGoals) { maxGoals = counts[n]; topScorer = n; }
+          });
+        }
+
+        if (!topScorer) {
+          const fwd = awayStarters.find(p => p.role === 'DEL') || awayStarters[awayStarters.length - 1];
+          topScorer = fwd?.name || 'Goleador Rival';
+          maxGoals = Math.max(1, awayScore);
+        }
+
+        const foundRival = awayStarters.find(p => p.name === topScorer);
+        matchMvp = {
+          name: topScorer,
+          role: foundRival?.role || 'DEL',
+          matchRating: maxGoals >= 2 ? 9.3 : 8.8,
+          matchGoals: maxGoals,
+          savesCount: 0,
+          cleanSheet: homeScore === 0,
+          goalsConceded: homeScore,
+          isRival: true,
+          teamName: awayTeamName
+        };
       }
-
-      if (!topScorer) {
-        const fwd = awayStarters.find(p => p.role === 'DEL') || awayStarters[awayStarters.length - 1];
-        topScorer = fwd?.name || 'Goleador Rival';
-        maxGoals = Math.max(1, awayScore);
+    } else if (isWin) {
+      if (!matchMvp || matchMvp.isRival) {
+        const homeStarters = match.lineups?.home || match.lineups?.homeStarters || [];
+        const leader = homeStarters.find(p => p.role === 'DEL' || p.role === 'MC') || homeStarters[0] || { name: 'Messi', role: 'DEL' };
+        matchMvp = {
+          name: leader.name,
+          role: leader.role || 'DEL',
+          matchRating: 9.2,
+          matchGoals: Math.max(1, homeScore),
+          savesCount: 0,
+          cleanSheet: awayScore === 0,
+          goalsConceded: awayScore,
+          isRival: false,
+          teamName: homeTeamName
+        };
       }
-
-      const foundRival = awayStarters.find(p => p.name === topScorer);
-      matchMvp = {
-        name: topScorer,
-        role: foundRival?.role || 'DEL',
-        matchRating: maxGoals >= 2 ? 9.3 : 8.8,
-        matchGoals: maxGoals,
-        savesCount: 0,
-        cleanSheet: homeScore === 0,
-        goalsConceded: homeScore,
-        isRival: true,
-        teamName: awayTeamName
-      };
     }
-  } else if (isWin) {
-    if (!matchMvp || matchMvp.isRival) {
-      const homeStarters = match.lineups?.home || match.lineups?.homeStarters || [];
-      const leader = homeStarters.find(p => p.role === 'DEL' || p.role === 'MC') || homeStarters[0] || { name: 'Messi', role: 'DEL' };
-      matchMvp = {
-        name: leader.name,
-        role: leader.role || 'DEL',
-        matchRating: 9.2,
-        matchGoals: Math.max(1, homeScore),
-        savesCount: 0,
-        cleanSheet: awayScore === 0,
-        goalsConceded: awayScore,
-        isRival: false,
-        teamName: homeTeamName
-      };
-    }
-  }
 
-  const isRivalMvp = Boolean(matchMvp?.isRival);
-  const mvpName = matchMvp?.name || (isRivalMvp ? awayTeamName : 'Messi');
-  const mvpRating = matchMvp?.matchRating || (isWin ? 9.2 : (isLoss ? 9.0 : 8.0));
-  const mvpTeamName = matchMvp?.teamName || (isRivalMvp ? awayTeamName : homeTeamName);
+    const isRivalMvp = Boolean(matchMvp?.isRival);
+    const mvpName = matchMvp?.name || (isRivalMvp ? awayTeamName : 'Messi');
+    const mvpRating = matchMvp?.matchRating || (isWin ? 9.2 : (isLoss ? 9.0 : 8.0));
+    const mvpTeamName = matchMvp?.teamName || (isRivalMvp ? awayTeamName : homeTeamName);
 
-  let mvpStats = 'Rendimiento destacado';
-  if (isRivalMvp) {
-    if (matchMvp?.matchGoals > 0) {
-      mvpStats = `${matchMvp.matchGoals} ${matchMvp.matchGoals > 1 ? 'Goles anotados' : 'Gol anotado'}`;
-    } else if (matchMvp?.role === 'POR') {
-      mvpStats = matchMvp.cleanSheet ? 'Valla invicta y atajadas clave' : `${matchMvp.savesCount || 2} atajadas clave`;
-    } else {
-      mvpStats = 'Figura del triunfo rival';
-    }
-  } else {
-    if (matchMvp?.role === 'POR') {
-      const isCleanSheet = awayScore === 0;
-      const saves = matchMvp.savesCount || 0;
-      if (isCleanSheet) {
-        mvpStats = saves > 0 ? `Valla invicta y ${saves} ${saves === 1 ? 'atajada clave' : 'atajadas clave'}` : 'Valla invicta';
+    let mvpStats = 'Rendimiento destacado';
+    if (isRivalMvp) {
+      if (matchMvp?.matchGoals > 0) {
+        mvpStats = `${matchMvp.matchGoals} ${matchMvp.matchGoals > 1 ? 'Goles anotados' : 'Gol anotado'}`;
+      } else if (matchMvp?.role === 'POR') {
+        mvpStats = matchMvp.cleanSheet ? 'Valla invicta y atajadas clave' : `${matchMvp.savesCount || 2} atajadas clave`;
       } else {
-        mvpStats = saves > 0 ? `${saves} ${saves === 1 ? 'atajada clave' : 'atajadas clave'}` : 'Seguridad bajo los tres palos';
+        mvpStats = 'Figura del triunfo rival';
       }
-    } else if (matchMvp?.matchGoals > 0) {
-      mvpStats = `${matchMvp.matchGoals} ${matchMvp.matchGoals > 1 ? 'Goles anotados' : 'Gol anotado'}`;
-    } else if (matchMvp?.role === 'DEL') {
-      mvpStats = 'Desmarque y presión ofensiva';
-    } else if (matchMvp?.role === 'MC') {
-      mvpStats = 'Control del mediocampo y visión de juego';
-    } else if (matchMvp?.role === 'DEF') {
-      mvpStats = awayScore === 0 ? 'Solidez y portería a cero' : 'Liderazgo y cortes defensivos';
-    }
-  }
-
-  let pointsText;
-  if (saveOutcome && typeof saveOutcome.pointsGained === 'number') {
-    if (saveOutcome.pointsGained > 0) pointsText = `+${saveOutcome.pointsGained} Puntos`;
-    else if (saveOutcome.pointsGained < 0) pointsText = `${saveOutcome.pointsGained} Puntos`;
-    else pointsText = `0 Puntos`;
-  } else {
-    pointsText = fallbackPoints;
-  }
-  const rankText = saveOutcome?.currentStats?.ranking ? `#${saveOutcome.currentStats.ranking}` : (isWin ? '#428' : '#430');
-
-  openMatchResultModal(
-    {
-      homeTeam: homeTeamName,
-      awayTeam: awayTeamName,
-      homeScore,
-      awayScore,
-      resultType,
-      mvp: {
-        name: mvpName,
-        teamName: mvpTeamName,
-        initials: safeGetInitials(mvpName),
-        stats: mvpStats,
-        rating: mvpRating,
-        isRival: isRivalMvp
-      },
-      ranking: {
-        pointsGained: pointsText,
-        currentRank: rankText
-      }
-    },
-    {
-      onNextMatch: () => {
-        clearGlobalSimulationTimers();
-        if (window.router && typeof window.router.navigate === 'function') {
-          window.router.navigate('/matchmaking');
+    } else {
+      if (matchMvp?.role === 'POR') {
+        const isCleanSheet = awayScore === 0;
+        const saves = matchMvp.savesCount || 0;
+        if (isCleanSheet) {
+          mvpStats = saves > 0 ? `Valla invicta y ${saves} ${saves === 1 ? 'atajada clave' : 'atajadas clave'}` : 'Valla invicta';
         } else {
-          window.location.hash = '/matchmaking';
+          mvpStats = saves > 0 ? `${saves} ${saves === 1 ? 'atajada clave' : 'atajadas clave'}` : 'Seguridad bajo los tres palos';
+        }
+      } else if (matchMvp?.matchGoals > 0) {
+        mvpStats = `${matchMvp.matchGoals} ${matchMvp.matchGoals > 1 ? 'Goles anotados' : 'Gol anotado'}`;
+      } else if (matchMvp?.role === 'DEL') {
+        mvpStats = 'Desmarque y presión ofensiva';
+      } else if (matchMvp?.role === 'MC') {
+        mvpStats = 'Control del mediocampo y visión de juego';
+      } else if (matchMvp?.role === 'DEF') {
+        mvpStats = awayScore === 0 ? 'Solidez y portería a cero' : 'Liderazgo y cortes defensivos';
+      }
+    }
+
+    let pointsText;
+    if (saveOutcome && typeof saveOutcome.pointsGained === 'number') {
+      if (saveOutcome.pointsGained > 0) pointsText = `+${saveOutcome.pointsGained} Puntos`;
+      else if (saveOutcome.pointsGained < 0) pointsText = `${saveOutcome.pointsGained} Puntos`;
+      else pointsText = `0 Puntos`;
+    } else {
+      pointsText = fallbackPoints;
+    }
+    const rankText = saveOutcome?.currentStats?.ranking ? `#${saveOutcome.currentStats.ranking}` : (isWin ? '#428' : '#430');
+
+    openMatchResultModal(
+      {
+        homeTeam: homeTeamName,
+        awayTeam: awayTeamName,
+        homeScore,
+        awayScore,
+        resultType,
+        mvp: {
+          name: mvpName,
+          teamName: mvpTeamName,
+          initials: safeGetInitials(mvpName),
+          stats: mvpStats,
+          rating: mvpRating,
+          isRival: isRivalMvp
+        },
+        ranking: {
+          pointsGained: pointsText,
+          currentRank: rankText
         }
       },
-      onGoHome: () => {
-        if (window.router && window.router.navigate) window.router.navigate('/dashboard'); else window.location.href = '/dashboard';
+      {
+        onNextMatch: () => {
+          clearGlobalSimulationTimers();
+          if (window.router && typeof window.router.navigate === 'function') {
+            window.router.navigate('/matchmaking');
+          } else {
+            window.location.hash = '/matchmaking';
+          }
+        },
+        onGoHome: () => {
+          if (window.router && window.router.navigate) window.router.navigate('/dashboard'); else window.location.href = '/dashboard';
+        }
       }
-    }
-  );
+    );
   } catch (modalError) {
     console.error('[Match] Error procesando showMatchResultModal:', modalError);
-    // Modal de rescate asegurado para garantizar visualización
     const homeScore = match?.homeTeam?.score ?? 0;
     const awayScore = match?.awayTeam?.score ?? 0;
     const isWin = homeScore > awayScore;
@@ -1202,7 +1164,6 @@ function showMatchResultModal(match) {
 export async function fetchMatchDetail(matchId) {
   const idStr = String(matchId);
 
-  // 1. Buscar en el historial persistido en localStorage
   try {
     const localHistory = JSON.parse(localStorage.getItem('fantasy_match_history') || '[]');
     const found = localHistory.find(m => String(m.id) === idStr);
@@ -1214,7 +1175,6 @@ export async function fetchMatchDetail(matchId) {
     console.warn('[Match] Error buscando partido en historial local:', err);
   }
 
-  // 2. Buscar en el listado por defecto de historial
   try {
     const { DEFAULT_HISTORY_MATCHES } = await import('../history/history.js');
     if (Array.isArray(DEFAULT_HISTORY_MATCHES)) {
@@ -1228,17 +1188,12 @@ export async function fetchMatchDetail(matchId) {
     console.debug('[Match] No se pudo cargar DEFAULT_HISTORY_MATCHES dinámicamente:', e);
   }
 
-  // 3. Fallback al partido inicial por defecto
   return DEFAULT_MATCH_DATA;
 }
 
-/**
- * Inicialización al cargar la página
- */
 export async function initMatchDetailView() {
   setupMatchTabs();
 
-  // Configurar botón volver para retornar al home del juego (/dashboard) y pausar simulación
   const backBtn = document.getElementById('btn-back');
   if (backBtn && !backBtn.hasAttribute('data-bound')) {
     backBtn.setAttribute('data-bound', 'true');
@@ -1263,7 +1218,6 @@ export async function initMatchDetailView() {
   const hasAutoplaySession = sessionStorage.getItem('fantasy_match_autoplay') === 'true';
   const isLiveMatchRoute = currentHashRoute === '/match/live' || currentHashRoute === '/match';
 
-  // Si viene desde "BUSCAR RIVAL", con parámetro autoplay, o accediendo a /match/live sin un ID previo:
   const shouldStartLive = hasAutoplayParam || hasAutoplaySession || (isLiveMatchRoute && !matchId);
   sessionStorage.removeItem('fantasy_match_autoplay');
 
@@ -1300,8 +1254,6 @@ export async function initMatchDetailView() {
     });
   }
 
-  // El botón btn-live-sim fue retirado por diseño simplificado de la cabecera
-
   const statusBadge = document.getElementById('match-status-badge');
   if (statusBadge && !statusBadge.hasAttribute('data-bound')) {
     statusBadge.setAttribute('data-bound', 'true');
@@ -1314,8 +1266,6 @@ export async function initMatchDetailView() {
     });
   }
 }
-
-// En entorno SPA, la inicialización es gobernada por router.js al inyectar live-match.html
 
 export const initMatch = initMatchDetailView;
 export function startMatchSimulation(matchData = DEFAULT_MATCH_DATA) { renderMatchDetails(matchData); }

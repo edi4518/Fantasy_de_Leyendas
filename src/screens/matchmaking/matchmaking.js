@@ -55,15 +55,18 @@ export function initMatchmaking(router) {
   const homeStats = calculateTeamMetrics(homeSquad);
   const awayStats = calculateTeamMetrics(awaySquad);
 
-  // 4. Renderizar cabecera y versus
+  // 4. Renderizar cabecera y versus (soporta tanto IDs del template v1 como v2)
   renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats);
 
   // 5. Renderizar comparativa táctica divergente
   renderTacticalComparison(homeStats, awayStats, homeSquad, awaySquad);
 
-  // 6. Iniciar secuencia de escaneo y activación del botón empezar partido
+  // 6. Iniciar secuencia de escaneo, frenar spinner y activar el botón
   startMatchmakingSequence(awaySquad, router);
 }
+
+// Alias de retrocompatibilidad
+export const initMatchmakingScreen = initMatchmaking;
 
 /**
  * Obtiene la plantilla del usuario desde localStorage con fallback
@@ -88,9 +91,7 @@ function getHomeSquad() {
 }
 
 /**
- * Calcula las métricas de equipo ponderadas por líneas y roles tácticos (estilo EA FC / Football Manager)
- * evitando que los arqueros o centrales reduzcan artificialmente el promedio ofensivo,
- * o que los delanteros reduzcan la solidez de la zaga defensiva.
+ * Calcula las métricas de equipo ponderadas por líneas y roles tácticos
  */
 export function calculateTeamMetrics(squad) {
   const formation = squad.formation || '1-2-2-1';
@@ -99,7 +100,6 @@ export function calculateTeamMetrics(squad) {
 
   const getRole = p => (p.role || p.posicion_base || (p.posicion?.startsWith('Arquero') ? 'POR' : p.posicion?.startsWith('Defensor') ? 'DEF' : p.posicion?.startsWith('Mediocampista') ? 'MC' : 'DEL') || 'MC').toUpperCase();
 
-  // Si los primeros 6 no coinciden con los slots de la formación (por ej. plantilla desordenada), alinear según slots
   let starters = (squad.players || []).slice(0, 6).filter(Boolean);
   const allPlayers = (squad.players || []).filter(Boolean);
   if (allPlayers.length > 6) {
@@ -140,7 +140,7 @@ export function calculateTeamMetrics(squad) {
   const getTec = p => Math.round(Number(p.rating_tecnica || getGeneral(p)));
   const getFis = p => Math.round(Number(p.rating_fisico || 80));
 
-  // 1. ATAQUE: Ponderación de Delanteros (70%) y Mediocampistas (30%) + bonus de formación
+  // 1. ATAQUE
   let rawAttack = 82;
   if (forwards.length > 0 && midfielders.length > 0) {
     rawAttack = (avg(forwards, getAtk) * 0.70) + (avg(midfielders, getAtk) * 0.30);
@@ -153,7 +153,7 @@ export function calculateTeamMetrics(squad) {
   }
   const finalAttack = Math.min(99, Math.max(65, Math.round(rawAttack * (mults.attack || 1.0))));
 
-  // 2. DEFENSA: Ponderación de Defensores (75%) y Arquero (25%) + bonus de formación
+  // 2. DEFENSA
   let rawDefense = 82;
   if (defenders.length > 0 && keepers.length > 0) {
     const keeperVal = avg(keepers, p => Math.max(getDef(p), getGeneral(p)));
@@ -165,7 +165,7 @@ export function calculateTeamMetrics(squad) {
   }
   const finalDefense = Math.min(99, Math.max(65, Math.round(rawDefense * (mults.defense || 1.0))));
 
-  // 3. CREACIÓN: Ponderación de Mediocampistas (80%) y resto de campo (20%) + bonus de formación
+  // 3. CREACIÓN
   let rawCreation = 82;
   if (midfielders.length > 0) {
     const midVal = avg(midfielders, p => (getCre(p) * 0.65 + getTec(p) * 0.35));
@@ -177,11 +177,11 @@ export function calculateTeamMetrics(squad) {
   }
   const finalCreation = Math.min(99, Math.max(65, Math.round(rawCreation * (mults.creation || 1.0))));
 
-  // 4. FÍSICO: Promedio ponderado de jugadores de campo
+  // 4. FÍSICO
   const outfield = starters.filter(p => getRole(p) !== 'POR');
   const finalFisico = Math.min(99, Math.max(65, Math.round(avg(outfield.length > 0 ? outfield : starters, getFis))));
 
-  // 5. RATING GLOBAL (OVR): Promedio de calidad general de los 6 titulares
+  // 5. RATING GLOBAL (OVR)
   const finalOvr = Math.min(99, Math.max(65, Math.round(avg(starters, getGeneral))));
 
   return {
@@ -194,11 +194,11 @@ export function calculateTeamMetrics(squad) {
 }
 
 function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
-  // Datos locales
-  const homeNameEl = document.getElementById('home-team-name');
-  const homeManagerEl = document.getElementById('home-manager-name');
-  const homeOvrEl = document.getElementById('home-team-ovr');
-  const homeRankEl = document.getElementById('home-team-rank');
+  // Datos locales (Soporta IDs de ambas plantillas)
+  const homeNameEl = document.getElementById('user-name') || document.getElementById('home-team-name');
+  const homeManagerEl = document.getElementById('user-owner') || document.getElementById('home-manager-name');
+  const homeOvrEl = document.getElementById('user-ovr') || document.getElementById('home-team-ovr');
+  const homeRankEl = document.getElementById('user-rank') || document.getElementById('home-team-rank');
 
   let localManagerName = 'Tú';
   try {
@@ -207,73 +207,66 @@ function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
       const u = JSON.parse(rawUser);
       if (u.name || u.nombre) localManagerName = u.name || u.nombre;
     }
-  } catch (e) {}
+  } catch (e) { }
 
   if (homeNameEl) homeNameEl.textContent = homeSquad.name || 'Tu Equipo';
   if (homeManagerEl) homeManagerEl.textContent = localManagerName;
   if (homeOvrEl) homeOvrEl.textContent = `${homeStats.ovr} OVR`;
-  if (homeRankEl) homeRankEl.textContent = 'Rank: #450';
+  if (homeRankEl) homeRankEl.textContent = '★ Rank: #450';
 
   // Datos del rival
-  const awayNameEl = document.getElementById('away-team-name');
-  const awayManagerEl = document.getElementById('away-manager-name');
-  const awayOvrEl = document.getElementById('away-team-ovr');
-  const awayRankEl = document.getElementById('away-team-rank');
+  const awayNameEl = document.getElementById('rival-name') || document.getElementById('away-team-name');
+  const awayManagerEl = document.getElementById('rival-owner') || document.getElementById('away-manager-name');
+  const awayOvrEl = document.getElementById('rival-ovr') || document.getElementById('away-team-ovr');
+  const awayRankEl = document.getElementById('rival-rank') || document.getElementById('away-team-rank');
 
   const rivalRankNumber = Math.floor(Math.random() * 80) + 390;
 
   if (awayNameEl) awayNameEl.textContent = awaySquad.name;
   if (awayManagerEl) awayManagerEl.textContent = `Míster ${awaySquad.name.split(' ')[0]}`;
   if (awayOvrEl) awayOvrEl.textContent = `${awayStats.ovr} OVR`;
-  if (awayRankEl) awayRankEl.textContent = `Rank: #${rivalRankNumber}`;
+  if (awayRankEl) awayRankEl.textContent = `★ Rank: #${rivalRankNumber}`;
 
   // ID aleatorio de Sala
   const roomEl = document.getElementById('matchmaking-room-id');
   if (roomEl) {
     const randomHex = Math.floor(1000 + Math.random() * 9000);
-    roomEl.textContent = `Sala #${randomHex}-A`;
+    roomEl.textContent = `SALA #${randomHex}-A`;
   }
 }
 
 /**
- * Renderiza la Comparativa Táctica (Head-to-head) con barras divergentes
+ * Renderiza la Comparativa Táctica
  */
 function renderTacticalComparison(homeStats, awayStats, homeSquad, awaySquad) {
   const metrics = [
-    { id: 'ovr', home: homeStats.ovr, away: awayStats.ovr },
-    { id: 'att', home: homeStats.ataque, away: awayStats.ataque },
-    { id: 'cre', home: homeStats.creacion, away: awayStats.creacion },
-    { id: 'def', home: homeStats.defensa, away: awayStats.defensa },
-    { id: 'fis', home: homeStats.fisico, away: awayStats.fisico }
+    { id: 'ovr', key: 'rating', home: homeStats.ovr, away: awayStats.ovr },
+    { id: 'att', key: 'ataque', home: homeStats.ataque, away: awayStats.ataque },
+    { id: 'cre', key: 'creacion', home: homeStats.creacion, away: awayStats.creacion },
+    { id: 'def', key: 'defensa', home: homeStats.defensa, away: awayStats.defensa },
+    { id: 'fis', key: 'fisico', home: homeStats.fisico, away: awayStats.fisico }
   ];
 
   metrics.forEach(m => {
-    // Valores numéricos
-    const homeValEl = document.getElementById(`stat-val-home-${m.id}`);
-    const awayValEl = document.getElementById(`stat-val-away-${m.id}`);
-    if (homeValEl) {
-      homeValEl.textContent = m.home;
-      if (m.home > m.away) homeValEl.classList.add('is-winner-home');
-    }
-    if (awayValEl) {
-      awayValEl.textContent = m.away;
-      if (m.away > m.home) awayValEl.classList.add('is-winner-away');
-    }
+    // Valores numéricos (busca por ID nuevo o viejo)
+    const homeValEl = document.getElementById(`stat-user-${m.key}`) || document.getElementById(`stat-val-home-${m.id}`);
+    const awayValEl = document.getElementById(`stat-rival-${m.key}`) || document.getElementById(`stat-val-away-${m.id}`);
 
-    // Barras de progreso divergentes (escala 0-100%)
-    const homeBarEl = document.getElementById(`bar-home-${m.id}`);
-    const awayBarEl = document.getElementById(`bar-away-${m.id}`);
+    if (homeValEl) homeValEl.textContent = m.home;
+    if (awayValEl) awayValEl.textContent = m.away;
+
+    // Barras de progreso
+    const homeBarEl = document.getElementById(`bar-user-${m.key}`) || document.getElementById(`bar-home-${m.id}`);
+    const awayBarEl = document.getElementById(`bar-rival-${m.key}`) || document.getElementById(`bar-away-${m.id}`);
 
     setTimeout(() => {
       if (homeBarEl) {
         homeBarEl.style.width = `${Math.min(100, Math.max(10, m.home))}%`;
-        if (m.home > m.away) homeBarEl.classList.add('is-dominant');
       }
       if (awayBarEl) {
         awayBarEl.style.width = `${Math.min(100, Math.max(10, m.away))}%`;
-        if (m.away > m.home) awayBarEl.classList.add('is-dominant');
       }
-    }, 200);
+    }, 150);
   });
 
   // Factor táctico dinámico
@@ -281,64 +274,56 @@ function renderTacticalComparison(homeStats, awayStats, homeSquad, awaySquad) {
 }
 
 /**
- * Ejecuta la secuencia progresiva de matchmaking y activa el botón para empezar el partido
+ * Ejecuta la secuencia progresiva de matchmaking, detiene el spinner y activa el botón
  */
 function startMatchmakingSequence(awaySquad, router) {
+  const spinnerEl = document.querySelector('.pulse-spinner');
   const progressBar = document.getElementById('matchmaking-progress-bar');
-  const titleEl = document.getElementById('countdown-text');
-  const subEl = document.getElementById('countdown-subtitle');
+  const titleEl = document.getElementById('status-title') || document.getElementById('countdown-text');
+  const subEl = document.querySelector('.match-found-desc') || document.getElementById('countdown-subtitle');
   const btnStart = document.getElementById('btn-start-match');
-  const btnStartLabel = document.getElementById('btn-start-match-label');
 
-  // Fase 1: Estado inicial de búsqueda
+  // Estado inicial de búsqueda
+  if (spinnerEl) spinnerEl.classList.remove('is-stopped');
   if (progressBar) progressBar.style.width = '25%';
-  if (btnStart) btnStart.disabled = true;
-  if (btnStartLabel) btnStartLabel.textContent = 'BUSCANDO RIVAL...';
+  if (btnStart) {
+    btnStart.disabled = true;
+    btnStart.style.opacity = '0.75';
+    btnStart.innerHTML = `<span>BUSCANDO RIVAL...</span>`;
+  }
 
   // Configurar evento de clic en el botón de empezar partido
-  if (btnStart && !btnStart.hasAttribute('data-bound')) {
-    btnStart.setAttribute('data-bound', 'true');
-    btnStart.addEventListener('click', (e) => {
+  if (btnStart) {
+    btnStart.onclick = (e) => {
       e.preventDefault();
       if (btnStart.disabled) return;
       btnStart.disabled = true;
-      if (btnStartLabel) btnStartLabel.textContent = 'INICIANDO PARTIDO...';
+      btnStart.innerHTML = `<span>INICIANDO PARTIDO...</span>`;
       redirectToLiveMatch(router);
-    });
+    };
   }
 
-  // Fase 2 (1.2 segundos): Rival encontrado y activación del botón
-  setTimeout(() => {
+  // Secuencia (900ms): Detener spinner, confirmar rival y habilitar botón
+  matchmakingTimer = setTimeout(() => {
+    // 1. Detener el giro del spinner
+    if (spinnerEl) spinnerEl.classList.add('is-stopped');
     if (progressBar) progressBar.style.width = '100%';
+
+    // 2. Textos confirmados
     if (titleEl) {
-      titleEl.innerHTML = `<span class="is-ready">¡Rival encontrado: ${awaySquad.name}!</span>`;
+      titleEl.textContent = `¡Rival encontrado: ${awaySquad.name}!`;
     }
     if (subEl) {
       subEl.textContent = 'Alineaciones confirmadas. Pulsa abajo para dar el pitido inicial.';
     }
 
-    // Activar botón de inicio en verde césped con animación de pulso
+    // 3. Activar botón de inicio
     if (btnStart) {
       btnStart.disabled = false;
-      btnStart.classList.add('is-ready');
+      btnStart.style.opacity = '1';
+      btnStart.innerHTML = `<span>¡EMPEZAR PARTIDO!</span> <span class="arrow-icon">▶</span>`;
     }
-    if (btnStartLabel) {
-      btnStartLabel.textContent = '¡EMPEZAR PARTIDO!';
-    }
-  }, 1200);
-
-  // Soporte de respaldo: si el usuario hace clic en la tarjeta de estado también inicia
-  const statusCard = document.querySelector('.matchmaking-status-card');
-  if (statusCard && !statusCard.hasAttribute('data-bound')) {
-    statusCard.setAttribute('data-bound', 'true');
-    statusCard.style.cursor = 'pointer';
-    statusCard.title = 'Toca para empezar el partido';
-    statusCard.addEventListener('click', () => {
-      if (btnStart && !btnStart.disabled) {
-        btnStart.click();
-      }
-    });
-  }
+  }, 900);
 }
 
 /**
@@ -349,10 +334,10 @@ function redirectToLiveMatch(router) {
   navigationExecuted = true;
   clearExistingTimers();
 
-  // Usamos replace en la barra para que la pantalla intermedia no quede atrapada en el historial hacia atrás
   if (window.history && window.history.replaceState) {
     window.history.replaceState(null, '', '#/match/live?autoplay=true');
   }
+
   if (router && typeof router.navigate === 'function') {
     router.navigate('/match/live?autoplay=true');
   } else if (window.router && typeof window.router.navigate === 'function') {
@@ -369,33 +354,24 @@ function clearExistingTimers() {
   }
 }
 
-
 /**
- * Renderiza el factor táctico dinámico analizando diferencias estadísticas y counters de formaciones
+ * Renderiza el factor táctico dinámico analizando diferencias estadísticas
  */
 function renderDynamicTacticalFactor(homeStats, awayStats, homeSquad, awaySquad) {
-  const container = document.getElementById('matchmaking-tactical-factor');
-  const iconWrap = document.getElementById('matchmaking-factor-icon-wrap');
-  const textEl = document.getElementById('matchmaking-factor-text');
+  const container = document.getElementById('tactical-insight-box') || document.getElementById('matchmaking-tactical-factor');
+  const textEl = document.getElementById('insight-text') || document.getElementById('matchmaking-factor-text');
 
-  if (!container || !textEl) return;
+  if (!textEl) return;
 
   const analysis = calculateTacticalFactor(homeStats, awayStats, homeSquad, awaySquad);
+  textEl.innerHTML = analysis.text;
 
-  // Aplicar clases de estado según el balance (favorable, warning, neutral)
-  container.classList.remove('is-favorable', 'is-warning', 'is-neutral');
-  container.classList.add(`is-${analysis.type}`);
-
-  // Inyectar icono vectorial y texto analítico
-  if (iconWrap) {
-    iconWrap.innerHTML = getFactorIconSvg(analysis.icon);
+  if (container) {
+    container.classList.remove('is-favorable', 'is-warning', 'is-neutral');
+    container.classList.add(`is-${analysis.type}`);
   }
-  textEl.textContent = analysis.text;
 }
 
-/**
- * Evalúa las estadísticas y formaciones de ambos equipos para determinar el análisis táctico más representativo
- */
 function calculateTacticalFactor(homeStats, awayStats, homeSquad, awaySquad) {
   const homeForm = homeSquad.formation || '1-2-2-1';
   const awayForm = awaySquad.formation || '1-2-1-2';
@@ -409,14 +385,12 @@ function calculateTacticalFactor(homeStats, awayStats, homeSquad, awaySquad) {
   const potOfensivaLocal = homeStats.ataque - awayStats.defensa;
   const potOfensivaRival = awayStats.ataque - homeStats.defensa;
 
-  // 1. Counter táctico directo según formation-rules.js
   if (isTacticalCounter(homeForm, awayForm)) {
     const homeFormName = FORMATIONS_6V6[homeForm]?.shortName || homeForm;
     const awayFormName = FORMATIONS_6V6[awayForm]?.shortName || awayForm;
     return {
       type: 'favorable',
-      icon: 'sparkles',
-      text: `¡Counter táctico favorable! Tu esquema ${homeForm} (${homeFormName}) neutraliza la formación ${awayForm} rival.`
+      text: `<strong>¡Counter táctico favorable!</strong> Tu esquema ${homeForm} (${homeFormName}) neutraliza la formación ${awayForm} rival.`
     };
   }
 
@@ -424,165 +398,75 @@ function calculateTacticalFactor(homeStats, awayStats, homeSquad, awaySquad) {
     const awayFormName = FORMATIONS_6V6[awayForm]?.shortName || awayForm;
     return {
       type: 'warning',
-      icon: 'alert',
-      text: `Alerta táctica: El rival plantea ${awayForm} (${awayFormName}), diseñada para bloquear los circuitos de tu ${homeForm}.`
+      text: `<strong>Alerta táctica:</strong> El rival plantea ${awayForm} (${awayFormName}), diseñada para bloquear los circuitos de tu ${homeForm}.`
     };
   }
 
-  // 2. Duelo de área: delantera vs zaga rival
   if (potOfensivaLocal >= 5) {
     return {
       type: 'favorable',
-      icon: 'target',
-      text: `Ventaja ofensiva: Tu delantera (${homeStats.ataque}) supera la zaga rival (${awayStats.defensa}) por +${potOfensivaLocal} pts.`
+      text: `<strong>Ventaja ofensiva:</strong> Tu delantera (${homeStats.ataque}) supera la zaga rival (${awayStats.defensa}) por +${potOfensivaLocal} pts.`
     };
   }
 
   if (potOfensivaRival >= 5) {
     return {
       type: 'warning',
-      icon: 'shield',
-      text: `Peligro rival: El ataque rival (${awayStats.ataque}) exigirá máxima concentración a tu defensa (${homeStats.defensa}).`
+      text: `<strong>Peligro rival:</strong> El ataque rival (${awayStats.ataque}) exigirá máxima concentración a tu defensa (${homeStats.defensa}).`
     };
   }
 
-  // 3. Batalla en la medular (Creación y posesión)
   if (diffCre >= 4) {
     return {
       type: 'favorable',
-      icon: 'compass',
-      text: `Control de la medular: Mayor volumen de creación y precisión (+${diffCre} pts) para dictar el ritmo.`
+      text: `<strong>Control de la medular:</strong> Mayor volumen de creación y precisión (+${diffCre} pts) para dictar el ritmo.`
     };
   }
 
   if (diffCre <= -4) {
     return {
       type: 'warning',
-      icon: 'compass',
-      text: `Presión en el centro: El rival cuenta con mejor circuito creativo (+${Math.abs(diffCre)} pts) para filtrar pases.`
+      text: `<strong>Presión en el centro:</strong> El rival cuenta con mejor circuito creativo (+${Math.abs(diffCre)} pts).`
     };
   }
 
-  // 4. Solidez defensiva global
   if (diffDef >= 5) {
     return {
       type: 'favorable',
-      icon: 'shield',
-      text: `Solidez táctica: Tu cerrojo defensivo supera al del rival (+${diffDef} pts), concediendo pocos espacios.`
+      text: `<strong>Solidez táctica:</strong> Tu cerrojo defensivo supera al del rival (+${diffDef} pts).`
     };
   }
 
   if (diffDef <= -5) {
     return {
       type: 'warning',
-      icon: 'shield',
-      text: `Muralla rival: El oponente presenta un bloque defensivo muy compacto (+${Math.abs(diffDef)} pts).`
+      text: `<strong>Muralla rival:</strong> El oponente presenta un bloque defensivo muy compacto (+${Math.abs(diffDef)} pts).`
     };
   }
 
-  // 5. Superioridad física y presión
   if (diffFis >= 5) {
     return {
       type: 'favorable',
-      icon: 'zap',
-      text: `Poderío físico: Mayor potencia (+${diffFis} pts) para imponerse en duelos divididos y balones aéreos.`
+      text: `<strong>Poderío físico:</strong> Mayor potencia (+${diffFis} pts) para imponerse en balones divididos.`
     };
   }
 
-  if (diffFis <= -5) {
-    return {
-      type: 'warning',
-      icon: 'zap',
-      text: `Desgaste físico: El rival impone un ritmo de presión alta con mayor fuelle físico (+${Math.abs(diffFis)} pts).`
-    };
-  }
-
-  // 6. Diferencia de Ataque directo
-  if (diffAtk >= 4) {
-    return {
-      type: 'favorable',
-      icon: 'target',
-      text: `Poder de fuego: Mayor contundencia atacante (+${diffAtk} pts) para definir frente al arco.`
-    };
-  }
-
-  if (diffAtk <= -4) {
-    return {
-      type: 'warning',
-      icon: 'target',
-      text: `Delantera rival peligrosa: Mayor promedio anotador visitante (+${Math.abs(diffAtk)} pts).`
-    };
-  }
-
-  // 7. Diferencia en OVR general
   if (diffOvr >= 3) {
     return {
       type: 'favorable',
-      icon: 'sparkles',
-      text: `Favorito en los papeles: Tu plantilla promedia mayor calidad global (+${diffOvr} OVR).`
+      text: `<strong>Favorito en los papeles:</strong> Tu plantilla promedia mayor calidad global (+${diffOvr} OVR).`
     };
   }
 
-  if (diffOvr <= -3) {
-    return {
-      type: 'warning',
-      icon: 'alert',
-      text: `Prueba de fuego: El rival llega con mayor valoración global promedio (+${Math.abs(diffOvr)} OVR).`
-    };
-  }
-
-  // 8. Paridad táctica absoluta
   return {
     type: 'neutral',
-    icon: 'balance',
-    text: `Duelo de máxima paridad (${homeStats.ovr} vs ${awayStats.ovr} OVR) · Se definirá en detalles y efectividad.`
+    text: `<strong>Duelo parejo:</strong> Máxima paridad (${homeStats.ovr} vs ${awayStats.ovr} OVR). Se definirá en detalles y efectividad.`
   };
 }
 
-/**
- * Retorna el SVG vectorial según la categoría de análisis táctico
- */
-function getFactorIconSvg(iconType) {
-  switch (iconType) {
-    case 'target':
-      return `<svg class="matchmaking-tactical-factor__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-        <circle cx="12" cy="12" r="10"></circle>
-        <circle cx="12" cy="12" r="6"></circle>
-        <circle cx="12" cy="12" r="2"></circle>
-      </svg>`;
-
-    case 'shield':
-      return `<svg class="matchmaking-tactical-factor__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-      </svg>`;
-
-    case 'compass':
-      return `<svg class="matchmaking-tactical-factor__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-      </svg>`;
-
-    case 'zap':
-      return `<svg class="matchmaking-tactical-factor__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-      </svg>`;
-
-    case 'sparkles':
-      return `<svg class="matchmaking-tactical-factor__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
-      </svg>`;
-
-    case 'alert':
-      return `<svg class="matchmaking-tactical-factor__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-        <line x1="12" y1="9" x2="12" y2="13"></line>
-        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-      </svg>`;
-
-    case 'balance':
-    default:
-      return `<svg class="matchmaking-tactical-factor__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-        <path d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"></path>
-      </svg>`;
+// Fallback por si la pantalla se carga fuera del router SPA
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('btn-start-match')) {
+    initMatchmaking(window.router);
   }
-}
+});

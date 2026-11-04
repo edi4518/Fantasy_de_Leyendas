@@ -38,3 +38,6 @@ build/
 *.db
 *.sqlite
 *.sqlite3
+
+settings.json
+.vscode/

@@ -468,6 +468,7 @@
   width: 46px;
   height: 46px;
   flex-shrink: 0;
+  
 }
 
 .mvp-avatar {
@@ -485,7 +486,7 @@
 .mvp-avatar img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .mvp-avatar-icon {
@@ -581,7 +582,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   6. SECCIÓN "MI EQUIPO" (Círculos posicionales con código de color)
+   6. SECCIÓN "MI EQUIPO" (Círculos posicionales con máscara perfecta y foto centrada)
    -------------------------------------------------------------------------- */
 .team-section {
   display: flex;
@@ -635,25 +636,37 @@
 .player-slot__avatar {
   width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  overflow: hidden;
+  overflow: hidden; /* Corta la imagen al borde circular */
+  position: relative;
+  background-color: #FFFFFF;
+  box-sizing: border-box;
+  padding: 0;
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
-.player-slot__avatar img {
+.player-slot__avatar img,
+.player-slot__img {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center top; /* Centrado y enfocado en la cara */
+  display: block;
 }
 
 .player-slot__icon {
   width: 20px;
   height: 20px;
+  display: block;
+  margin: auto;
+  flex-shrink: 0;
 }
 
 .player-slot__role {
@@ -996,7 +1009,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   7. MODAL DE ESTADÍSTICAS DEL EQUIPO & BOTONES DE ESTADÍSTICAS
+   10. MODAL DE ESTADÍSTICAS DEL EQUIPO & BOTONES DE ESTADÍSTICAS
    -------------------------------------------------------------------------- */
 #mvp-stats-clickable {
   cursor: pointer;

@@ -1,759 +1,483 @@
 /**
  * @file matchmaking.css
- * @description Estilos para la pantalla intermedia de Matchmaking P2P y Comparativa Táctica (Versus).
- * Basado en las especificaciones oficiales de Editorial Sports Tactical sin estilos en línea.
+ * @description Estilos para la pantalla de Matchmaking y Comparativa Táctica.
+ * Totalmente sincronizado con los tokens oficiales de design-tokens.css.
  */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family-base);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-4) var(--space-3);
+}
 
 .matchmaking-container {
   width: 100%;
-  max-width: 480px;
-  min-height: 100%;
+  max-width: var(--app-max-width);
   margin: 0 auto;
-  padding: 0.65rem 1rem 1.25rem;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 0.65rem;
-  position: relative;
-  user-select: none;
-  background-color: var(--color-background, #F8F9FA);
-  overflow-y: auto;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  box-sizing: border-box;
 }
 
-/* Fondo decorativo sutil */
-.matchmaking-tactical-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(circle at 50% 20%, rgba(45, 106, 79, 0.05) 0%, transparent 70%);
+/* Tarjeta genérica del sistema */
+.matchmaking-container .card {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+  box-sizing: border-box;
+  width: 100%;
 }
 
-/* =============================================================================
-   1. TOP BAR
-   ============================================================================= */
-
-.matchmaking-topbar {
+/* 1. Header Badges / Pastillas */
+.matchmaking-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding-top: 0.5rem;
-  padding-bottom: 0.75rem;
-  position: relative;
-  z-index: 10;
+  align-items: center;
+  padding: var(--space-1) var(--space-1);
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.matchmaking-badge {
+.pill-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.75rem;
-  background: var(--color-surface, #FFFFFF);
-  border: 1px solid var(--color-border, #DEE2E6);
-  border-radius: var(--radius-full, 9999px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: var(--color-text, #212529);
+  gap: var(--space-1);
+  background: var(--color-surface);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  box-shadow: var(--shadow-visual);
 }
 
-.matchmaking-badge--p2p {
-  color: var(--color-primary, #2D6A4F);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  position: relative;
+.status-dot {
+  width: var(--indicator-dot-size);
+  height: var(--indicator-dot-size);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-trend-up);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
 }
 
-.matchmaking-badge__ping {
-  position: absolute;
-  left: 0.75rem;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-primary, #2D6A4F);
-  animation: matchmakingPing 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
-  opacity: 0.75;
+.icon-pin {
+  color: var(--color-primary);
 }
 
-.matchmaking-badge__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-primary, #2D6A4F);
-  flex-shrink: 0;
-}
-
-.matchmaking-badge--league {
-  font-size: 0.75rem;
-  color: var(--color-text, #212529);
-}
-
-.matchmaking-badge__icon {
-  width: 14px;
-  height: 14px;
-  color: var(--color-primary, #2D6A4F);
-  flex-shrink: 0;
-}
-
-@keyframes matchmakingPing {
-  75%, 100% {
-    transform: scale(2.2);
-    opacity: 0;
-  }
-}
-
-/* =============================================================================
-   2. TARJETA VERSUS (EL CARA A CARA)
-   ============================================================================= */
-
-.matchmaking-versus-card {
-  position: relative;
-  z-index: 10;
+/* 2. Tarjeta Versus (Alineación Horizontal Neta) */
+.matchmaking-container .card.versus-card {
   display: flex;
-  align-items: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
   justify-content: space-between;
-  background: var(--color-surface, #FFFFFF);
-  border: 1px solid var(--color-border, #DEE2E6);
-  border-radius: var(--radius-lg, 16px);
-  padding: 0.85rem 0.85rem;
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
-  margin-bottom: 0;
+  align-items: center;
+  padding: var(--space-5) var(--space-3);
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.matchmaking-team {
-  flex: 1;
+.matchmaking-container .versus-card .team-side {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  min-width: 0;
 }
 
-.matchmaking-team--home {
-  padding-right: 0.35rem;
-}
-
-.matchmaking-team--away {
-  padding-left: 0.35rem;
-}
-
-.matchmaking-avatar-wrap {
+.avatar-wrapper {
   position: relative;
-  margin-bottom: 0.65rem;
-}
-
-.matchmaking-avatar {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  padding: 3px;
+  width: 70px;
+  height: 70px;
+  border-radius: var(--radius-pill);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
+  background: var(--color-surface-subtle);
+  margin-bottom: var(--space-2);
 }
 
-.matchmaking-avatar--home {
-  border: 3px solid var(--color-primary, #2D6A4F);
-  background: linear-gradient(180deg, rgba(45, 106, 79, 0.12) 0%, transparent 100%);
+.user-border {
+  border: var(--border-width-thick) solid var(--color-primary);
 }
 
-.matchmaking-avatar--away {
-  border: 3px solid var(--color-gold, #D4AC0D);
-  background: linear-gradient(180deg, rgba(212, 172, 13, 0.15) 0%, transparent 100%);
+.rival-border {
+  border: var(--border-width-thick) solid var(--color-gold);
 }
 
-.matchmaking-avatar__inner {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
+.avatar-circle {
+  color: var(--color-slate-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  font-weight: 800;
-  font-size: 1.5rem;
 }
 
-.matchmaking-avatar--home .matchmaking-avatar__inner {
-  background: rgba(45, 106, 79, 0.15);
-  color: var(--color-primary, #2D6A4F);
-}
-
-.matchmaking-avatar--away .matchmaking-avatar__inner {
-  background: rgba(212, 172, 13, 0.15);
-  color: var(--color-gold, #D4AC0D);
-}
-
-.matchmaking-avatar__inner svg {
-  width: 40px;
-  height: 40px;
-}
-
-.matchmaking-ovr-badge {
+.ovr-badge {
   position: absolute;
   bottom: -4px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-visual);
+}
+
+.ovr-user {
+  background-color: var(--color-primary);
+}
+
+.ovr-rival {
+  background-color: var(--color-gold);
+}
+
+.matchmaking-container .versus-card .team-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-text);
+  margin-top: var(--space-1);
+  white-space: normal;
+  line-height: var(--line-height-sm);
+  text-align: center;
+  max-width: 100%;
+}
+
+.team-owner {
+  font-size: var(--font-size-xs);
+  color: var(--color-slate-subtle);
+  margin-bottom: var(--space-1);
+}
+
+.rank-badge {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-pill);
+}
+
+.rank-user {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.rank-rival {
+  background-color: var(--color-gold-light);
+  color: var(--color-gold-dark);
+}
+
+.matchmaking-container .versus-card .versus-center {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-2);
+}
+
+.vs-circle {
+  width: var(--avatar-size-sm);
+  height: var(--avatar-size-sm);
+  background-color: var(--color-dark-slate);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: 0.5px;
+}
+
+.vs-label {
   font-size: 0.625rem;
-  font-weight: 800;
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
-  border: 1.5px solid #FFFFFF;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  letter-spacing: 0.02em;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-slate-subtle);
+  letter-spacing: 0.5px;
 }
 
-.matchmaking-ovr-badge--home {
-  right: -4px;
-  background: var(--color-primary, #2D6A4F);
-  color: #FFFFFF;
+/* 3. Tarjeta Comparativa Táctica */
+.stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  margin-bottom: var(--space-3);
 }
 
-.matchmaking-ovr-badge--away {
-  left: -4px;
-  background: var(--color-gold, #D4AC0D);
-  color: #FFFFFF;
+.title-tactics {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-text-muted);
+  letter-spacing: 0.8px;
 }
 
-.matchmaking-team__name {
-  font-size: 0.85rem;
-  font-weight: 800;
-  color: var(--color-text, #212529);
-  margin: 0;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120px;
-}
-
-.matchmaking-team__manager {
-  font-size: 0.6875rem;
-  color: var(--color-text-muted, #6B7280);
-  font-weight: 500;
-  margin: 0.15rem 0 0.4rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 110px;
-}
-
-.matchmaking-rank-pill {
+.tag-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.6875rem;
-  font-weight: 700;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 
-.matchmaking-rank-pill svg {
-  width: 11px;
-  height: 11px;
-  flex-shrink: 0;
+.tag-user {
+  color: var(--color-primary);
 }
 
-.matchmaking-rank-pill--home {
-  background: rgba(45, 106, 79, 0.1);
-  border: 1px solid rgba(45, 106, 79, 0.25);
-  color: var(--color-primary, #2D6A4F);
+.tag-rival {
+  color: var(--color-gold);
 }
 
-.matchmaking-rank-pill--away {
-  background: rgba(212, 172, 13, 0.1);
-  border: 1px solid rgba(212, 172, 13, 0.3);
-  color: #9A7D0A;
+.dot {
+  width: var(--indicator-dot-size);
+  height: var(--indicator-dot-size);
+  border-radius: var(--radius-pill);
 }
 
-/* VS Central */
-.matchmaking-vs-separator {
+.user-dot {
+  background-color: var(--color-primary);
+}
+
+.rival-dot {
+  background-color: var(--color-gold);
+}
+
+.stats-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  padding: 0 0.35rem;
+  gap: var(--space-3);
 }
 
-.matchmaking-vs-circle {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #212529;
-  color: #FFFFFF;
+.stat-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 800;
-  border: 2px solid #FFFFFF;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  animation: vsPulse 1.6s ease-in-out infinite;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
-.matchmaking-vs-label {
-  font-size: 0.5625rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: rgba(33, 37, 41, 0.4);
-  margin-top: 0.25rem;
-}
-
-@keyframes vsPulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.06);
-  }
-}
-
-/* =============================================================================
-   3. COMPARATIVA TÁCTICA (HEAD-TO-HEAD)
-   ============================================================================= */
-
-.matchmaking-comparison-card {
-  position: relative;
-  z-index: 10;
-  background: var(--color-surface, #FFFFFF);
-  border: 1px solid var(--color-border, #DEE2E6);
-  border-radius: var(--radius-lg, 16px);
-  padding: 0.85rem 1rem;
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
-  margin-bottom: 0;
-}
-
-.matchmaking-comparison__header {
+.stat-top {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding-bottom: 0.75rem;
-  margin-bottom: 0.85rem;
-  border-bottom: 1px solid var(--color-border, #DEE2E6);
+  align-items: baseline;
 }
 
-.matchmaking-side-tag {
+.stat-name {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-text-muted);
+  letter-spacing: 0.5px;
+}
+
+.stat-val {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extrabold);
+}
+
+.user-val {
+  color: var(--color-primary);
+}
+
+.rival-val {
+  color: var(--color-text);
+}
+
+.stat-bars {
   display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.matchmaking-side-tag--home {
-  color: var(--color-primary, #2D6A4F);
-}
-
-.matchmaking-side-tag--away {
-  color: #9A7D0A;
-}
-
-.matchmaking-side-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.matchmaking-side-tag--home .matchmaking-side-dot {
-  background: var(--color-primary, #2D6A4F);
-}
-
-.matchmaking-side-tag--away .matchmaking-side-dot {
-  background: var(--color-gold, #D4AC0D);
-}
-
-.matchmaking-comparison__title {
-  font-size: 0.6875rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(33, 37, 41, 0.5);
-}
-
-/* Filas Estadísticas y Barras Divergentes */
-.matchmaking-stats-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.matchmaking-stat-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.matchmaking-stat-row__labels {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.matchmaking-stat-val {
-  font-size: 0.85rem;
-  font-weight: 800;
-  width: 32px;
-}
-
-.matchmaking-stat-val--home {
-  text-align: left;
-  color: var(--color-text, #212529);
-}
-
-.matchmaking-stat-val--away {
-  text-align: right;
-  color: var(--color-text, #212529);
-}
-
-.matchmaking-stat-val.is-winner-home {
-  color: var(--color-primary, #2D6A4F);
-}
-
-.matchmaking-stat-val.is-winner-away {
-  color: #9A7D0A;
-}
-
-.matchmaking-stat-title {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgba(33, 37, 41, 0.75);
-}
-
-.matchmaking-divergent-track {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  height: 10px;
+  gap: var(--space-2);
   width: 100%;
-  background: var(--color-background, #F8F9FA);
-  border: 1px solid rgba(222, 226, 230, 0.8);
-  border-radius: var(--radius-full, 9999px);
-  padding: 1px;
-  box-sizing: border-box;
 }
 
-.matchmaking-divergent-half {
+.bar-track {
+  flex: 1;
+  height: 6px;
+  background-color: var(--color-chart-neutral);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  position: relative;
+}
+
+.user-track {
   display: flex;
-  align-items: center;
-  height: 100%;
-}
-
-.matchmaking-divergent-half--left {
   justify-content: flex-end;
 }
 
-.matchmaking-divergent-half--right {
-  justify-content: flex-start;
-}
-
-.matchmaking-divergent-bar {
+.bar-fill {
   height: 100%;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  width: 0%;
+  border-radius: var(--radius-pill);
+  transition: width var(--transition-slow);
 }
 
-.matchmaking-divergent-bar--home {
-  background: var(--color-primary, #2D6A4F);
-  border-radius: 9999px 0 0 9999px;
+.user-fill {
+  background-color: var(--color-primary);
 }
 
-.matchmaking-divergent-bar--away {
-  background: var(--color-gold, #D4AC0D);
-  border-radius: 0 9999px 9999px 0;
+.rival-fill {
+  background-color: var(--color-gold);
 }
 
-.matchmaking-divergent-bar.is-dominant {
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+/* Caja de Ventaja Táctica */
+.tactical-insight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background-color: var(--color-primary-light);
+  border: var(--border-width-thin) solid rgba(45, 106, 79, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  margin-top: var(--space-3);
 }
 
-/* Indicador de Ventaja Táctica Dinámico */
-.matchmaking-tactical-factor {
-  margin-top: 0.85rem;
-  padding: 0.65rem 0.85rem;
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--color-border, #DEE2E6);
-  background: var(--color-background, #F8F9FA);
+.insight-icon {
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.35;
-  color: var(--color-text, #212529);
+}
+
+.insight-text {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  color: var(--color-primary-dark);
+}
+
+/* 4. Tarjeta de Estado y Spinner */
+.matchmaking-container .card.status-card {
   text-align: center;
-  transition: all 0.3s ease;
-}
-
-.matchmaking-tactical-factor__icon-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.matchmaking-tactical-factor__icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  stroke-width: 2.2;
-}
-
-/* Estado: Favorable para el usuario (Verde césped) */
-.matchmaking-tactical-factor.is-favorable {
-  background: rgba(45, 106, 79, 0.08);
-  border-color: rgba(45, 106, 79, 0.28);
-  color: var(--color-primary, #2D6A4F);
-}
-
-.matchmaking-tactical-factor.is-favorable .matchmaking-tactical-factor__icon {
-  color: var(--color-primary, #2D6A4F);
-}
-
-/* Estado: Alerta o ventaja del rival (Dorado / Ámbar táctico) */
-.matchmaking-tactical-factor.is-warning {
-  background: rgba(212, 172, 13, 0.12);
-  border-color: rgba(212, 172, 13, 0.35);
-  color: #856404;
-}
-
-.matchmaking-tactical-factor.is-warning .matchmaking-tactical-factor__icon {
-  color: #B7950B;
-}
-
-/* Estado: Paridad equilibrada (Neutro elegante) */
-.matchmaking-tactical-factor.is-neutral {
-  background: #F8F9FA;
-  border-color: var(--color-border, #DEE2E6);
-  color: var(--color-text, #212529);
-}
-
-.matchmaking-tactical-factor.is-neutral .matchmaking-tactical-factor__icon {
-  color: var(--color-text-muted, #6B7280);
-}
-
-/* =============================================================================
-   4. FOOTER: ESTADO DE CARGA Y SIMULADOR
-   ============================================================================= */
-
-.matchmaking-footer {
-  position: relative;
-  z-index: 10;
+  padding: var(--space-4) var(--space-3);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
 }
 
-.matchmaking-status-card {
-  width: 100%;
-  background: var(--color-surface, #FFFFFF);
-  border: 1px solid var(--color-border, #DEE2E6);
-  border-radius: var(--radius-lg, 16px);
-  padding: 1rem 1.15rem;
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.65rem;
-  box-sizing: border-box;
+.spinner-wrapper {
+  margin-bottom: var(--space-2);
 }
 
-.matchmaking-spinner-wrap {
-  position: relative;
-  width: 36px;
-  height: 36px;
+.pulse-spinner {
+  width: var(--spinner-size);
+  height: var(--spinner-size);
+  border: var(--border-width-thick) solid var(--color-border-subtle);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-pill);
+  animation: spin 0.9s linear infinite;
+}
+
+/* Detener el giro del spinner */
+.matchmaking-container .pulse-spinner.is-stopped {
+  animation: none;
+  border-color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: var(--color-primary-light);
 }
 
-.matchmaking-spinner {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 2.5px solid var(--color-border, #DEE2E6);
-  border-top-color: var(--color-primary, #2D6A4F);
-  animation: matchmakingSpin 1s linear infinite;
+.matchmaking-container .pulse-spinner.is-stopped::after {
+  content: '✓';
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-primary);
 }
 
-.matchmaking-spinner__center {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-primary, #2D6A4F);
-}
-
-@keyframes matchmakingSpin {
+@keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-.matchmaking-status-texts {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+.match-found-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extrabold);
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
 }
 
-.matchmaking-status-title {
-  font-size: 0.8125rem;
-  font-weight: 800;
-  color: var(--color-text, #212529);
-  margin: 0;
-  letter-spacing: -0.01em;
+.match-found-desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3);
 }
 
-.matchmaking-status-title.is-ready {
-  color: var(--color-primary, #2D6A4F);
-}
-
-.matchmaking-status-sub {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--color-text-muted, #6B7280);
-  margin: 0;
-}
-
-.matchmaking-progress-track {
+.ready-line {
   width: 100%;
-  height: 6px;
-  background: var(--color-background, #F8F9FA);
-  border: 1px solid var(--color-border, #DEE2E6);
-  border-radius: var(--radius-full, 9999px);
-  overflow: hidden;
+  height: 3px;
+  background-color: var(--color-primary);
+  border-radius: var(--radius-pill);
 }
 
-.matchmaking-progress-fill {
-  height: 100%;
-  background: var(--color-primary, #2D6A4F);
-  border-radius: var(--radius-full, 9999px);
-  width: 10%;
-  transition: width 0.6s linear;
-}
-
-.matchmaking-encrypted-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.75rem;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid var(--color-border, #DEE2E6);
-  border-radius: var(--radius-full, 9999px);
-  font-size: 0.625rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(33, 37, 41, 0.7);
-}
-
-.matchmaking-dot-separator {
-  color: var(--color-text-muted, #6B7280);
-}
-
-
-
-/* =============================================================================
-   5. BOTÓN DE ACCIÓN INFERIOR (EMPEZAR PARTIDO)
-   ============================================================================= */
-
-.matchmaking-action-dock {
+/* Botón de Acción Principal (CTA) */
+.matchmaking-container .btn-start-match {
   width: 100%;
-  padding-top: 0.25rem;
-}
-
-.matchmaking-start-btn {
-  width: 100%;
-  height: 52px;
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.65rem;
-  background-color: var(--color-primary, #2D6A4F);
-  color: #FFFFFF;
-  border: none;
-  border-radius: var(--radius-md, 8px);
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  box-sizing: border-box;
+  min-height: var(--btn-action-height);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: var(--border-width-none);
+  border-radius: var(--radius-btn);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extrabold);
+  letter-spacing: 0.5px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(45, 106, 79, 0.35);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.25);
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
 }
 
-.matchmaking-start-btn:hover:not(:disabled) {
-  background-color: var(--color-primary-hover, #245640);
+.matchmaking-container .btn-start-match:hover {
+  background-color: var(--color-primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(45, 106, 79, 0.45);
 }
 
-.matchmaking-start-btn:active:not(:disabled) {
-  transform: scale(0.99);
-  opacity: 0.95;
+.matchmaking-container .btn-start-match:active {
+  background-color: var(--color-primary-dark);
+  transform: translateY(1px);
 }
 
-.matchmaking-start-btn:disabled {
-  background-color: #9cb8a9;
-  color: rgba(255, 255, 255, 0.85);
+.matchmaking-container .btn-start-match:disabled {
+  opacity: var(--opacity-disabled);
   cursor: not-allowed;
-  box-shadow: none;
   transform: none;
 }
 
-.matchmaking-start-btn.is-ready {
-  background-color: var(--color-primary, #2D6A4F);
-  animation: btnPulseGlow 1.8s ease-in-out infinite;
+.arrow-icon {
+  font-size: var(--font-size-sm);
 }
 
-@keyframes btnPulseGlow {
-  0%, 100% {
-    box-shadow: 0 4px 14px rgba(45, 106, 79, 0.35);
-  }
-  50% {
-    box-shadow: 0 6px 20px rgba(45, 106, 79, 0.65);
-  }
+/* 5. Footer */
+.matchmaking-footer {
+  text-align: center;
+  padding: var(--space-1) 0 var(--space-2);
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.matchmaking-start-btn__icon {
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
-}
-
-.matchmaking-start-btn:hover:not(:disabled) .matchmaking-start-btn__icon {
-  transform: translateX(2px);
-}
-
-.matchmaking-start-btn__spinner {
-  width: 16px;
-  height: 16px;
-  border: 2.5px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #FFFFFF;
-  border-radius: 50%;
-  animation: matchmakingSpin 0.8s linear infinite;
-  display: none;
-  flex-shrink: 0;
-}
-
-.matchmaking-start-btn:disabled .matchmaking-start-btn__spinner {
+.footer-chip {
   display: inline-block;
-}
-
-.matchmaking-start-btn:disabled .matchmaking-start-btn__icon {
-  display: none;
+  background: var(--color-surface-glass);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-slate-subtle);
+  letter-spacing: 0.5px;
 }

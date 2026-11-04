@@ -1,12 +1,20 @@
+/**
+ * ==========================================================================
+ * MARKET.CSS - Sistema de Diseño Fantasy de Leyendas
+ * Mercado de Fichajes y Comparativa de Jugadores
+ * ==========================================================================
+ */
+
 .market-screen {
-  max-width: none !important;       /* Quita el límite de ancho de celular */
-  width: 100% !important;           /* Ocupa todo el ancho disponible */
-  min-height: 100vh !important;     /* Asegura el alto total de la ventana */
+  max-width: none !important;
+  width: 100% !important;
+  min-height: 100vh !important;
   height: 100% !important;
-  margin: 0 !important;             /* Remueve centrados automáticos */
-  border-radius: 0 !important;      /* Quita los bordes redondeados tipo app */
-  box-shadow: none !important;      /* Elimina la sombra de simulación */
-  padding: 24px !important;         /* Espaciado interno cómodo para PC */
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 24px 24px 120px 24px !important;
+  box-sizing: border-box;
 }
 
 .market-header {
@@ -64,7 +72,7 @@
   font-size: 0.85rem;
   color: #0f172a;
   outline: none;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .market-search-container input::placeholder {
@@ -122,7 +130,7 @@
   justify-content: center;
   gap: 8px;
   margin-bottom: 16px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .btn-compare-action:disabled {
@@ -147,6 +155,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding-bottom: 110px !important;
 }
 
 .player-item-card {
@@ -157,7 +166,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   padding: 12px 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .player-info-left {
@@ -166,17 +175,94 @@
   gap: 12px;
 }
 
+/* ==========================================================================
+   AVATARES CIRCULARES Y AJUSTE DE CARAS
+   ========================================================================== */
 .player-avatar-box {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
-  background-color: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50% !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
-  color: #64748b;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 0;
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  flex-shrink: 0;
+}
+
+.player-avatar-box img,
+.player-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: contain;
+  object-position: center 20%;
+  /* Baja el encuadre para no cortar la frente */
+  transform: scale(0.92);
+  /* Rostro completo sin tocar el contorno */
+  display: block;
+}
+
+/* ==========================================================================
+   COLORES POR POSICIÓN (Idénticos al Dashboard)
+   ========================================================================== */
+
+/* POR (Amarillo / Dorado) */
+.player-avatar-box--por,
+.player-item-card--por .player-avatar-box {
+  border: 2px solid #EAB308 !important;
+  background-color: #FEF9C3 !important;
+}
+
+.player-pos--por,
+.player-item-card--por .pos-initial {
+  color: #CA8A04 !important;
+}
+
+/* DEF (Azul) */
+.player-avatar-box--def,
+.player-item-card--def .player-avatar-box {
+  border: 2px solid #60A5FA !important;
+  background-color: #EFF6FF !important;
+}
+
+.player-pos--def,
+.player-item-card--def .pos-initial {
+  color: #2563EB !important;
+}
+
+/* MC / MED (Verde Esmeralda) */
+.player-avatar-box--mc,
+.player-avatar-box--med,
+.player-item-card--mc .player-avatar-box,
+.player-item-card--med .player-avatar-box {
+  border: 2px solid #34D399 !important;
+  background-color: #ECFDF5 !important;
+}
+
+.player-pos--mc,
+.player-pos--med,
+.player-item-card--mc .pos-initial,
+.player-item-card--med .pos-initial {
+  color: #059669 !important;
+}
+
+/* DEL (Rojo) */
+.player-avatar-box--del,
+.player-item-card--del .player-avatar-box {
+  border: 2px solid #F87171 !important;
+  background-color: #FEF2F2 !important;
+}
+
+.player-pos--del,
+.player-item-card--del .pos-initial {
+  color: #DC2626 !important;
 }
 
 .player-name {
@@ -225,4 +311,101 @@
   background-color: #2d6a4f;
   color: #ffffff;
   border-color: #2d6a4f;
+}
+
+/* ==========================================================================
+   BARRA INFERIOR DOCK COMPACTA Y ALINEADA AL MARCO DEL CELULAR
+   ========================================================================== */
+.market-bottom-bar,
+.market-actions,
+.market-action-bar,
+.market-dock {
+  position: fixed !important;
+  bottom: 60px !important;
+  /* Se apoya justo sobre el menú inferior */
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 100% !important;
+  max-width: 400px !important;
+  /* Ancho exacto del marco de la app */
+  box-sizing: border-box !important;
+
+  background-color: #ffffff !important;
+  border-top-left-radius: 14px !important;
+  border-top-right-radius: 14px !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+
+  border-top: 1px solid #e2e8f0 !important;
+  border-left: 1px solid #e2e8f0 !important;
+  border-right: 1px solid #e2e8f0 !important;
+  border-bottom: none !important;
+
+  /* Padding más chico y estilizado */
+  padding: 8px 12px 10px 12px !important;
+  gap: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  z-index: 50 !important;
+  box-shadow: 0 -3px 12px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Botón Comparar más bajo y compacto */
+.market-bottom-bar .btn-compare,
+.market-actions .btn-compare,
+.market-dock .btn-compare {
+  flex: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 8px 20px !important;
+  /* Altura reducida */
+  border-radius: 10px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
+  /* Tipografía proporcionada */
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease !important;
+}
+
+.market-bottom-bar .btn-compare:hover,
+.market-actions .btn-compare:hover {
+  background-color: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+/* Botón Fichar más bajo y compacto */
+.market-bottom-bar .btn-fichar,
+.market-bottom-bar .btn-sign,
+.market-actions .btn-fichar,
+.market-dock .btn-fichar {
+  flex: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 8px 10px !important;
+  /* Altura reducida */
+  border-radius: 10px !important;
+  border: none !important;
+  background-color: #2d6a4f !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
+  /* Tipografía proporcionada */
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  box-shadow: 0 2px 6px rgba(45, 106, 79, 0.25) !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.market-bottom-bar .btn-fichar:hover,
+.market-actions .btn-fichar:hover {
+  background-color: #1b4332 !important;
 }

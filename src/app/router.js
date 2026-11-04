@@ -33,7 +33,12 @@ const routes = {
     fullScreen: true,
   },
   "/dashboard": { screen: "dashboard", authRequired: false },
-  "/matchmaking": { screen: "matchmaking", authRequired: false, fullScreen: true },
+  "/matchmaking": {
+    screen: "matchmaking",
+    subview: "matchmaking",
+    authRequired: false,
+    fullScreen: true
+  },
   "/market": { screen: "market", authRequired: false },
   "/comparison": { screen: "comparison", authRequired: true },
   "/lineup": { screen: "lineup", authRequired: false },
@@ -138,9 +143,9 @@ async function handleLocation() {
 
   // Soporte directo para modo de prueba (Home / Dashboard)
   const isDirectTest = urlParams.get("test") === "true" ||
-                       urlParams.get("home") === "true" ||
-                       urlParams.get("screen") === "dashboard" ||
-                       window.location.hash.includes("dashboard");
+    urlParams.get("home") === "true" ||
+    urlParams.get("screen") === "dashboard" ||
+    window.location.hash.includes("dashboard");
 
   if (isDirectTest) {
     localStorage.setItem("hasSeenOnboarding", "true");

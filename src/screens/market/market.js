@@ -71,12 +71,12 @@ export async function renderMarketScreen(container, router) {
           </div>
         </div>
 
-        <!-- Footer Dual-Action perfectamente acoplado al ancho interno del celular -->
-        <div style="position: fixed; bottom: 65px; left: 50%; transform: translateX(-50%); width: calc(100% - 40px); max-width: 440px; background: white; padding: 12px 16px; border-top: 1px solid #e2e8f0; border-radius: 16px; display: flex; gap: 10px; z-index: 100; box-sizing: border-box; box-shadow: 0 -4px 15px rgba(0,0,0,0.08);">
-          <button id="btn-compare" style="flex: 1; padding: 10px 8px; background: #f8fafc; color: #2d6a4f; border: 1px solid #cbd5e1; border-radius: 12px; font-weight: 700; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
+        <!-- Footer Dual-Action sellado directamente sobre la navegación -->
+        <div class="market-bottom-bar">
+          <button id="btn-compare" class="btn-compare">
             🔀 Comparar (<span id="compare-count">0</span>)
           </button>
-          <button id="btn-sign" style="flex: 1; padding: 10px 8px; background: #2d6a4f; color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
+          <button id="btn-sign" class="btn-fichar">
             🛍️ Fichar (<span id="sign-count">0</span>)
           </button>
         </div>
@@ -91,7 +91,7 @@ export async function renderMarketScreen(container, router) {
     const signCountSpan = targetContainer.querySelector('#sign-count');
     const budgetDisplay = targetContainer.querySelector('#market-budget');
     const rosterDisplay = targetContainer.querySelector('#market-roster-count');
-    
+
     let currentPos = 'TODOS';
 
     const updateUIList = () => {
@@ -130,23 +130,32 @@ export async function renderMarketScreen(container, router) {
         const isSelected = selectedIdsForAction.has(p.id);
         const ratingStar = p.media_juego ? (p.media_juego / 10).toFixed(1) : '8.0';
 
-        // Usamos tu lógica original con image_filename
-        const playerImage = p.image_filename 
-          ? `${STORAGE_URL}${p.image_filename}` 
+        // Normalizar clave de posición para las clases de color
+        const rawPos = (p.posicion_base || 'MC').toUpperCase();
+        const posKey = (rawPos === 'ARQ' || rawPos === 'GK' || rawPos === 'POR')
+          ? 'por'
+          : (rawPos === 'MED' || rawPos === 'MC')
+          ? 'mc'
+          : rawPos.toLowerCase();
+
+        const playerImage = p.image_filename
+          ? `${STORAGE_URL}${p.image_filename}`
           : null;
 
         return `
-          <div class="market-player-card" data-id="${p.id}" style="display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid ${isSelected ? '#2d6a4f' : '#e2e8f0'}; border-radius: 16px; padding: 10px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+          <div class="market-player-card player-item-card--${posKey}" data-id="${p.id}" style="display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid ${isSelected ? '#2d6a4f' : '#e2e8f0'}; border-radius: 16px; padding: 10px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
             <div style="display: flex; align-items: center; gap: 10px;">
-              <div style="width: 40px; height: 40px; border-radius: 50%; background: #f1f5f9; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; flex-shrink: 0;">
-                ${playerImage 
-                  ? `<img src="${playerImage}" alt="${p.nombre || 'Jugador'}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none';">`
-                  : `<span style="font-size: 0.8rem; font-weight: 700; color: #475569;">👤</span>`
+              <div class="player-avatar-box player-avatar-box--${posKey}">
+                ${playerImage
+                  ? `<img src="${playerImage}" alt="${p.nombre || 'Jugador'}" class="player-avatar-img" onerror="this.style.display='none';">`
+                  : `<span class="pos-initial" style="font-size: 0.75rem; font-weight: 800;">${rawPos}</span>`
                 }
               </div>
               <div>
                 <strong style="font-size: 0.85rem; color: #0f172a; display: block;">${p.nombre || 'Sin nombre'}</strong>
-                <span style="font-size: 0.7rem; color: #64748b;">${p.posicion_base || 'Jugador'} • ⭐ ${ratingStar}</span>
+                <span style="font-size: 0.7rem; color: #64748b;">
+                  <strong class="player-pos--${posKey}">${rawPos}</strong> • ⭐ ${ratingStar}
+                </span>
               </div>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -226,7 +235,7 @@ export async function renderMarketScreen(container, router) {
 
       if (success) {
         selectedIdsForAction.clear();
-        
+
         const modalOverlay = document.createElement('div');
         modalOverlay.style.cssText = `
           position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -248,11 +257,11 @@ export async function renderMarketScreen(container, router) {
 
         modalOverlay.querySelector('#modal-accept-btn').addEventListener('click', () => {
           modalOverlay.remove();
-          
+
           if (!localStorage.getItem("auth_token")) {
             localStorage.setItem("auth_token", "dev-test-token");
           }
-          
+
           router.navigate('/lineup');
         });
       }

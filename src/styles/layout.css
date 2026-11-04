@@ -145,6 +145,17 @@ body.app-body {
   flex-direction: column !important;
 }
 
+/* Pantalla de Matchmaking: Scroll vertical completo garantizado sin recortes */
+.app-main:has(.matchmaking-container),
+#app-content:has(.matchmaking-container) {
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ==========================================================================
    5. BARRA DE NAVEGACIÓN INFERIOR (App Navigation)
    ========================================================================== */

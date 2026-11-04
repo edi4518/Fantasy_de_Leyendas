@@ -23,10 +23,10 @@
   <link rel="stylesheet" href="/src/styles/design-tokens.css?v=14" />
   <link rel="stylesheet" href="/src/styles/reset.css?v=14" />
   <link rel="stylesheet" href="/src/styles/global.css?v=14" />
-  <link rel="stylesheet" href="./src/styles/screens/market.css?v=1" />
-  <link rel="stylesheet" href="./src/styles/screens/comparison.css?v=1" />
-  <link rel="stylesheet" href="./src/styles/screens/admin.css?v=1" />
-  <link rel="stylesheet" href="/src/styles/layout.css?v=25" />
+  <link rel="stylesheet" href="/src/styles/screens/market.css?v=1" />
+  <link rel="stylesheet" href="/src/styles/screens/comparison.css?v=1" />
+  <link rel="stylesheet" href="/src/styles/screens/admin.css?v=1" />
+  <link rel="stylesheet" href="/src/styles/layout.css?v=35" />
   <link rel="stylesheet" href="/src/styles/components.css?v=25" />
 
   <!-- Estilos por componente y por pantalla -->
@@ -40,21 +40,21 @@
   <link rel="stylesheet" href="/src/styles/screens/match.css?v=19" />
   <link rel="stylesheet" href="/src/styles/screens/lineup.css?v=39" />
   <link rel="stylesheet" href="/src/styles/screens/market.css?v=14" />
-  <link rel="stylesheet" href="/src/styles/screens/matchmaking.css?v=4" />
+  <link rel="stylesheet" href="/src/styles/screens/matchmaking.css?v=35" />
 </head>
 
 <body class="app-body">
   <script>
     // Limpieza inmediata de cachés anteriores en desarrollo
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
         for (var i = 0; i < regs.length; i++) {
           regs[i].unregister();
         }
       });
     }
     if ('caches' in window) {
-      caches.keys().then(function(keys) {
+      caches.keys().then(function (keys) {
         for (var i = 0; i < keys.length; i++) {
           caches.delete(keys[i]);
         }

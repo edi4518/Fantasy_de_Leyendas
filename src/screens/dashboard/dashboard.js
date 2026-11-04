@@ -178,11 +178,24 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
     }
 
     const mvpAvatarEl = document.getElementById('mvp-avatar');
-    if (mvpAvatarEl && data.mvp?.avatarUrl) {
-      mvpAvatarEl.innerHTML = `<img src="${data.mvp.avatarUrl}" alt="${data.mvp.name}">`;
+    if (mvpAvatarEl) {
+      if (data.mvp?.avatarUrl) {
+        mvpAvatarEl.innerHTML = `
+          <img src="${data.mvp.avatarUrl}" 
+               alt="${data.mvp.name || 'MVP'}" 
+               class="mvp-avatar-img"
+               onerror="this.parentElement.innerHTML='<svg class=\\'mvp-avatar-icon\\' viewBox=\\'0 0 24 24\\' fill=\\'currentColor\\'><path d=\\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\\'/></svg>';">
+        `;
+      } else {
+        mvpAvatarEl.innerHTML = `
+          <svg class="mvp-avatar-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+        `;
+      }
     }
 
-    // 5. Mi Equipo (Grid / Flex de Jugadores)
+    // 5. Mi Equipo (Grid / Flex de Jugadores con imagen centrada y sin silueta residual)
     const teamCountEl = document.getElementById('team-players-count');
     if (teamCountEl && data.team) {
       teamCountEl.textContent = `${data.team.count ?? data.team.players?.length ?? 6} / ${data.team.max ?? 6} jugadores`;
@@ -212,14 +225,23 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
           const image = document.createElement('img');
           image.src = player.avatarUrl;
           image.alt = name || role;
+          image.className = 'player-slot__img';
+
+          if (icon) {
+            icon.style.display = 'none';
+          }
           avatar.appendChild(image);
+
           image.addEventListener('error', () => {
             image.remove();
-            if (icon) icon.hidden = false;
+            if (icon) {
+              icon.style.display = '';
+              icon.removeAttribute('hidden');
+            }
           }, { once: true });
-          if (icon) icon.hidden = true;
         } else if (icon) {
-          icon.hidden = false;
+          icon.style.display = '';
+          icon.removeAttribute('hidden');
         }
       });
     }
@@ -445,20 +467,23 @@ export async function fetchHomeData() {
         name: p.name || p.nombre,
         role: p.role || p.posicion_base,
         rating: getPlayerRating(p),
-        avatarUrl: p.photo_url || p.avatarUrl || getPlayerPhoto(p)
+        avatarUrl: p.photo_url || p.avatarUrl || (typeof getPlayerPhoto === 'function' ? getPlayerPhoto(p) : null)
       }) : null)
     },
     mvp: topPlayer ? {
-      name: topPlayer.name,
+      name: topPlayer.name || topPlayer.nombre,
       tag: 'MVP',
-      position: (topPlayer.role || 'DEL').toUpperCase(),
+      position: (topPlayer.role || topPlayer.posicion_base || 'DEL').toUpperCase(),
       matches: topStats?.matchesPlayed || 0,
       goals: topStats?.goals || 0,
       score: (topStats?.matchesPlayed > 0 && topStats?.avgRating != null)
         ? Number(topStats.avgRating).toFixed(1)
         : '-',
       maxScore: 10,
-      avatarUrl: topPlayer.photo_url || topPlayer.avatarUrl || null
+      avatarUrl: topPlayer.photo_url 
+        || topPlayer.avatarUrl 
+        || (typeof getPlayerPhoto === 'function' ? getPlayerPhoto(topPlayer) : null)
+        || (topPlayer.image_filename ? `https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/${topPlayer.image_filename}` : null)
     } : DEFAULT_HOME_DATA.mvp,
     streak: {
       ...DEFAULT_HOME_DATA.streak,
@@ -589,13 +614,13 @@ export function setupHomeEventListeners(router) {
     try {
       const raw = localStorage.getItem('fantasy_active_squad');
       if (raw) squad = JSON.parse(raw);
-    } catch (e) {}
+    } catch (e) { }
 
     let stats = {};
     try {
       const raw = localStorage.getItem('fantasy_player_stats');
       if (raw) stats = JSON.parse(raw);
-    } catch (e) {}
+    } catch (e) { }
 
     const rawList = Array.isArray(squad?.players) ? squad.players : DEFAULT_HOME_SQUAD.players;
     const players = [];
