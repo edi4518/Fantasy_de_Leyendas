@@ -6,6 +6,98 @@
  * @exports { openMatchResultModal, closeModal, DEFAULT_MATCH_RESULT_DATA }
  */
 
+const SUPABASE_PLAYERS_BASE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
+
+const MODAL_MVP_IMAGE_ALIASES = {
+  messi: 'lionel_messi.webp',
+  'l. messi': 'lionel_messi.webp',
+  'lionel messi': 'lionel_messi.webp',
+  zidane: 'zinedine_zidane.webp',
+  'z. zidane': 'zinedine_zidane.webp',
+  'zinedine zidane': 'zinedine_zidane.webp',
+  maldini: 'paolo_maldini.webp',
+  'p. maldini': 'paolo_maldini.webp',
+  'paolo maldini': 'paolo_maldini.webp',
+  xavi: 'xavi_hernandez.webp',
+  'xavi hernandez': 'xavi_hernandez.webp',
+  iniesta: 'andres_iniesta.webp',
+  'a. iniesta': 'andres_iniesta.webp',
+  'andres iniesta': 'andres_iniesta.webp',
+  ronaldo: 'ronaldo_nazario.webp',
+  'r. nazario': 'ronaldo_nazario.webp',
+  'ronaldo nazario': 'ronaldo_nazario.webp',
+  'cristiano ronaldo': 'cristiano_ronaldo.webp',
+  'c. ronaldo': 'cristiano_ronaldo.webp',
+  casillas: 'iker_casillas.webp',
+  'i. casillas': 'iker_casillas.webp',
+  'iker casillas': 'iker_casillas.webp',
+  buffon: 'gianluigi_buffon.webp',
+  'g. buffon': 'gianluigi_buffon.webp',
+  'gianluigi buffon': 'gianluigi_buffon.webp',
+  beckenbauer: 'franz_beckenbauer.webp',
+  'f. beckenbauer': 'franz_beckenbauer.webp',
+  'franz beckenbauer': 'franz_beckenbauer.webp',
+  maradona: 'diego_maradona.webp',
+  'd. maradona': 'diego_maradona.webp',
+  'diego maradona': 'diego_maradona.webp',
+  cruyff: 'johan_cruyff.webp',
+  'j. cruyff': 'johan_cruyff.webp',
+  'johan cruyff': 'johan_cruyff.webp',
+  pirlo: 'andrea_pirlo.webp',
+  'a. pirlo': 'andrea_pirlo.webp',
+  'andrea pirlo': 'andrea_pirlo.webp',
+  pele: 'pele.webp',
+  henry: 'thierry_henry.webp',
+  't. henry': 'thierry_henry.webp',
+  'thierry henry': 'thierry_henry.webp',
+  'roberto carlos': 'roberto_carlos.webp',
+  'r. carlos': 'roberto_carlos.webp',
+  kahn: 'oliver_kahn.webp',
+  'o. kahn': 'oliver_kahn.webp',
+  'oliver kahn': 'oliver_kahn.webp',
+  baresi: 'franco_baresi.webp',
+  'f. baresi': 'franco_baresi.webp',
+  'franco baresi': 'franco_baresi.webp',
+  'van basten': 'marco_van_basten.webp',
+  'm. van basten': 'marco_van_basten.webp',
+  'marco van basten': 'marco_van_basten.webp',
+  'g. muller': 'gerd_muller.webp',
+  'gerd muller': 'gerd_muller.webp',
+  'l. matthaus': 'lothar_matthaus.webp',
+  'lothar matthaus': 'lothar_matthaus.webp',
+  'm. platini': 'michel_platini.webp',
+  'michel platini': 'michel_platini.webp',
+  's. gerrard': 'steven_gerrard.webp',
+  'steven gerrard': 'steven_gerrard.webp',
+  'd. bergkamp': 'dennis_bergkamp.webp',
+  'dennis bergkamp': 'dennis_bergkamp.webp',
+  'e. van der sar': 'edwin_van_der_sar.webp',
+  'edwin van der sar': 'edwin_van_der_sar.webp',
+  'a. nesta': 'alessandro_nesta.webp',
+  'alessandro nesta': 'alessandro_nesta.webp'
+};
+
+function resolveModalMvpAvatarUrl(mvp = {}) {
+  const direct = mvp?.avatarUrl || mvp?.photo_url || mvp?.image_filename || '';
+  if (direct) {
+    return direct.startsWith('http') || direct.startsWith('/') ? direct : `${SUPABASE_PLAYERS_BASE_URL}${direct}`;
+  }
+
+  const normalized = String(mvp?.name || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+  if (!normalized) return `${SUPABASE_PLAYERS_BASE_URL}lionel_messi.webp`;
+  if (MODAL_MVP_IMAGE_ALIASES[normalized]) {
+    return `${SUPABASE_PLAYERS_BASE_URL}${MODAL_MVP_IMAGE_ALIASES[normalized]}`;
+  }
+
+  const slug = normalized.replace(/[^a-z0-9\s_]/g, '').replace(/\s+/g, '_');
+  return slug ? `${SUPABASE_PLAYERS_BASE_URL}${slug}.webp` : `${SUPABASE_PLAYERS_BASE_URL}lionel_messi.webp`;
+}
+
 /**
  * Datos por defecto alineados al prototipo visual de la aplicación.
  */
@@ -18,7 +110,7 @@ export const DEFAULT_MATCH_RESULT_DATA = {
   mvp: {
     name: 'L. Messi',
     initials: 'LM',
-    avatarUrl: null,
+    avatarUrl: 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/lionel_messi.webp',
     stats: '2 Goles, 1 Asistencia',
     rating: 9.8
   },
@@ -99,8 +191,8 @@ export function openMatchResultModal(data = DEFAULT_MATCH_RESULT_DATA, options =
             <span class="subcard-micro-label" id="mvp-subcard-title">${data.mvp?.isRival ? 'JUGADOR DEL PARTIDO · RIVAL' : 'JUGADOR DEL PARTIDO'}</span>
             <div class="mvp-subcard__content">
               <div class="mvp-subcard__player">
-                <div class="mvp-avatar-circle ${data.mvp?.isRival ? 'mvp-avatar-circle--rival' : ''}" id="modal-mvp-avatar" aria-label="Iniciales del jugador">
-                  ${data.mvp?.initials || 'LM'}
+                <div class="mvp-avatar-circle ${data.mvp?.isRival ? 'mvp-avatar-circle--rival' : ''}" id="modal-mvp-avatar" aria-label="Imagen del jugador MVP">
+                  <img src="${resolveModalMvpAvatarUrl(data.mvp)}" alt="${data.mvp?.name || 'MVP'}" class="mvp-avatar-circle__img" loading="lazy" />
                 </div>
                 <div class="mvp-info">
                   <div class="mvp-name-row">
@@ -241,10 +333,18 @@ function populateModalData(data = DEFAULT_MATCH_RESULT_DATA) {
     }
 
     if (mvpAvatarEl) {
-      if (data.mvp.avatarUrl) {
-        mvpAvatarEl.innerHTML = `<img src="${data.mvp.avatarUrl}" alt="${data.mvp.name}">`;
+      const resolvedAvatarUrl = resolveModalMvpAvatarUrl(data.mvp);
+      const fallbackInitials = data.mvp.initials || getInitials(data.mvp.name || 'LM');
+      if (resolvedAvatarUrl) {
+        mvpAvatarEl.innerHTML = `<img src="${resolvedAvatarUrl}" alt="${data.mvp.name || 'MVP'}" class="mvp-avatar-circle__img" loading="lazy" />`;
+        const imgEl = mvpAvatarEl.querySelector('img');
+        if (imgEl) {
+          imgEl.addEventListener('error', () => {
+            mvpAvatarEl.textContent = fallbackInitials;
+          }, { once: true });
+        }
       } else {
-        mvpAvatarEl.textContent = data.mvp.initials || getInitials(data.mvp.name || 'LM');
+        mvpAvatarEl.textContent = fallbackInitials;
       }
     }
   }

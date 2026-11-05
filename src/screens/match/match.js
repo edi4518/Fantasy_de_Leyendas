@@ -5,7 +5,7 @@
  * Sincronizado con formaciones reales de usuario, modal de resultados y flujo con "Buscar Rival" (autoplay).
  */
 
-import { openMatchResultModal, getInitials } from '../../components/modal/modal.js?v=6';
+import { openMatchResultModal, getInitials } from '../../components/modal/modal.js?v=7';
 import { simulateMatchEngine, FORMATIONS_6V6 } from '../../domain/simulation-engine.js?v=6';
 import { getRandomCpuTeam } from '../../domain/cpu-teams.js?v=6';
 import { matchService } from '../../services/match-service.js?v=6';
@@ -171,7 +171,7 @@ export function renderMatchDetails(match = DEFAULT_MATCH_DATA) {
   }
 
   renderTimeline(match.events);
-  renderStats(match.stats);
+  renderStats(match.stats, match);
 
   const isFinished = match.status === 'FINAL' || (!match.isLive && match.status && !match.status.includes('EN VIVO') && !match.status.includes('DESCANSO'));
   updateHeaderActionButton(isFinished);
@@ -351,50 +351,474 @@ export function renderTimeline(events = []) {
     .join('');
 }
 
-export function renderStats(stats = {}) {
+let activeStatFilter = 'general';
+
+function setupStatsCategoryFilters() {
+  const filterBar = document.getElementById('stats-filter-pills');
+  if (!filterBar || filterBar.hasAttribute('data-bound')) return;
+
+  filterBar.setAttribute('data-bound', 'true');
+  filterBar.addEventListener('click', (e) => {
+    const pill = e.target.closest('.stats-filter-pill');
+    if (!pill) return;
+
+    const filter = pill.getAttribute('data-stat-filter') || 'general';
+    activeStatFilter = filter;
+
+    filterBar.querySelectorAll('.stats-filter-pill').forEach((btn) => {
+      btn.classList.toggle('is-active', btn === pill);
+    });
+
+    applyStatsCategoryFilter(filter);
+  });
+}
+
+function applyStatsCategoryFilter(filter = activeStatFilter) {
+  const groups = document.querySelectorAll('#match-stats-list .stats-section-group');
+  groups.forEach((group) => {
+    const cat = group.getAttribute('data-stat-group');
+    if (filter === 'general' || cat === filter) {
+      group.removeAttribute('hidden');
+    } else {
+      group.setAttribute('hidden', '');
+    }
+  });
+}
+
+function setElementText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = String(text);
+}
+
+function setElementHtml(id, html) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+
+function setBarWidth(id, percent) {
+  const el = document.getElementById(id);
+  if (el) {
+    const clamped = Math.max(0, Math.min(100, Number(percent) || 50));
+    el.style.width = `${clamped}%`;
+  }
+}
+
+export function renderStats(stats = {}, match = DEFAULT_MATCH_DATA) {
   const container = document.getElementById('match-stats-list');
   if (!container || !stats) return;
 
-  const entries = [
-    {
-      key: 'possession',
-      label: 'Posesión',
-      homeText: `${stats.possession?.home || 50}%`,
-      awayText: `${stats.possession?.away || 50}%`,
-      homePercent: stats.possession?.home || 50
-    },
-    {
-      key: 'shots',
-      label: 'Tiros a Puerta',
-      homeText: `${stats.shots?.home ?? 0}`,
-      awayText: `${stats.shots?.away ?? 0}`,
-      homePercent: calculatePercentage(stats.shots?.home || 0, stats.shots?.away || 0)
-    },
-    {
-      key: 'fouls',
-      label: 'Faltas',
-      homeText: `${stats.fouls?.home ?? 0}`,
-      awayText: `${stats.fouls?.away ?? 0}`,
-      homePercent: calculatePercentage(stats.fouls?.home || 0, stats.fouls?.away || 0)
-    }
-  ];
+  setupStatsCategoryFilters();
+  applyStatsCategoryFilter(activeStatFilter);
 
-  container.innerHTML = entries
-    .map(
-      (item) => `
-      <div class="stat-row">
-        <div class="stat-row__header">
-          <span class="stat-value stat-value--home">${item.homeText}</span>
-          <span class="stat-label">${item.label}</span>
-          <span class="stat-value stat-value--away">${item.awayText}</span>
-        </div>
-        <div class="comparative-bar-track">
-          <div class="comparative-bar-fill--home" style="width: ${item.homePercent}%;"></div>
-        </div>
-      </div>
-    `
-    )
-    .join('');
+  const events = Array.isArray(match?.events) ? match.events : [];
+  const homeScore = Number(match?.homeTeam?.score ?? 0);
+  const awayScore = Number(match?.awayTeam?.score ?? 0);
+  const homeTeamName = match?.homeTeam?.name || 'Tu Equipo';
+  const awayTeamName = match?.awayTeam?.name || 'Rival';
+
+  // Determinar minuto efectivo del partido (1..90) para escalar métricas acumulativas
+  let elapsedMinute = 90;
+  const statusStr = String(match?.status || 'FINAL');
+  if (statusStr === 'DESCANSO') {
+    elapsedMinute = 45;
+  } else if (match?.isLive || statusStr.includes('EN VIVO')) {
+    const parsedMin = parseInt(statusStr.replace(/[^\d]/g, ''), 10);
+    const maxEventMin = events.reduce((max, ev) => Math.max(max, Number(ev.minute) || 0), 0);
+    elapsedMinute = Math.max(1, parsedMin || currentSimulatedMinute || maxEventMin || 1);
+  }
+  const progress = Math.max(0, Math.min(1, elapsedMinute <= 1 && match?.isLive ? 0.02 : elapsedMinute / 90));
+
+  // Contabilizar eventos reales de la cronología
+  let homeYellows = 0;
+  let awayYellows = 0;
+  let homeReds = 0;
+  let awayReds = 0;
+  let homeCornerEvents = 0;
+  let awayCornerEvents = 0;
+  let homeSaveEvents = 0;
+  let awaySaveEvents = 0;
+  let homeFreekicks = 0;
+  let awayFreekicks = 0;
+
+  events.forEach((ev) => {
+    if (!ev || ev.isPeriodBreak) return;
+    const isHome = ev.side === 'home';
+    if (ev.type === 'yellow-card') {
+      if (isHome) homeYellows++; else awayYellows++;
+    } else if (ev.type === 'red-card') {
+      if (isHome) homeReds++; else awayReds++;
+    } else if (ev.type === 'corner') {
+      if (isHome) homeCornerEvents++; else awayCornerEvents++;
+    } else if (ev.type === 'save') {
+      if (isHome) homeSaveEvents++; else awaySaveEvents++;
+    } else if (ev.type === 'freekick') {
+      if (isHome) homeFreekicks++; else awayFreekicks++;
+    }
+  });
+
+  // 1. Posesión
+  const possHome = Number(stats.possession?.home ?? 50);
+  const possAway = Number(stats.possession?.away ?? (100 - possHome));
+
+  // 2. Tiros a puerta y desglose de tiros totales
+  const rawShotsHome = Number(stats.shots?.home ?? 0);
+  const rawShotsAway = Number(stats.shots?.away ?? 0);
+  const shotsTargetHome = Math.max(homeScore, rawShotsHome);
+  const shotsTargetAway = Math.max(awayScore, rawShotsAway);
+
+  const shotsOffHome = elapsedMinute <= 1 && match?.isLive && shotsTargetHome === 0
+    ? 0
+    : Math.max(0, Math.round(shotsTargetHome * 0.65 + homeCornerEvents * 0.5 + progress * 1.5));
+  const shotsOffAway = elapsedMinute <= 1 && match?.isLive && shotsTargetAway === 0
+    ? 0
+    : Math.max(0, Math.round(shotsTargetAway * 0.65 + awayCornerEvents * 0.5 + progress * 1.2));
+
+  const shotsBlockedHome = elapsedMinute <= 1 && match?.isLive && shotsTargetHome === 0
+    ? 0
+    : Math.max(0, Math.round(shotsTargetHome * 0.28 + homeFreekicks * 0.5));
+  const shotsBlockedAway = elapsedMinute <= 1 && match?.isLive && shotsTargetAway === 0
+    ? 0
+    : Math.max(0, Math.round(shotsTargetAway * 0.28 + awayFreekicks * 0.5));
+
+  const totalShotsHome = shotsTargetHome + shotsOffHome + shotsBlockedHome;
+  const totalShotsAway = shotsTargetAway + shotsOffAway + shotsBlockedAway;
+
+  // 3. Goles Esperados (xG) y Ocasiones Claras
+  const xgHomeVal = elapsedMinute <= 1 && match?.isLive && totalShotsHome === 0
+    ? 0
+    : (homeScore * 0.44 + shotsTargetHome * 0.15 + shotsOffHome * 0.05 + shotsBlockedHome * 0.03);
+  const xgAwayVal = elapsedMinute <= 1 && match?.isLive && totalShotsAway === 0
+    ? 0
+    : (awayScore * 0.44 + shotsTargetAway * 0.15 + shotsOffAway * 0.05 + shotsBlockedAway * 0.03);
+
+  const bigChancesHome = Math.max(homeScore, Math.round(homeScore + (shotsTargetHome - homeScore) * 0.4));
+  const bigChancesAway = Math.max(awayScore, Math.round(awayScore + (shotsTargetAway - awayScore) * 0.4));
+
+  // 4. Córners
+  const cornersHome = Math.max(homeCornerEvents, Math.round(homeCornerEvents + shotsOffHome * 0.5 + shotsBlockedHome * 0.5));
+  const cornersAway = Math.max(awayCornerEvents, Math.round(awayCornerEvents + shotsOffAway * 0.5 + shotsBlockedAway * 0.5));
+
+  // 5. Pases y Precisión
+  const baseTotalPasses = Math.round(840 * progress);
+  const passesHome = Math.max(0, Math.round(baseTotalPasses * (possHome / 100)));
+  const passesAway = Math.max(0, Math.round(baseTotalPasses * (possAway / 100)));
+
+  const passAccPctHome = Math.min(93, Math.max(76, Math.round(80 + (possHome - 50) * 0.35 + (homeScore > awayScore ? 2 : 0))));
+  const passAccPctAway = Math.min(92, Math.max(74, Math.round(80 + (possAway - 50) * 0.35 + (awayScore > homeScore ? 2 : 0))));
+  const completedPassesHome = Math.round(passesHome * (passAccPctHome / 100));
+  const completedPassesAway = Math.round(passesAway * (passAccPctAway / 100));
+
+  const finalThirdPctHome = Math.min(78, Math.max(42, Math.round(52 + (possHome - 50) * 0.45 + shotsTargetHome * 1.4)));
+  const finalThirdPctAway = Math.min(76, Math.max(38, Math.round(50 + (possAway - 50) * 0.45 + shotsTargetAway * 1.4)));
+
+  // 6. Defensa e Intensidad
+  const duelsHomePct = Math.min(68, Math.max(35, Math.round(50 + (possHome - 50) * 0.3 + (homeScore - awayScore) * 3)));
+  const duelsAwayPct = 100 - duelsHomePct;
+
+  const recoveriesHome = Math.max(0, Math.round((42 + (possHome >= 50 ? 4 : -2)) * progress));
+  const recoveriesAway = Math.max(0, Math.round((39 + (possAway > 50 ? 4 : -2)) * progress));
+
+  const savesHome = Math.max(homeSaveEvents, Math.max(0, shotsTargetAway - awayScore));
+  const savesAway = Math.max(awaySaveEvents, Math.max(0, shotsTargetHome - homeScore));
+
+  // 7. Disciplina
+  const foulsHome = Number(stats.fouls?.home ?? 0);
+  const foulsAway = Number(stats.fouls?.away ?? 0);
+  const offsidesHome = Math.max(0, Math.round((1 + shotsTargetHome * 0.22) * progress));
+  const offsidesAway = Math.max(0, Math.round((1 + shotsTargetAway * 0.25) * progress));
+
+  // 8. Actualizar Jugador del Partido (MVP en Vivo)
+  updateLiveStatsMvpCard(match, events, homeScore, awayScore, savesHome, savesAway, elapsedMinute);
+
+  // 9. Actualizar DOM de todas las métricas y barras
+  setElementText('stats-header-home-name', homeTeamName);
+  setElementText('stats-header-away-name', awayTeamName.length > 12 ? 'Rival' : awayTeamName);
+
+  // Ataque y Ocasiones
+  setElementText('stat-xg-home', xgHomeVal.toFixed(2));
+  setElementText('stat-xg-away', xgAwayVal.toFixed(2));
+  setBarWidth('bar-xg-home', calculatePercentage(xgHomeVal, xgAwayVal));
+
+  setElementText('stat-total-shots-home', totalShotsHome);
+  setElementText('stat-total-shots-away', totalShotsAway);
+  setBarWidth('bar-total-shots-home', calculatePercentage(totalShotsHome, totalShotsAway));
+  setElementText('stat-shots-breakdown-home', `${shotsTargetHome} a puerta • ${shotsOffHome} fuera • ${shotsBlockedHome} bloq.`);
+  setElementText('stat-shots-breakdown-away', `${shotsTargetAway} a puerta • ${shotsOffAway} fuera • ${shotsBlockedAway} bloq.`);
+
+  setElementText('stat-shots-target-home', shotsTargetHome);
+  setElementText('stat-shots-target-away', shotsTargetAway);
+  setBarWidth('bar-shots-target-home', calculatePercentage(shotsTargetHome, shotsTargetAway));
+
+  setElementText('stat-big-chances-home', bigChancesHome);
+  setElementText('stat-big-chances-away', bigChancesAway);
+  setBarWidth('bar-big-chances-home', calculatePercentage(bigChancesHome, bigChancesAway));
+
+  setElementText('stat-corners-home', cornersHome);
+  setElementText('stat-corners-away', cornersAway);
+  setBarWidth('bar-corners-home', calculatePercentage(cornersHome, cornersAway));
+
+  // Posesión y Pases
+  setElementText('stat-possession-home', `${possHome}%`);
+  setElementText('stat-possession-away', `${possAway}%`);
+  setBarWidth('bar-possession-home', possHome);
+
+  setElementText('stat-passes-home', passesHome);
+  setElementText('stat-passes-away', passesAway);
+  setBarWidth('bar-passes-home', calculatePercentage(passesHome, passesAway));
+
+  setElementHtml('stat-pass-acc-home', `${passAccPctHome}% <span class="stat-value__sub">(${completedPassesHome})</span>`);
+  setElementHtml('stat-pass-acc-away', `<span class="stat-value__sub">(${completedPassesAway})</span> ${passAccPctAway}%`);
+  setBarWidth('bar-pass-acc-home', calculatePercentage(passAccPctHome, passAccPctAway));
+
+  setElementText('stat-final-third-home', `${finalThirdPctHome}%`);
+  setElementText('stat-final-third-away', `${finalThirdPctAway}%`);
+  setBarWidth('bar-final-third-home', calculatePercentage(finalThirdPctHome, finalThirdPctAway));
+
+  // Defensa e Intensidad
+  setElementText('stat-duels-home', `${duelsHomePct}%`);
+  setElementText('stat-duels-away', `${duelsAwayPct}%`);
+  setBarWidth('bar-duels-home', duelsHomePct);
+
+  setElementText('stat-recoveries-home', recoveriesHome);
+  setElementText('stat-recoveries-away', recoveriesAway);
+  setBarWidth('bar-recoveries-home', calculatePercentage(recoveriesHome, recoveriesAway));
+
+  setElementText('stat-saves-home', savesHome);
+  setElementText('stat-saves-away', savesAway);
+  setBarWidth('bar-saves-home', calculatePercentage(savesHome, savesAway));
+
+  // Disciplina
+  setElementText('stat-fouls-home', foulsHome);
+  setElementText('stat-fouls-away', foulsAway);
+  setBarWidth('bar-fouls-home', calculatePercentage(foulsHome, foulsAway));
+
+  setElementText('stat-yellow-home', homeYellows);
+  setElementText('stat-red-home', homeReds);
+  setElementText('stat-yellow-away', awayYellows);
+  setElementText('stat-red-away', awayReds);
+
+  setElementText('stat-offsides-home', offsidesHome);
+  setElementText('stat-offsides-away', offsidesAway);
+  setBarWidth('bar-offsides-home', calculatePercentage(offsidesHome, offsidesAway));
+}
+
+const SUPABASE_PLAYERS_BASE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
+
+const MVP_PLAYER_IMAGE_ALIASES = {
+  messi: 'lionel_messi.webp',
+  'l. messi': 'lionel_messi.webp',
+  'lionel messi': 'lionel_messi.webp',
+  zidane: 'zinedine_zidane.webp',
+  'z. zidane': 'zinedine_zidane.webp',
+  'zinedine zidane': 'zinedine_zidane.webp',
+  maldini: 'paolo_maldini.webp',
+  'p. maldini': 'paolo_maldini.webp',
+  'paolo maldini': 'paolo_maldini.webp',
+  xavi: 'xavi_hernandez.webp',
+  'xavi hernandez': 'xavi_hernandez.webp',
+  iniesta: 'andres_iniesta.webp',
+  'a. iniesta': 'andres_iniesta.webp',
+  'andres iniesta': 'andres_iniesta.webp',
+  ronaldo: 'ronaldo_nazario.webp',
+  'r. nazario': 'ronaldo_nazario.webp',
+  'ronaldo nazario': 'ronaldo_nazario.webp',
+  'cristiano ronaldo': 'cristiano_ronaldo.webp',
+  'c. ronaldo': 'cristiano_ronaldo.webp',
+  casillas: 'iker_casillas.webp',
+  'i. casillas': 'iker_casillas.webp',
+  'iker casillas': 'iker_casillas.webp',
+  buffon: 'gianluigi_buffon.webp',
+  'g. buffon': 'gianluigi_buffon.webp',
+  'gianluigi buffon': 'gianluigi_buffon.webp',
+  beckenbauer: 'franz_beckenbauer.webp',
+  'f. beckenbauer': 'franz_beckenbauer.webp',
+  'franz beckenbauer': 'franz_beckenbauer.webp',
+  maradona: 'diego_maradona.webp',
+  'd. maradona': 'diego_maradona.webp',
+  'diego maradona': 'diego_maradona.webp',
+  cruyff: 'johan_cruyff.webp',
+  'j. cruyff': 'johan_cruyff.webp',
+  'johan cruyff': 'johan_cruyff.webp',
+  pirlo: 'andrea_pirlo.webp',
+  'a. pirlo': 'andrea_pirlo.webp',
+  'andrea pirlo': 'andrea_pirlo.webp',
+  pele: 'pele.webp',
+  henry: 'thierry_henry.webp',
+  't. henry': 'thierry_henry.webp',
+  'thierry henry': 'thierry_henry.webp',
+  'roberto carlos': 'roberto_carlos.webp',
+  'r. carlos': 'roberto_carlos.webp',
+  kahn: 'oliver_kahn.webp',
+  'o. kahn': 'oliver_kahn.webp',
+  'oliver kahn': 'oliver_kahn.webp',
+  baresi: 'franco_baresi.webp',
+  'f. baresi': 'franco_baresi.webp',
+  'franco baresi': 'franco_baresi.webp',
+  'van basten': 'marco_van_basten.webp',
+  'm. van basten': 'marco_van_basten.webp',
+  'marco van basten': 'marco_van_basten.webp',
+  'g. muller': 'gerd_muller.webp',
+  'gerd muller': 'gerd_muller.webp',
+  'l. matthaus': 'lothar_matthaus.webp',
+  'lothar matthaus': 'lothar_matthaus.webp',
+  'm. platini': 'michel_platini.webp',
+  'michel platini': 'michel_platini.webp',
+  's. gerrard': 'steven_gerrard.webp',
+  'steven gerrard': 'steven_gerrard.webp',
+  'd. bergkamp': 'dennis_bergkamp.webp',
+  'dennis bergkamp': 'dennis_bergkamp.webp',
+  'e. van der sar': 'edwin_van_der_sar.webp',
+  'edwin van der sar': 'edwin_van_der_sar.webp',
+  'a. nesta': 'alessandro_nesta.webp',
+  'alessandro nesta': 'alessandro_nesta.webp',
+};
+
+function resolveMvpPlayerPhotoUrl(playerObj, playerName = '') {
+  const direct = playerObj?.photo_url || playerObj?.avatarUrl || playerObj?.image_filename || '';
+  if (direct) {
+    return direct.startsWith('http') || direct.startsWith('/') ? direct : `${SUPABASE_PLAYERS_BASE_URL}${direct}`;
+  }
+
+  const normalizedName = String(playerName || playerObj?.name || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+  // Buscar coincidencia en el plantel del usuario por si tiene photo_url o image_filename
+  const userPlayers = getUserSquad()?.players || [];
+  const squadMatch = userPlayers.find((p) => {
+    const pNorm = String(p?.name || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+    return pNorm && (pNorm === normalizedName || pNorm.includes(normalizedName) || normalizedName.includes(pNorm));
+  });
+  const squadImg = squadMatch?.photo_url || squadMatch?.avatarUrl || squadMatch?.image_filename || '';
+  if (squadImg) {
+    return squadImg.startsWith('http') || squadImg.startsWith('/') ? squadImg : `${SUPABASE_PLAYERS_BASE_URL}${squadImg}`;
+  }
+
+  if (MVP_PLAYER_IMAGE_ALIASES[normalizedName]) {
+    return `${SUPABASE_PLAYERS_BASE_URL}${MVP_PLAYER_IMAGE_ALIASES[normalizedName]}`;
+  }
+
+  const slug = normalizedName
+    .replace(/[^a-z0-9\s_]/g, '')
+    .replace(/\s+/g, '_');
+
+  return slug ? `${SUPABASE_PLAYERS_BASE_URL}${slug}.webp` : `${SUPABASE_PLAYERS_BASE_URL}lionel_messi.webp`;
+}
+
+function updateLiveStatsMvpCard(match, events, homeScore, awayScore, savesHome, savesAway, elapsedMinute) {
+  const homeStarters = match?.lineups?.home || match?.lineups?.homeStarters || DEFAULT_MATCH_DATA.lineups.home;
+  const awayStarters = match?.lineups?.away || match?.lineups?.awayStarters || DEFAULT_MATCH_DATA.lineups.away;
+  const homeBench = match?.lineups?.homeBench || [];
+  const awayBench = match?.lineups?.awayBench || [];
+
+  // Contar goles y acciones destacadas por jugador en lo que va de partido
+  const scorerMap = {};
+  events.forEach((ev) => {
+    if (!ev || ev.isPeriodBreak || !ev.player) return;
+    if (ev.type === 'goal' || ev.type === 'penalty-goal') {
+      if (!scorerMap[ev.player]) {
+        scorerMap[ev.player] = { goals: 0, side: ev.side };
+      }
+      scorerMap[ev.player].goals += 1;
+    }
+  });
+
+  let mvpName = '';
+  let mvpGoals = 0;
+  let mvpSide = homeScore >= awayScore ? 'home' : 'away';
+
+  Object.entries(scorerMap).forEach(([player, info]) => {
+    // Priorizar goleador del equipo que va ganando o el máximo goleador del encuentro
+    const bonus = (info.side === 'home' && homeScore >= awayScore) || (info.side === 'away' && awayScore > homeScore) ? 0.25 : 0;
+    if (info.goals + bonus > mvpGoals) {
+      mvpGoals = info.goals;
+      mvpName = player;
+      mvpSide = info.side;
+    }
+  });
+
+  let mvpPlayerObj = null;
+  let mvpRole = 'DEL';
+  const sidePool = mvpSide === 'home' ? [...homeStarters, ...homeBench] : [...awayStarters, ...awayBench];
+  const allPlayers = [...homeStarters, ...homeBench, ...awayStarters, ...awayBench];
+
+  if (!mvpName) {
+    const star = sidePool.find((p) => p.role === 'DEL' || p.role === 'MC') || sidePool[0] || { name: 'L. Messi', role: 'DEL' };
+    mvpPlayerObj = star;
+    mvpName = star.name;
+    mvpRole = star.role || 'DEL';
+  } else {
+    const found =
+      sidePool.find((p) => p.name === mvpName || mvpName.includes(p.name) || p.name?.includes(mvpName)) ||
+      allPlayers.find((p) => p.name === mvpName || mvpName.includes(p.name) || p.name?.includes(mvpName));
+    if (found) {
+      mvpPlayerObj = found;
+      if (found.role) mvpRole = found.role;
+    }
+  }
+
+  const dribblesOrPasses = Math.max(1, Math.round((elapsedMinute / 90) * 4));
+  let mvpSummary = '';
+  if (mvpGoals > 0) {
+    mvpSummary = `${mvpGoals} ${mvpGoals > 1 ? 'Goles' : 'Gol'} • ${dribblesOrPasses} Regates exitosos`;
+  } else if (mvpRole === 'POR') {
+    const gkSaves = mvpSide === 'home' ? savesHome : savesAway;
+    mvpSummary = `${Math.max(1, gkSaves)} Atajadas • Portería segura`;
+  } else {
+    mvpSummary = `${dribblesOrPasses} Pases clave • ${Math.max(1, dribblesOrPasses - 1)} Regates exitosos`;
+  }
+
+  const rawRating = Math.min(9.8, 7.3 + mvpGoals * 0.85 + (elapsedMinute / 90) * 0.6);
+  const mvpRating = rawRating.toFixed(1);
+
+  const isHomeMvp = mvpSide !== 'away';
+  const homeTeamName = match?.homeTeam?.name || 'Tu Equipo';
+  const awayTeamName = match?.awayTeam?.name || 'Equipo Rival';
+  const mvpTeamLabel = isHomeMvp ? homeTeamName : awayTeamName;
+
+  // Diferenciar visualmente la tarjeta según el equipo del MVP (Local vs Rival)
+  const mvpCardEl = document.getElementById('stats-mvp-card');
+  if (mvpCardEl) {
+    mvpCardEl.classList.toggle('stats-mvp-card--home', isHomeMvp);
+    mvpCardEl.classList.toggle('stats-mvp-card--away', !isHomeMvp);
+  }
+
+  setElementText(
+    'stats-mvp-overline',
+    isHomeMvp ? 'Jugador del Partido' : 'Jugador del Partido · Rival'
+  );
+
+  const teamBadgeEl = document.getElementById('stats-mvp-team-badge');
+  if (teamBadgeEl) {
+    teamBadgeEl.textContent = mvpTeamLabel;
+    teamBadgeEl.className = `stats-mvp-team-badge ${isHomeMvp ? 'stats-mvp-team-badge--home' : 'stats-mvp-team-badge--away'}`;
+  }
+
+  // Renderizar la foto del jugador MVP dentro de #stats-mvp-avatar con fallback a iniciales
+  const avatarEl = document.getElementById('stats-mvp-avatar');
+  if (avatarEl) {
+    const photoUrl = resolveMvpPlayerPhotoUrl(mvpPlayerObj, mvpName);
+    const initials = safeGetInitials(mvpName);
+    avatarEl.innerHTML = `<img src="${photoUrl}" alt="${mvpName}" class="stats-mvp-avatar__img" loading="lazy" />`;
+    const imgEl = avatarEl.querySelector('img');
+    if (imgEl) {
+      imgEl.addEventListener('error', () => {
+        avatarEl.textContent = initials;
+      }, { once: true });
+    }
+  }
+
+  const isLive = Boolean(match?.isLive || String(match?.status || '').includes('EN VIVO') || match?.status === 'DESCANSO');
+  setElementText('stats-mvp-badge', isLive ? 'En Vivo' : 'Final');
+  setElementText('stats-mvp-name', mvpName);
+  setElementText('stats-mvp-summary', mvpSummary);
+  setElementText('stats-mvp-rating', mvpRating);
 }
 
 function calculatePercentage(valA, valB) {
@@ -1054,6 +1478,17 @@ function showMatchResultModal(match) {
   const mvpRating = matchMvp?.matchRating || (isWin ? 9.2 : (isLoss ? 9.0 : 8.0));
   const mvpTeamName = matchMvp?.teamName || (isRivalMvp ? awayTeamName : homeTeamName);
 
+  const homePool = [...(match.lineups?.home || match.lineups?.homeStarters || []), ...(match.lineups?.homeBench || [])];
+  const awayPool = [...(match.lineups?.away || match.lineups?.awayStarters || []), ...(match.lineups?.awayBench || [])];
+  const primaryPool = isRivalMvp ? awayPool : homePool;
+  const allPool = [...primaryPool, ...homePool, ...awayPool];
+  const mvpPlayerObj =
+    primaryPool.find((p) => p?.name && (p.name === mvpName || mvpName.includes(p.name) || p.name.includes(mvpName))) ||
+    allPool.find((p) => p?.name && (p.name === mvpName || mvpName.includes(p.name) || p.name.includes(mvpName))) ||
+    matchMvp ||
+    null;
+  const mvpAvatarUrl = resolveMvpPlayerPhotoUrl(mvpPlayerObj, mvpName);
+
   let mvpStats = 'Rendimiento destacado';
   if (isRivalMvp) {
     if (matchMvp?.matchGoals > 0) {
@@ -1104,6 +1539,7 @@ function showMatchResultModal(match) {
         name: mvpName,
         teamName: mvpTeamName,
         initials: safeGetInitials(mvpName),
+        avatarUrl: mvpAvatarUrl,
         stats: mvpStats,
         rating: mvpRating,
         isRival: isRivalMvp
@@ -1144,6 +1580,7 @@ function showMatchResultModal(match) {
         name: isLoss ? (match?.awayTeam?.name || 'Rival') : 'Messi',
         teamName: isLoss ? (match?.awayTeam?.name || 'Rival') : 'Tu Equipo',
         initials: isLoss ? 'RV' : 'ME',
+        avatarUrl: resolveMvpPlayerPhotoUrl(null, isLoss ? 'Pelé' : 'Messi'),
         stats: 'Figura del partido',
         rating: 9.0,
         isRival: isLoss
@@ -1166,6 +1603,100 @@ function showMatchResultModal(match) {
       }
     });
   }
+}
+
+export function formatHistoryMatchToDetail(item = {}) {
+  const homeName =
+    (typeof item.homeTeam === 'object' ? item.homeTeam?.name : item.homeTeam) ||
+    item.home_team_name ||
+    'Tu Equipo';
+  const awayName =
+    (typeof item.awayTeam === 'object' ? item.awayTeam?.name : item.awayTeam) ||
+    item.opponent ||
+    item.rival ||
+    item.away_team_name ||
+    'Equipo Rival';
+
+  const homeScore =
+    item.homeScore ??
+    item.home_score ??
+    (typeof item.homeTeam === 'object' ? item.homeTeam?.score : undefined) ??
+    0;
+  const awayScore =
+    item.awayScore ??
+    item.away_score ??
+    (typeof item.awayTeam === 'object' ? item.awayTeam?.score : undefined) ??
+    0;
+
+  let points = item.points ?? item.points_obtained ?? item.puntos;
+  let resultType = item.resultType;
+  if (!resultType) {
+    if (homeScore > awayScore) resultType = 'win';
+    else if (homeScore < awayScore) resultType = 'loss';
+    else resultType = 'draw';
+  }
+  if (points === undefined || points === null) {
+    points = resultType === 'win' ? 25 : resultType === 'draw' ? 5 : -15;
+  }
+
+  let events = Array.isArray(item.events) && item.events.length > 0 ? item.events : [];
+  if (events.length === 0) {
+    const generated = [];
+    const homePlayers = ['Z. Zidane', 'L. Messi', 'P. Maldini', 'Xavi', 'Ronaldo'];
+    const awayPlayers = ['R. Nazário', 'Pelé', 'M. Platini', 'L. Figo', 'R. Carlos'];
+    for (let i = 0; i < homeScore; i++) {
+      generated.push({
+        minute: Math.min(88, 14 + i * 28),
+        side: 'home',
+        type: 'goal',
+        player: homePlayers[i % homePlayers.length],
+        detail: '(Gol)'
+      });
+    }
+    for (let j = 0; j < awayScore; j++) {
+      generated.push({
+        minute: Math.min(89, 24 + j * 25),
+        side: 'away',
+        type: 'goal',
+        player: awayPlayers[j % awayPlayers.length],
+        detail: '(Gol)'
+      });
+    }
+    generated.push({
+      minute: 44,
+      side: 'home',
+      type: 'yellow-card',
+      player: 'P. Maldini',
+      detail: '(Tarjeta Amarilla)'
+    });
+    events = generated.sort((a, b) => b.minute - a.minute);
+  }
+
+  return {
+    id: item.id || 1,
+    status: 'FINAL',
+    isLive: false,
+    points,
+    resultType,
+    relativeDate: item.relativeDate || item.fecha || 'Reciente',
+    homeTeam: {
+      name: homeName,
+      score: homeScore,
+      formation: (typeof item.homeTeam === 'object' && item.homeTeam?.formation) || '1-2-2-1'
+    },
+    awayTeam: {
+      name: awayName,
+      score: awayScore,
+      formation: (typeof item.awayTeam === 'object' && item.awayTeam?.formation) || '1-1-3-1'
+    },
+    liveAction: {
+      team: homeScore >= awayScore ? homeName : awayName,
+      status: 'FINAL DEL PARTIDO'
+    },
+    events,
+    stats: item.stats && Object.keys(item.stats).length > 0 ? item.stats : DEFAULT_MATCH_DATA.stats,
+    lineups: item.lineups && Object.keys(item.lineups).length > 0 ? item.lineups : DEFAULT_MATCH_DATA.lineups
+  };
 }
 
 export async function fetchMatchDetail(matchId) {
@@ -1208,7 +1739,9 @@ export async function initMatchDetailView() {
   const appNav = document.getElementById('app-navigation');
   if (appNav) appNav.style.display = 'none';
 
+  activeStatFilter = 'general';
   setupMatchTabs();
+  setupStatsCategoryFilters();
 
   // Validar requisitos reglamentarios de plantilla completa (6 titulares y 4 suplentes)
   const userSquad = getUserSquad();

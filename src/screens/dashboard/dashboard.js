@@ -2,6 +2,85 @@ const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/
 import { FORMATIONS_6V6 } from '../../domain/formation-rules.js';
 import { apiClient } from '../../services/api-client.js';
 import { getPlayerRating, getPlayerPrice } from '../lineup/lineup.js';
+
+const DASHBOARD_PLAYER_IMAGE_ALIASES = {
+  messi: 'lionel_messi.webp',
+  'l. messi': 'lionel_messi.webp',
+  'lionel messi': 'lionel_messi.webp',
+  zidane: 'zinedine_zidane.webp',
+  'z. zidane': 'zinedine_zidane.webp',
+  'zinedine zidane': 'zinedine_zidane.webp',
+  maldini: 'paolo_maldini.webp',
+  'p. maldini': 'paolo_maldini.webp',
+  'paolo maldini': 'paolo_maldini.webp',
+  xavi: 'xavi_hernandez.webp',
+  'xavi hernandez': 'xavi_hernandez.webp',
+  iniesta: 'andres_iniesta.webp',
+  'a. iniesta': 'andres_iniesta.webp',
+  'andres iniesta': 'andres_iniesta.webp',
+  ronaldo: 'ronaldo_nazario.webp',
+  'r. nazario': 'ronaldo_nazario.webp',
+  'ronaldo nazario': 'ronaldo_nazario.webp',
+  'cristiano ronaldo': 'cristiano_ronaldo.webp',
+  'c. ronaldo': 'cristiano_ronaldo.webp',
+  casillas: 'iker_casillas.webp',
+  'i. casillas': 'iker_casillas.webp',
+  'iker casillas': 'iker_casillas.webp',
+  buffon: 'gianluigi_buffon.webp',
+  'g. buffon': 'gianluigi_buffon.webp',
+  'gianluigi buffon': 'gianluigi_buffon.webp',
+  beckenbauer: 'franz_beckenbauer.webp',
+  'f. beckenbauer': 'franz_beckenbauer.webp',
+  'franz beckenbauer': 'franz_beckenbauer.webp',
+  maradona: 'diego_maradona.webp',
+  'd. maradona': 'diego_maradona.webp',
+  'diego maradona': 'diego_maradona.webp',
+  cruyff: 'johan_cruyff.webp',
+  'j. cruyff': 'johan_cruyff.webp',
+  'johan cruyff': 'johan_cruyff.webp',
+  pirlo: 'andrea_pirlo.webp',
+  'a. pirlo': 'andrea_pirlo.webp',
+  'andrea pirlo': 'andrea_pirlo.webp',
+  pele: 'pele.webp',
+  henry: 'thierry_henry.webp',
+  't. henry': 'thierry_henry.webp',
+  'thierry henry': 'thierry_henry.webp',
+  'roberto carlos': 'roberto_carlos.webp',
+  'r. carlos': 'roberto_carlos.webp',
+  kahn: 'oliver_kahn.webp',
+  'o. kahn': 'oliver_kahn.webp',
+  'oliver kahn': 'oliver_kahn.webp',
+  baresi: 'franco_baresi.webp',
+  'f. baresi': 'franco_baresi.webp',
+  'franco baresi': 'franco_baresi.webp',
+  puyol: 'carles_puyol.webp',
+  'c. puyol': 'carles_puyol.webp',
+  'carles puyol': 'carles_puyol.webp'
+};
+
+function resolveDashboardPlayerAvatarUrl(player) {
+  if (!player) return null;
+  const rawImg = player.image_filename || player.photo_url || player.avatarUrl || '';
+  if (rawImg) {
+    return rawImg.startsWith('http://') || rawImg.startsWith('https://') || rawImg.startsWith('/')
+      ? rawImg
+      : `${STORAGE_URL}${rawImg}`;
+  }
+
+  const normalized = String(player.name || player.nombre || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+  if (!normalized) return null;
+  if (DASHBOARD_PLAYER_IMAGE_ALIASES[normalized]) {
+    return `${STORAGE_URL}${DASHBOARD_PLAYER_IMAGE_ALIASES[normalized]}`;
+  }
+
+  const slug = normalized.replace(/[^a-z0-9\s_]/g, '').replace(/\s+/g, '_');
+  return slug ? `${STORAGE_URL}${slug}.webp` : null;
+}
 /**
  * @file dashboard.js
  * @description Módulo controlador para la vista principal (Dashboard / Inicio) de Fantasy de Leyendas.
@@ -840,16 +919,17 @@ export function setupHomeEventListeners(router) {
         : '-';
       const isStarter = idx < 6;
       const tokenClass = `player-stat-card__token--${role.toLowerCase()}`;
+      const avatarUrl = resolveDashboardPlayerAvatarUrl(p);
 
       return `
         <div class="player-stat-card">
           <div class="player-stat-card__left">
-            <div class="player-stat-card__token ${tokenClass}">
-              ${role}
+            <div class="player-stat-card__token ${tokenClass}" data-fallback-role="${role}">
+              ${avatarUrl ? `<img src="${avatarUrl}" alt="${pName}" class="player-stat-card__img" loading="lazy" />` : role}
             </div>
             <div class="player-stat-card__info">
               <span class="player-stat-card__name">${pName}</span>
-              <span class="player-stat-card__tag">${isStarter ? 'Titular' : 'Suplente'} • Rating Base ${getPlayerRating(p)}</span>
+              <span class="player-stat-card__tag">${isStarter ? 'Titular' : 'Suplente'} • ${role} • Rating Base ${getPlayerRating(p)}</span>
             </div>
           </div>
           <div class="player-stat-card__right">
@@ -869,6 +949,15 @@ export function setupHomeEventListeners(router) {
         </div>
       `;
     }).join('');
+
+    statsListContainer.querySelectorAll('.player-stat-card__img').forEach((imgEl) => {
+      imgEl.addEventListener('error', () => {
+        const tokenEl = imgEl.closest('.player-stat-card__token');
+        if (tokenEl) {
+          tokenEl.textContent = tokenEl.getAttribute('data-fallback-role') || 'JUG';
+        }
+      }, { once: true });
+    });
   }
 
   if (btnStats) btnStats.addEventListener('click', openStatsModal);

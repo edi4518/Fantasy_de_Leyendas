@@ -63,6 +63,10 @@ export function initRouter() {
 
   // Delegación de clics globales para enlaces internos <a href="/ruta" data-link>
   document.body.addEventListener("click", (e) => {
+    if (e.target.closest(".match-details-link")) {
+      e.preventDefault();
+      return;
+    }
     const link = e.target.closest("a[data-link]");
     if (link) {
       e.preventDefault();
@@ -307,7 +311,7 @@ async function loadScreenController(route) {
 
     case "history": {
       try {
-        const module = await import("../screens/history/history.js");
+        const module = await import(`../screens/history/history.js?t=${Date.now()}`);
         if (typeof module.initHistory === "function") {
           module.initHistory(routerInstance);
         } else if (typeof module.initHistoryView === "function") {

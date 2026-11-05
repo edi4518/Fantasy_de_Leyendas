@@ -1235,16 +1235,27 @@
 }
 
 .player-stat-card__token {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   font-weight: 800;
   font-size: 0.75rem;
   flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.player-stat-card__token img,
+.player-stat-card__img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  object-position: center bottom;
+  display: block;
 }
 
 .player-stat-card__token--por {
@@ -1259,7 +1270,8 @@
   border: 2px solid #3B82F6;
 }
 
-.player-stat-card__token--mc {
+.player-stat-card__token--mc,
+.player-stat-card__token--med {
   background: #D1FAE5;
   color: #047857;
   border: 2px solid #10B981;
