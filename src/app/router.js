@@ -136,6 +136,8 @@ async function handleLocation() {
     localStorage.removeItem("access_token");
     localStorage.removeItem("user");
     localStorage.removeItem("hasSeenOnboarding");
+    localStorage.removeItem("fantasy_active_squad");
+    localStorage.removeItem("fantasy_player_stats");
 
     const cleanPath = window.location.pathname || "/";
     window.history.replaceState({}, "", cleanPath);
@@ -251,7 +253,7 @@ async function loadScreenController(route) {
   switch (route.screen) {
     case "onboarding": {
       try {
-        const module = await import("../screens/onboarding/onboarding.js");
+        const module = await import(`../screens/onboarding/onboarding.js?t=${Date.now()}`);
         if (typeof module.initOnboarding === "function") {
           module.initOnboarding(routerInstance);
         }

@@ -1,3 +1,4 @@
+
 /**
  * @file matchmaking.js
  * @description Controlador de la pantalla intermedia de Matchmaking P2P y Comparativa Táctica (Versus).
@@ -9,21 +10,6 @@
 import { getRandomCpuTeam } from '../../domain/cpu-teams.js';
 import { isTacticalCounter, FORMATIONS_6V6 } from '../../domain/formation-rules.js';
 
-export const DEFAULT_HOME_SQUAD = {
-  name: 'Tu Equipo',
-  formation: '1-2-2-1',
-  players: [
-    { name: 'Casillas', role: 'POR', rating_general: 89, rating_fisico: 82, rating_palmares: 88, rating_defensa: 88, rating_creacion: 50, rating_tecnica: 65, rating_ataque: 20, precio: 8.5 },
-    { name: 'Maldini', role: 'DEF', rating_general: 92, rating_defensa: 92, rating_fisico: 85, rating_palmares: 92, rating_creacion: 70, rating_tecnica: 78, rating_ataque: 40, precio: 10.5 },
-    { name: 'Baresi', role: 'DEF', rating_general: 93, rating_defensa: 93, rating_fisico: 79, rating_palmares: 90, rating_creacion: 68, rating_tecnica: 75, rating_ataque: 35, precio: 10.0 },
-    { name: 'Zidane', role: 'MC', rating_general: 97, rating_creacion: 96, rating_tecnica: 98, rating_fisico: 83, rating_palmares: 95, rating_ataque: 88, rating_defensa: 65, precio: 12.5 },
-    { name: 'Xavi', role: 'MC', rating_general: 96, rating_creacion: 97, rating_tecnica: 95, rating_fisico: 76, rating_palmares: 94, rating_ataque: 78, rating_defensa: 68, precio: 11.0 },
-    { name: 'Messi', role: 'DEL', rating_general: 99, rating_ataque: 99, rating_tecnica: 99, rating_creacion: 95, rating_fisico: 80, rating_palmares: 99, rating_defensa: 35, precio: 15.0 },
-    { name: 'Ronaldo', role: 'DEL', rating_general: 97, rating_ataque: 97, rating_tecnica: 95, rating_fisico: 86, rating_palmares: 91, rating_defensa: 30, rating_creacion: 75, precio: 13.0 },
-    { name: 'Iniesta', role: 'MC', rating_general: 95, rating_creacion: 94, rating_tecnica: 96, rating_fisico: 85, rating_palmares: 93, rating_ataque: 82, rating_defensa: 60, precio: 8.5 },
-    { name: 'Puyol', role: 'DEF', rating_general: 90, rating_defensa: 90, rating_fisico: 88, rating_palmares: 89, rating_ataque: 30, rating_creacion: 50, rating_tecnica: 60, precio: 7.5 }
-  ]
-};
 
 let matchmakingTimer = null;
 let navigationExecuted = false;
@@ -36,8 +22,17 @@ export function initMatchmaking(router) {
   navigationExecuted = false;
   clearExistingTimers();
 
-  // 1. Obtener datos de la plantilla del usuario
+  // 1. Validar estrictamente los requisitos reglamentarios: 6 titulares y 4 suplentes
   const homeSquad = getHomeSquad();
+  if (!homeSquad || !isSquadComplete(homeSquad)) {
+    console.warn('[Matchmaking] Acceso denegado: Se requieren exactamente 6 titulares y 4 suplentes. Redirigiendo a Dashboard...');
+    if (router && typeof router.navigate === 'function') {
+      router.navigate('/dashboard');
+    } else {
+      window.location.hash = '#/dashboard';
+    }
+    return;
+  }
 
   // 2. Obtener un rival aleatorio de los 20 rivales del sistema
   const rival = getRandomCpuTeam();
@@ -76,7 +71,7 @@ function getHomeSquad() {
     const raw = localStorage.getItem('fantasy_active_squad');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.players) && parsed.players.filter(Boolean).length >= 6) {
+      if (parsed && Array.isArray(parsed.players)) {
         return {
           name: parsed.name || 'Tu Equipo',
           formation: parsed.formation || '1-2-2-1',
@@ -87,7 +82,14 @@ function getHomeSquad() {
   } catch (e) {
     console.debug('[Matchmaking] Error leyendo plantilla del usuario:', e);
   }
-  return { ...DEFAULT_HOME_SQUAD, players: DEFAULT_HOME_SQUAD.players.map(p => ({ ...p })) };
+  return null;
+}
+
+function isSquadComplete(squad) {
+  if (!squad || !Array.isArray(squad.players)) return false;
+  const starters = squad.players.slice(0, 6).filter(Boolean);
+  const reserves = squad.players.slice(6, 10).filter(Boolean);
+  return starters.length === 6 && reserves.length === 4;
 }
 
 /**
@@ -125,8 +127,8 @@ export function calculateTeamMetrics(squad) {
   };
 
   const getGeneral = p => {
-    if (typeof p.rating_general === 'number' && p.rating_general > 0) return Math.round(p.rating_general);
     if (typeof p.media_juego === 'number' && p.media_juego > 0) return Math.round(p.media_juego);
+    if (typeof p.rating_general === 'number' && p.rating_general > 0) return Math.round(p.rating_general);
     const role = getRole(p);
     if (role === 'DEL') return Math.round(p.rating_ataque || 88);
     if (role === 'DEF') return Math.round(p.rating_defensa || 88);

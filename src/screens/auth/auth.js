@@ -30,6 +30,8 @@ function initLogin(router) {
   const passwordInput = document.getElementById('password');
   const emailWrapper = document.getElementById('email-wrapper');
   const passwordWrapper = document.getElementById('password-wrapper');
+  const emailGroup = emailInput?.closest('.form-group');
+  const passwordGroup = passwordInput?.closest('.form-group');
   const errorMessage = document.getElementById('error-message');
   const togglePasswordBtn = document.getElementById('toggle-password-btn');
   const eyeIconImg = document.getElementById('eye-icon-img');
@@ -74,8 +76,21 @@ function initLogin(router) {
     });
   }
 
-  emailInput?.addEventListener('input', clearErrorState);
-  passwordInput?.addEventListener('input', clearErrorState);
+  emailInput?.addEventListener('input', () => {
+    emailGroup?.classList.remove('has-error');
+    emailWrapper?.classList.remove('has-error');
+    if (!passwordGroup?.classList.contains('has-error')) {
+      clearErrorMessage();
+    }
+  });
+
+  passwordInput?.addEventListener('input', () => {
+    passwordGroup?.classList.remove('has-error');
+    passwordWrapper?.classList.remove('has-error');
+    if (!emailGroup?.classList.contains('has-error')) {
+      clearErrorMessage();
+    }
+  });
 
   // Redirección OAuth de Google con tus credenciales
 
@@ -101,8 +116,27 @@ function initLogin(router) {
       const email = emailInput?.value.trim() || '';
       const password = passwordInput?.value || '';
 
-      if (!email || !password) {
-        showError('Correo o contraseña incorrectos. Por favor, inténtalo de nuevo.');
+      const isEmailEmpty = !email;
+      const isPasswordEmpty = !password;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const isEmailInvalid = !isEmailEmpty && !emailRegex.test(email);
+
+      // Validación de campos vacíos o incorrectos
+      if (isEmailEmpty || isEmailInvalid || isPasswordEmpty) {
+        if (isEmailEmpty || isEmailInvalid) {
+          emailGroup?.classList.add('has-error');
+          emailWrapper?.classList.add('has-error');
+        }
+        if (isPasswordEmpty) {
+          passwordGroup?.classList.add('has-error');
+          passwordWrapper?.classList.add('has-error');
+        }
+
+        let msg = 'Datos incorrectos. Por favor, introduce tu correo y contraseña.';
+        if (isEmailInvalid) {
+          msg = 'Introduce un formato de correo electrónico válido.';
+        }
+        showErrorMessage(msg);
         return;
       }
 
@@ -162,29 +196,37 @@ function initLogin(router) {
           }
         }
       } catch (error) {
-        showError(error.message || 'Correo o contraseña incorrectos. Por favor, inténtalo de nuevo.');
+        emailGroup?.classList.add('has-error');
+        emailWrapper?.classList.add('has-error');
+        passwordGroup?.classList.add('has-error');
+        passwordWrapper?.classList.add('has-error');
+        showErrorMessage(error.message || 'Correo o contraseña incorrectos. Por favor, inténtalo de nuevo.');
       } finally {
         setLoadingState(false);
       }
     });
   }
 
-  function showError(msg) {
+  function showErrorMessage(msg) {
     if (errorMessage) {
       errorMessage.textContent = msg;
       errorMessage.classList.remove('hidden');
     }
-    emailWrapper?.classList.add('has-error');
-    passwordWrapper?.classList.add('has-error');
   }
 
   function clearErrorState() {
+    clearErrorMessage();
+    emailGroup?.classList.remove('has-error');
+    emailWrapper?.classList.remove('has-error');
+    passwordGroup?.classList.remove('has-error');
+    passwordWrapper?.classList.remove('has-error');
+  }
+
+  function clearErrorMessage() {
     if (errorMessage) {
       errorMessage.textContent = '';
       errorMessage.classList.add('hidden');
     }
-    emailWrapper?.classList.remove('has-error');
-    passwordWrapper?.classList.remove('has-error');
   }
 
   function setLoadingState(isLoading) {
@@ -219,6 +261,10 @@ function initRegister(router) {
 
   // Preview de foto de perfil
   if (pictureInput && avatarPreview) {
+    avatarPreview.addEventListener('click', () => {
+      pictureInput.click();
+    });
+
     pictureInput.addEventListener('change', () => {
       const file = pictureInput.files?.[0];
       if (file) {
@@ -269,7 +315,13 @@ function initRegister(router) {
   }
 
   [firstNameInput, lastNameInput, teamNameInput, birthdateInput, emailInput, passwordInput].forEach(input => {
-    input?.addEventListener('input', clearErrors);
+    input?.addEventListener('input', () => {
+      input.closest('.input-wrapper')?.classList.remove('has-error');
+      input.closest('.form-group')?.classList.remove('has-error');
+      if (!document.querySelector('#register-form .has-error')) {
+        clearErrors();
+      }
+    });
   });
 
   if (form) {
@@ -285,14 +337,33 @@ function initRegister(router) {
       const email = emailInput?.value.trim() || '';
       const password = passwordInput?.value || '';
 
-      if (!firstName || !lastName || !teamName || !birthdate || !email || !password) {
+      const fields = [
+        { val: firstName, el: firstNameInput },
+        { val: lastName, el: lastNameInput },
+        { val: teamName, el: teamNameInput },
+        { val: birthdate, el: birthdateInput },
+        { val: email, el: emailInput },
+        { val: password, el: passwordInput },
+      ];
+
+      let hasEmpty = false;
+      fields.forEach(({ val, el }) => {
+        if (!val) {
+          el?.closest('.input-wrapper')?.classList.add('has-error');
+          el?.closest('.form-group')?.classList.add('has-error');
+          hasEmpty = true;
+        }
+      });
+
+      if (hasEmpty) {
         showError('Por favor completa todos los campos requeridos.');
         return;
       }
 
       if (password.length < 6) {
         showError('La contraseña debe tener al menos 6 caracteres.');
-        document.getElementById('reg-password-wrapper')?.classList.add('has-error');
+        passwordInput?.closest('.input-wrapper')?.classList.add('has-error');
+        passwordInput?.closest('.form-group')?.classList.add('has-error');
         return;
       }
 

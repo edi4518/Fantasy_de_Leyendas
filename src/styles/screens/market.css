@@ -1,411 +1,1122 @@
 /**
- * ==========================================================================
- * MARKET.CSS - Sistema de Diseño Fantasy de Leyendas
- * Mercado de Fichajes y Comparativa de Jugadores
- * ==========================================================================
+ * @file market.css
+ * @description Estilos oficiales para el Mercado de Fichajes de Leyendas (Diseño Deportivo Editorial).
+ * Sigue la paleta canónica del proyecto: Campo #2D6A4F, Carbón #212529, Estadio #DEE2E6, Acorde #F8F9FA.
  */
 
+/* =============================================================================
+   1. CONTENEDOR PRINCIPAL DEL MERCADO
+   ============================================================================= */
+
 .market-screen {
-  max-width: none !important;
-  width: 100% !important;
-  min-height: 100vh !important;
-  height: 100% !important;
-  margin: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  padding: 24px 24px 120px 24px !important;
+  width: 100%;
+  max-width: 440px;
+  min-height: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFFFF;
+  position: relative;
   box-sizing: border-box;
+  user-select: none;
 }
 
+/* =============================================================================
+   2. CABECERA DEL MERCADO
+   ============================================================================= */
+
 .market-header {
+  padding: 1.25rem 1.25rem 0.85rem;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #DEE2E6;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.market-header-inner {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.market-title-wrap {
+  display: flex;
+  flex-direction: column;
 }
 
 .market-title {
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 800;
-  color: #0f172a;
-  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: #212529;
+  line-height: 1.15;
   margin: 0;
 }
 
-.market-budget-card {
+.market-budget-overview {
   text-align: right;
+  flex-shrink: 0;
 }
 
 .budget-label {
   display: block;
-  font-size: 0.6rem;
+  font-size: 0.625rem;
   font-weight: 700;
-  color: #64748b;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
+  color: #6B7280;
+  text-transform: uppercase;
 }
 
 .budget-value {
   display: block;
   font-size: 1.25rem;
   font-weight: 800;
-  color: #0f172a;
-  margin: 2px 0;
+  letter-spacing: -0.02em;
+  color: #212529;
+  line-height: 1.1;
+  margin: 0.15rem 0;
 }
 
-.plantilla-count {
-  font-size: 0.7rem;
-  color: #64748b;
-  font-weight: 600;
-}
-
-.market-search-container {
-  position: relative;
-  margin-bottom: 14px;
-}
-
-.market-search-container input {
-  width: 100%;
-  padding: 12px 16px 12px 40px;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  background-color: #ffffff;
-  font-size: 0.85rem;
-  color: #0f172a;
-  outline: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-}
-
-.market-search-container input::placeholder {
-  color: #94a3b8;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 0.9rem;
-  color: #94a3b8;
-}
-
-.market-filters {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.filter-btn {
-  padding: 8px 16px;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
-  background-color: #ffffff;
+.squad-count-text {
+  display: block;
   font-size: 0.75rem;
+  font-weight: 500;
+  color: #6B7280;
+}
+
+.squad-count-num {
   font-weight: 700;
-  color: #475569;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
+  color: #212529;
 }
 
-.filter-btn.active {
-  background-color: #2d6a4f;
-  color: #ffffff;
-  border-color: #2d6a4f;
+/* =============================================================================
+   3. ÁREA DE CONTENIDO Y FILTROS
+   ============================================================================= */
+
+.market-content {
+  flex: 1;
+  padding: 1rem 1.25rem 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
-.btn-compare-action {
+/* Buscador de futbolistas */
+.market-search-box {
+  position: relative;
   width: 100%;
-  padding: 12px;
-  border-radius: 16px;
-  border: 1px solid #cbd5e1;
-  background-color: #ffffff;
-  color: #2d6a4f;
-  font-weight: 700;
-  font-size: 0.85rem;
-  cursor: pointer;
+}
+
+.search-icon-wrap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  padding-left: 0.85rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  pointer-events: none;
+  color: #6B7280;
 }
 
-.btn-compare-action:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  color: #94a3b8;
-  border-color: #e2e8f0;
+.search-icon-svg {
+  width: 16px;
+  height: 16px;
+}
+
+.market-search-input {
+  width: 100%;
+  padding: 0.65rem 1rem 0.65rem 2.5rem;
+  background-color: #F8F9FA;
+  border: 1px solid #DEE2E6;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #212529;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.15s ease-in-out;
+}
+
+.market-search-input::placeholder {
+  color: #6B7280;
+}
+
+.market-search-input:focus {
+  background-color: #FFFFFF;
+  border-color: #2D6A4F;
+  box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.15);
+}
+
+/* Filtros por Posición (Pills) */
+.market-position-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.filter-pill {
+  flex: 1;
+  padding: 0.5rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: #FFFFFF;
+  border: 1px solid #DEE2E6;
+  color: #212529;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+
+.filter-pill:hover {
+  background-color: #F8F9FA;
+}
+
+.filter-pill:active {
+  transform: scale(0.96);
+}
+
+.filter-pill.active {
+  background-color: #2D6A4F;
+  color: #FFFFFF;
+  border-color: #2D6A4F;
+}
+
+/* =============================================================================
+   4. BANDEJA FLOTANTE DE JUGADORES SELECCIONADOS CON (+)
+   ============================================================================= */
+
+.selected-players-tray {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  background-color: #F0F7F4;
+  border: 1px solid rgba(45, 106, 79, 0.35);
+  border-radius: 16px;
+  animation: traySlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.selected-players-tray[hidden],
+.market-bottom-dock[hidden] {
+  display: none !important;
+}
+
+@keyframes traySlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tray-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tray-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tray-dot-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #2D6A4F;
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+}
+
+.tray-title {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #2D6A4F;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.tray-count-badge {
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background-color: #FFFFFF;
+  color: #2D6A4F;
+  border: 1px solid #DEE2E6;
+}
+
+.tray-total-text {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #212529;
+}
+
+.tray-total-price {
+  color: #2D6A4F;
+  font-weight: 800;
+}
+
+.tray-chips-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.tray-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  background-color: #FFFFFF;
+  padding: 0.35rem 0.65rem;
+  border-radius: 12px;
+  border: 1px solid #DEE2E6;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.tray-chip__info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.tray-chip__name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #212529;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.tray-chip__meta {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #6B7280;
+  line-height: 1.2;
+  margin-top: 1px;
+  white-space: nowrap;
+}
+
+.tray-chip__remove-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: 50%;
+  background-color: #F8F9FA;
+  border: 1px solid #DEE2E6;
+  color: #6B7280;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  flex-shrink: 0;
+  padding: 0;
+  line-height: 1;
+  position: relative;
+  z-index: 5;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.tray-chip__remove-btn:hover {
+  background-color: #FEE2E2;
+  border-color: #FCA5A5;
+  color: #DC2626;
+  transform: scale(1.12);
+}
+
+/* =============================================================================
+   5. SECCIONES DE LISTADO (PLANTILLA Y DISPONIBLES)
+   ============================================================================= */
+
+.market-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .market-section-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  color: #64748b;
-  letter-spacing: 0.5px;
-}
-
-.market-player-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-bottom: 110px !important;
-}
-
-.player-item-card {
-  display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 12px 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-.player-info-left {
+.section-title-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.5rem;
 }
 
-/* ==========================================================================
-   AVATARES CIRCULARES Y AJUSTE DE CARAS
-   ========================================================================== */
-.player-avatar-box {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 50% !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  box-sizing: border-box;
-  padding: 0;
-  background-color: #ffffff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  flex-shrink: 0;
-}
-
-.player-avatar-box img,
-.player-avatar-img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: contain;
-  object-position: center 20%;
-  /* Baja el encuadre para no cortar la frente */
-  transform: scale(0.92);
-  /* Rostro completo sin tocar el contorno */
-  display: block;
-}
-
-/* ==========================================================================
-   COLORES POR POSICIÓN (Idénticos al Dashboard)
-   ========================================================================== */
-
-/* POR (Amarillo / Dorado) */
-.player-avatar-box--por,
-.player-item-card--por .player-avatar-box {
-  border: 2px solid #EAB308 !important;
-  background-color: #FEF9C3 !important;
-}
-
-.player-pos--por,
-.player-item-card--por .pos-initial {
-  color: #CA8A04 !important;
-}
-
-/* DEF (Azul) */
-.player-avatar-box--def,
-.player-item-card--def .player-avatar-box {
-  border: 2px solid #60A5FA !important;
-  background-color: #EFF6FF !important;
-}
-
-.player-pos--def,
-.player-item-card--def .pos-initial {
-  color: #2563EB !important;
-}
-
-/* MC / MED (Verde Esmeralda) */
-.player-avatar-box--mc,
-.player-avatar-box--med,
-.player-item-card--mc .player-avatar-box,
-.player-item-card--med .player-avatar-box {
-  border: 2px solid #34D399 !important;
-  background-color: #ECFDF5 !important;
-}
-
-.player-pos--mc,
-.player-pos--med,
-.player-item-card--mc .pos-initial,
-.player-item-card--med .pos-initial {
-  color: #059669 !important;
-}
-
-/* DEL (Rojo) */
-.player-avatar-box--del,
-.player-item-card--del .player-avatar-box {
-  border: 2px solid #F87171 !important;
-  background-color: #FEF2F2 !important;
-}
-
-.player-pos--del,
-.player-item-card--del .pos-initial {
-  color: #DC2626 !important;
-}
-
-.player-name {
-  font-size: 0.9rem;
+.section-title {
+  font-size: 0.6875rem;
   font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 2px 0;
-}
-
-.player-pos {
-  font-size: 0.75rem;
-  color: #64748b;
-  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6B7280;
   margin: 0;
 }
 
-.player-right-group {
+.section-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  background-color: #F0F7F4;
+  color: #2D6A4F;
+  border: 1px solid #DEE2E6;
+}
+
+.squad-total-value {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.squad-total-num {
+  font-weight: 800;
+  color: #212529;
+}
+
+.btn-sort-market {
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #6B7280;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-sort-market:hover {
+  color: #2D6A4F;
+  background-color: #F8F9FA;
+}
+
+.sort-svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Listas con estilo contenedor agrupado */
+.market-player-list {
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFFFF;
+  border: 1px solid #DEE2E6;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+/* Cada fila de jugador */
+.player-row-item {
+  padding: 0.75rem 0.95rem;
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
+  border-bottom: 1px solid #DEE2E6;
+  transition: background-color 0.15s ease-in-out;
+  box-sizing: border-box;
 }
 
-.player-price {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #0f172a;
+.player-row-item:last-child {
+  border-bottom: none;
 }
 
-.btn-add-player {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  border: 1px solid #cbd5e1;
-  background-color: #ffffff;
-  color: #2d6a4f;
+.player-row-item:hover {
+  background-color: #F8F9FA;
+}
+
+.player-row-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/* =============================================================================
+   AVATAR DE JUGADOR EN EL MERCADO (Diseño Circular Uniforme y Neutro)
+   ============================================================================= */
+
+.player-row-avatar,
+.market-screen .player-slot__avatar,
+.market-screen .player-slot__avatar[data-position],
+.market-screen .player-row-avatar[data-position] {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  min-height: 52px;
+  border-radius: 50% !important;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  box-sizing: border-box;
+  background-color: #F8F9FA !important;
+  border: 1.5px solid #DEE2E6 !important;
+  color: #6B7280 !important;
+  padding-top: 5px;
+  padding-bottom: 0;
+  padding-left: 2px;
+  padding-right: 2px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+/* Redimensionamiento ampliado en igual proporción (48px) para apreciar con nitidez el rostro */
+.player-row-avatar img,
+.market-screen .player-slot__avatar img,
+.market-screen .player-slot__img {
+  width: 48px !important;
+  height: 48px !important;
+  max-width: 48px !important;
+  max-height: 48px !important;
+  object-fit: contain !important;
+  object-position: center bottom !important;
+  display: block !important;
+  margin: 0 auto !important;
+  transform: translateY(3.5px);
+  pointer-events: none;
+}
+
+/* Icono SVG alternativo centrado cuando no hay imagen disponible */
+.player-row-avatar svg,
+.market-screen .player-slot__avatar svg,
+.market-screen .player-slot__icon,
+.market-screen .player-slot__avatar[data-position] svg,
+.market-screen .player-slot__avatar[data-position] .player-slot__icon {
+  width: 24px !important;
+  height: 24px !important;
+  color: #6B7280 !important;
+  stroke: #6B7280 !important;
+  fill: none !important;
+  margin: auto !important;
+  align-self: center !important;
+  flex-shrink: 0;
+}
+
+.player-row-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.player-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.player-row-name {
+  font-size: 0.875rem;
   font-weight: 800;
-  font-size: 1rem;
-  cursor: pointer;
+  color: #212529;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+  margin: 0;
+}
+
+/* Badge con estrellita ★ y nota */
+.player-rating-star {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.625rem;
+  font-weight: 800;
+  padding: 0.12rem 0.38rem;
+  border-radius: 4px;
+  background-color: #F0F7F4;
+  color: #2D6A4F;
+  border: 1px solid #DEE2E6;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.player-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+}
+
+.player-role-badge {
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background-color: #F8F9FA;
+  color: #6B7280;
+  border: 1px solid #DEE2E6;
+  line-height: 1;
+}
+
+.player-desc-text {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #6B7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+/* Lado derecho: precio y botón */
+.player-row-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.player-row-price {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #212529;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Botón de acción: Fichar (+) / Vender (✕) */
+.btn-player-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #DEE2E6;
+  background-color: #FFFFFF;
+  color: #2D6A4F;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  padding: 0;
 }
 
-.btn-add-player.selected {
-  background-color: #2d6a4f;
-  color: #ffffff;
-  border-color: #2d6a4f;
+.btn-player-action svg {
+  width: 15px;
+  height: 15px;
 }
 
-/* ==========================================================================
-   BARRA INFERIOR DOCK COMPACTA Y ALINEADA AL MARCO DEL CELULAR
-   ========================================================================== */
-.market-bottom-bar,
-.market-actions,
-.market-action-bar,
-.market-dock {
-  position: fixed !important;
-  bottom: 60px !important;
-  /* Se apoya justo sobre el menú inferior */
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  width: 100% !important;
-  max-width: 400px !important;
-  /* Ancho exacto del marco de la app */
-  box-sizing: border-box !important;
-
-  background-color: #ffffff !important;
-  border-top-left-radius: 14px !important;
-  border-top-right-radius: 14px !important;
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
-
-  border-top: 1px solid #e2e8f0 !important;
-  border-left: 1px solid #e2e8f0 !important;
-  border-right: 1px solid #e2e8f0 !important;
-  border-bottom: none !important;
-
-  /* Padding más chico y estilizado */
-  padding: 8px 12px 10px 12px !important;
-  gap: 8px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  z-index: 50 !important;
-  box-shadow: 0 -3px 12px rgba(15, 23, 42, 0.06) !important;
+.btn-player-action:hover {
+  border-color: #2D6A4F;
+  background-color: #F0F7F4;
 }
 
-/* Botón Comparar más bajo y compacto */
-.market-bottom-bar .btn-compare,
-.market-actions .btn-compare,
-.market-dock .btn-compare {
-  flex: 1 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 6px !important;
-  padding: 8px 20px !important;
-  /* Altura reducida */
-  border-radius: 10px !important;
-  border: 1.5px solid #cbd5e1 !important;
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  font-weight: 700 !important;
-  font-size: 0.75rem !important;
-  /* Tipografía proporcionada */
-  cursor: pointer !important;
-  white-space: nowrap !important;
-  transition: background-color 0.15s ease, border-color 0.15s ease !important;
+.btn-player-action:active {
+  transform: scale(0.9);
 }
 
-.market-bottom-bar .btn-compare:hover,
-.market-actions .btn-compare:hover {
-  background-color: #f8fafc !important;
-  border-color: #94a3b8 !important;
+/* Botón Seleccionado con (+) */
+.btn-player-action.is-selected {
+  background-color: #2D6A4F;
+  border-color: #2D6A4F;
+  color: #FFFFFF;
 }
 
-/* Botón Fichar más bajo y compacto */
-.market-bottom-bar .btn-fichar,
-.market-bottom-bar .btn-sign,
-.market-actions .btn-fichar,
-.market-dock .btn-fichar {
-  flex: 1 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 6px !important;
-  padding: 8px 10px !important;
-  /* Altura reducida */
-  border-radius: 10px !important;
-  border: none !important;
-  background-color: #2d6a4f !important;
-  color: #ffffff !important;
-  font-weight: 700 !important;
-  font-size: 0.75rem !important;
-  /* Tipografía proporcionada */
-  cursor: pointer !important;
-  white-space: nowrap !important;
-  box-shadow: 0 2px 6px rgba(45, 106, 79, 0.25) !important;
-  transition: background-color 0.15s ease !important;
+/* Botón de Venta (✕) */
+.btn-player-action--sell {
+  color: #6B7280;
 }
 
-.market-bottom-bar .btn-fichar:hover,
-.market-actions .btn-fichar:hover {
-  background-color: #1b4332 !important;
+.btn-player-action--sell:hover {
+  border-color: #FCA5A5;
+  background-color: #FEF2F2;
+  color: #C92A2A;
+}
+
+/* =============================================================================
+   6. DOCK INFERIOR FLOTANTE DE ACCIONES
+   ============================================================================= */
+
+.market-bottom-dock {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid #DEE2E6;
+  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.04);
+  animation: dockSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dockSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.dock-btn {
+  flex: 1;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  border: none;
+  white-space: nowrap;
+}
+
+.dock-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.dock-btn--compare {
+  background-color: #FFFFFF;
+  border: 1px solid #2D6A4F;
+  color: #2D6A4F;
+}
+
+.dock-btn--compare:hover {
+  background-color: #F0F7F4;
+}
+
+.dock-btn--compare:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #DEE2E6;
+  color: #94A3B8;
+  background-color: #FFFFFF;
+}
+
+.dock-btn--buy {
+  background-color: #2D6A4F;
+  color: #FFFFFF;
+}
+
+.dock-btn--buy:hover {
+  background-color: #245640;
+}
+
+.dock-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Mensajes de feedback / toasts */
+.market-feedback-msg {
+  padding: 1.5rem;
+  text-align: center;
+  color: #6B7280;
+  font-size: 0.8125rem;
+}
+
+/* =============================================================================
+   7. MODALES ESTÉTICOS IN-GAME Y NOTIFICACIONES TOAST (ZERO WINDOW ALERTS)
+   ============================================================================= */
+
+/* Contenedor Overlay del Modal */
+.market-modal-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 9999;
+  opacity: 1;
+  animation: marketModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes marketModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.market-modal-overlay.is-closing {
+  animation: marketModalFadeOut 0.15s ease forwards;
+}
+
+@keyframes marketModalFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Tarjeta Central del Modal */
+.market-modal-card {
+  width: 100%;
+  max-width: 380px;
+  background-color: #FFFFFF;
+  border-radius: 20px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: marketModalScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes marketModalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.market-modal-overlay.is-closing .market-modal-card {
+  animation: marketModalScaleDown 0.15s ease forwards;
+}
+
+@keyframes marketModalScaleDown {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* Icono Superior del Modal */
+.market-modal-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.875rem;
+}
+
+.market-modal-icon-wrap--warning {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.market-modal-icon-wrap--danger {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+
+.market-modal-icon-wrap--success {
+  background-color: #D1FAE5;
+  color: #059669;
+}
+
+.market-modal-icon-wrap svg {
+  width: 26px;
+  height: 26px;
+}
+
+.market-modal-title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 0.4rem 0;
+  line-height: 1.3;
+}
+
+.market-modal-desc {
+  font-size: 0.8125rem;
+  color: #64748B;
+  margin: 0 0 1.25rem 0;
+  line-height: 1.5;
+}
+
+/* Preview del Jugador en Confirmación de Venta */
+.market-modal-player-preview {
+  width: 100%;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.modal-preview-avatar {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 50%;
+  background: #E5E7EB;
+  border: 2px solid #CBD5E1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.modal-preview-avatar .player-slot__img,
+.modal-preview-avatar img {
+  width: 48px;
+  height: 48px;
+  max-width: 48px;
+  max-height: 48px;
+  object-fit: contain;
+  object-position: bottom center;
+  display: block;
+}
+
+.modal-preview-avatar .player-slot__icon {
+  width: 28px;
+  height: 28px;
+  color: #94A3B8;
+  margin-bottom: 6px;
+}
+
+.modal-preview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-preview-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.modal-preview-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.725rem;
+  color: #64748B;
+}
+
+.modal-preview-badge {
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.675rem;
+  background-color: #E2E8F0;
+  color: #334155;
+}
+
+.modal-preview-refund {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.modal-preview-refund-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: #64748B;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.modal-preview-refund-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #16A34A;
+}
+
+/* Botones de acción del Modal */
+.market-modal-actions {
+  display: flex;
+  width: 100%;
+  gap: 0.625rem;
+}
+
+.market-modal-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.market-modal-btn:active {
+  transform: scale(0.97);
+}
+
+.market-modal-btn--cancel {
+  background-color: #F1F5F9;
+  color: #475569;
+}
+
+.market-modal-btn--cancel:hover {
+  background-color: #E2E8F0;
+  color: #1E293B;
+}
+
+.market-modal-btn--danger {
+  background-color: #DC2626;
+  color: #FFFFFF;
+}
+
+.market-modal-btn--danger:hover {
+  background-color: #B91C1C;
+}
+
+.market-modal-btn--primary {
+  background-color: #2D6A4F;
+  color: #FFFFFF;
+}
+
+.market-modal-btn--primary:hover {
+  background-color: #245640;
+}
+
+/* =============================================================================
+   8. SISTEMA DE TOASTS FLOTANTES IN-GAME
+   ============================================================================= */
+
+.market-toast-container {
+  position: fixed;
+  top: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  pointer-events: none;
+  max-width: 90vw;
+}
+
+.market-toast {
+  pointer-events: auto;
+  background-color: #0F172A;
+  color: #FFFFFF;
+  padding: 0.75rem 1.125rem;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  animation: marketToastSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: all 0.2s ease;
+}
+
+.market-toast.is-hiding {
+  animation: marketToastSlideUp 0.2s ease forwards;
+}
+
+@keyframes marketToastSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes marketToastSlideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.95);
+  }
+}
+
+.market-toast-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.market-toast--success .market-toast-icon {
+  color: #34D399;
+}
+
+.market-toast--danger .market-toast-icon {
+  color: #F87171;
+}
+
+.market-toast--warning .market-toast-icon {
+  color: #FBBF24;
+}
+
+
+/* Chip para futbolistas de Mi Plantilla en la bandeja de selección híbrida */
+.tray-chip--owned {
+  background-color: #F0FDF4 !important;
+  border-color: #BBF7D0 !important;
+}
+
+.tray-chip__meta--owned {
+  color: #15803D !important;
+  font-weight: 700;
 }

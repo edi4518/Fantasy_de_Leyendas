@@ -287,12 +287,14 @@ export const matchService = {
         { name: 'Messi', role: 'DEL', rating_general: 99 },
         { name: 'Ronaldo', role: 'DEL', rating_general: 97 },
         { name: 'Iniesta', role: 'MC', rating_general: 94 },
-        { name: 'Puyol', role: 'DEF', rating_general: 90 }
+        { name: 'Puyol', role: 'DEF', rating_general: 90 },
+        { name: 'Buffon', role: 'POR', rating_general: 90 }
       ];
 
-      // Completar estrictamente hasta 9 posiciones
+      // Completar plantilla completa (10 posiciones)
       const cleanNinePlayers = [];
-      for (let i = 0; i < 9; i++) {
+      const totalCount = Math.max(10, userSquadPlayers.length);
+      for (let i = 0; i < totalCount; i++) {
         cleanNinePlayers.push(userSquadPlayers[i] || defaultFallback[i]);
       }
 

@@ -8,6 +8,7 @@
  */
 
 import { authService } from '../../services/auth-service.js';
+import { apiClient } from '../../services/api-client.js';
 
 /**
  * Datos de perfil por defecto alineados con la interfaz visual de Stitch.
@@ -36,9 +37,8 @@ export async function fetchProfileData() {
   };
 
   try {
-    const response = await fetch('/api/me', { headers });
-    if (response.ok) {
-      const data = await response.json();
+    const data = await apiClient.get('/me');
+    if (data) {
       return normalizeProfileData(data);
     }
   } catch (error) {
@@ -203,11 +203,7 @@ export async function handleSaveProfile(event) {
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     };
 
-    await fetch('/api/me', {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(payload)
-    }).catch(() => null);
+    await apiClient.put('/me', payload).catch(() => null);
 
     showToast('Cambios guardados correctamente');
   } catch (error) {

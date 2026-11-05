@@ -553,8 +553,8 @@
 .reserves-section__slots {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 1.25rem;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .reserve-slot {

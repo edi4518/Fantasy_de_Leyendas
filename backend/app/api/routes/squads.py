@@ -1,5 +1,5 @@
 """
-Rutas de gestión de plantillas: validación de tope salarial (100M) y penalizaciones por desubicación táctica.
+Rutas de gestión de plantillas: validación de tope salarial (130M) y penalizaciones por desubicación táctica.
 """
 
 from fastapi import APIRouter
@@ -13,8 +13,8 @@ def get_my_squad():
 
 @router.post("/save")
 def save_squad():
-    """Guarda y valida la plantilla (comprueba límite de 100M y 11 posiciones)."""
-    return {"status": "saved", "max_budget": 100.0}
+    """Guarda y valida la plantilla (comprueba límite de 130M y 11 posiciones)."""
+    return {"status": "saved", "max_budget": 130.0}
 
 @router.post("/validate-penalties")
 def validate_penalties():
