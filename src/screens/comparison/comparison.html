@@ -1,59 +1,125 @@
-<div class="comparison-screen" style="padding: 12px; background-color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; padding-bottom: 100px; max-width: 480px; margin: 0 auto; height: 100%; overflow-y: auto;">
-  <!-- Sub-header de la comparativa -->
-  <header style="background: #ffffff; padding: 12px 16px; border-radius: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-  <button id="btn-back-to-market" style="background: transparent; border: none; font-size: 1.4rem; cursor: pointer; color: #1e293b;" aria-label="Volver">‹</button>
-  <div style="text-align: center;">
-    <h2 style="font-size: 1rem; font-weight: 800; margin: 0; color: #0f172a;">Comparativa de Jugadores</h2>
-    <span style="font-size: 0.6rem; font-weight: 700; background: #e6f4ea; color: #2d6a4f; padding: 2px 8px; border-radius: 12px; letter-spacing: 0.5px; display: inline-block; margin-top: 2px;">SIMULACIÓN COMPARATIVA</span>
-  </div>
-  <button id="btn-comparison-search" style="background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #1e293b;" aria-label="Buscar">⌕</button>
-</div>
+<div class="comparison-screen" data-purpose="comparison-screen-container">
+  <!-- BEGIN: Header -->
+  <header class="comp-header" data-purpose="comparison-header">
+    <div class="comp-header-top">
+      <button id="btn-back-to-market" type="button" class="comp-btn-icon" aria-label="Volver al mercado">
+        ‹
+      </button>
+      <div class="comp-title-group">
+        <h1 class="comp-title">Comparativa de Jugadores</h1>
+        <span class="comp-badge-sim">SIMULACIÓN COMPARATIVA</span>
+      </div>
+    </div>
 
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px; font-size: 0.7rem; font-weight: 800; color: #334155;">
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <span style="width: 8px; height: 8px; background-color: #2d6a4f; border-radius: 50%; display: inline-block;"></span>
+    <div class="comp-bar-info">
+      <div class="comp-count-group">
+        <span class="comp-dot-indicator"></span>
         <span><strong id="comp-player-count">0</strong> JUGADORES COMPARADOS</span>
       </div>
-      <button id="btn-add-more-players" style="background: #2d6a4f; color: white; border: none; padding: 4px 12px; border-radius: 16px; font-weight: 700; font-size: 0.75rem; cursor: pointer;">+ Añadir</button>
+      <button id="btn-add-more-players" type="button" class="comp-btn-add">
+        + Añadir
+      </button>
     </div>
 
-    <!-- Barra tricolor superior proporcional -->
-    <div id="comp-color-bar" style="display: flex; height: 4px; border-radius: 2px; overflow: hidden; margin-top: 10px; background: #e2e8f0;">
-      <!-- Se generan dinámicamente -->
-    </div>
+    <!-- Barra multicolor proporcional -->
+    <div id="comp-color-bar" class="comp-color-bar"></div>
   </header>
+  <!-- END: Header -->
 
-  <!-- Tarjetas superiores con scroll horizontal -->
-  <section id="comp-cards-scroll" style="display: flex !important; flex-direction: row !important; gap: 10px; overflow-x: auto !important; overflow-y: hidden; width: 100%; padding-bottom: 8px; margin-bottom: 12px; white-space: nowrap;">
-    <!-- Tarjetas dinámicas -->
-  </section>
+  <!-- BEGIN: MainContent -->
+  <main class="comp-content" data-purpose="comparison-content">
+    <!-- Carrusel horizontal de tarjetas de jugadores -->
+    <section id="comp-cards-scroll" class="comp-cards-scroll" aria-label="Jugadores comparados"></section>
 
-  <!-- Contenedor del Radar Táctico -->
-  <section style="background: #ffffff; border-radius: 16px; padding: 14px; margin-bottom: 12px; border: 1px solid #f1f5f9;">
-    <div style="display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 800; color: #475569; margin-bottom: 10px;">
-      <span>[PERFIL TÁCTICO]</span>
-      <span style="color: #94a3b8;">MULTI-JUGADOR</span>
+    <!-- Perfil Táctico (Radar Chart.js) -->
+    <section class="comp-section-card" data-purpose="radar-section">
+      <div class="comp-section-header">
+        <span>[PERFIL TÁCTICO]</span>
+        <span class="comp-section-sub">MULTI-JUGADOR</span>
+      </div>
+
+      <div class="comp-radar-container">
+        <canvas id="radarChart"></canvas>
+      </div>
+
+      <div id="radar-legend" class="comp-radar-legend"></div>
+    </section>
+
+    <!-- Benchmark Estadístico Dinámico -->
+    <section class="comp-section-card" data-purpose="benchmark-section">
+      <div class="comp-section-header">
+        <span id="benchmark-title-label">[BENCHMARK ESTADÍSTICO]</span>
+        <span class="comp-metric-badge">5 MÉTRICAS</span>
+      </div>
+
+      <div id="benchmark-list" class="comp-benchmark-list"></div>
+    </section>
+  </main>
+  <!-- END: MainContent -->
+
+  <!-- BEGIN: Modal Añadir Jugador -->
+  <div id="add-player-modal" class="comp-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="comp-modal-title" hidden>
+    <div class="comp-modal-sheet">
+      <div class="comp-modal__handle-wrapper">
+        <span class="comp-modal__handle"></span>
+      </div>
+
+      <header class="comp-modal-header">
+        <div class="comp-modal-title-box">
+          <h2 id="comp-modal-title" class="comp-modal-title">Añadir Jugador</h2>
+          <p class="comp-modal-subtitle">Selecciona una leyenda para comparar estadísticas</p>
+        </div>
+        <button id="btn-close-modal" type="button" class="comp-modal-close" aria-label="Cerrar modal">
+          <svg fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </header>
+
+      <div class="comp-modal-controls">
+        <div class="comp-modal-search-box">
+          <span class="comp-modal-search-icon" aria-hidden="true">
+            <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+            </svg>
+          </span>
+          <input
+            type="text"
+            id="modal-search"
+            class="comp-modal-search-input"
+            placeholder="Buscar futbolistas..."
+          />
+        </div>
+
+        <nav id="modal-filters" class="comp-modal-filters" aria-label="Filtrar por posición">
+          <button type="button" class="modal-filter-btn active" data-pos="TODOS">Todos</button>
+          <button type="button" class="modal-filter-btn" data-pos="POR">POR</button>
+          <button type="button" class="modal-filter-btn" data-pos="DEF">DEF</button>
+          <button type="button" class="modal-filter-btn" data-pos="MC">MC</button>
+          <button type="button" class="modal-filter-btn" data-pos="DEL">DEL</button>
+        </nav>
+
+        <div class="comp-modal-sort-row">
+          <button type="button" id="sort-name-btn" class="comp-sort-btn is-active">
+            <svg class="comp-sort-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="M3 6h18M3 12h12M3 18h6"></path>
+            </svg>
+            <span>Nombre (A-Z)</span>
+          </button>
+          <button type="button" id="sort-price-btn" class="comp-sort-btn">
+            <svg class="comp-sort-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <path d="M7 15l5 5 5-5"></path>
+              <path d="M7 9l5-5 5 5"></path>
+            </svg>
+            <span>Por Precio</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="modal-player-list" class="comp-modal-player-list"></div>
     </div>
-
-    <div style="width: 100%; max-width: 280px; margin: 0 auto; height: 220px;">
-      <canvas id="radarChart"></canvas>
-    </div>
-
-    <div id="radar-legend" style="display: flex !important; flex-direction: row !important; justify-content: flex-start; gap: 6px; overflow-x: auto !important; white-space: nowrap !important; padding-bottom: 4px; margin-top: 10px;">
-      <!-- Leyendas dinámicas -->
-    </div>
-  </section>
-
-  <!-- Benchmark Estadístico -->
-  <section style="background: #ffffff; border-radius: 16px; padding: 14px; margin-bottom: 12px; border: 1px solid #f1f5f9;">
-    <div style="display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 800; color: #475569; margin-bottom: 10px;">
-      <span>[BENCHMARK ESTADÍSTICO]</span>
-      <span style="color: #94a3b8;">5 MÉTRICAS</span>
-    </div>
-
-    <div id="benchmark-list">
-      <!-- Métricas dinámicas -->
-    </div>
-  </section>
+  </div>
+  <!-- END: Modal Añadir Jugador -->
 </div>

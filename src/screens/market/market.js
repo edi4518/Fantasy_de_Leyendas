@@ -120,7 +120,22 @@ async function initMarketController(container, router) {
   if (btnCompare) {
     btnCompare.addEventListener('click', () => {
       if (selectedForAction.size < 2) return;
-      const ids = Array.from(selectedForAction).join(',');
+      const idsArray = Array.from(selectedForAction).map((id) => Number(id)).filter(Boolean);
+      const ids = idsArray.join(',');
+
+      // Persistir selección para garantizar que la pantalla Comparativa refleje los jugadores elegidos
+      try {
+        const squadPlayers = (activeSquad.players || []).filter(Boolean);
+        const allKnownPlayers = [...catalog, ...squadPlayers];
+        const selectedPlayersData = idsArray
+          .map((id) => allKnownPlayers.find((p) => Number(p.id) === id))
+          .filter(Boolean);
+        localStorage.setItem('fantasy_compare_ids', JSON.stringify(idsArray));
+        localStorage.setItem('fantasy_compare_players', JSON.stringify(selectedPlayersData));
+      } catch (err) {
+        console.warn('[Market] No se pudo guardar la selección de comparativa en localStorage:', err);
+      }
+
       router.navigate(`/comparison?ids=${ids}`);
     });
   }
@@ -395,7 +410,7 @@ async function initMarketController(container, router) {
     if (compareCountSpan) compareCountSpan.textContent = selectedCount;
 
     if (btnCompare) {
-      btnCompare.disabled = selectedCount < 2 || selectedCount > 3;
+      btnCompare.disabled = selectedCount < 2;
     }
 
     if (btnBuy) {
@@ -463,14 +478,6 @@ async function initMarketController(container, router) {
     if (existingId !== null) {
       selectedForAction.delete(existingId);
     } else {
-      if (selectedForAction.size >= 3) {
-        showMarketAlert({
-          title: 'Límite de selección',
-          message: 'Puedes seleccionar hasta 3 futbolistas simultáneamente para contrastar sus estadísticas o fichar.',
-          type: 'warning'
-        });
-        return;
-      }
       selectedForAction.add(playerId);
     }
 

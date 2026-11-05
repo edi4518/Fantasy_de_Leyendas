@@ -1,9 +1,25 @@
+/**
+ * @file comparison.js
+ * @description Controlador para la pantalla de Comparativa de Jugadores.
+ * Utiliza la vista HTML en src/screens/comparison/comparison.html y los estilos
+ * modulares en src/styles/screens/comparison.css.
+ *
+ * @exports { renderComparisonScreen }
+ */
+
 import { playerService } from '../../services/player-service.js';
 
 const PALETTE = [
-  { main: '#2d6a4f', bg: 'rgba(45, 106, 79, 0.2)' },   // Verde Alex Morgan
-  { main: '#d97706', bg: 'rgba(217, 119, 6, 0.2)' },   // Amarillo Sam Taylor
-  { main: '#2563eb', bg: 'rgba(37, 99, 235, 0.2)' }    // Azul Jordan Lee
+  { main: '#2d6a4f', bg: 'rgba(45, 106, 79, 0.2)' },   // Verde
+  { main: '#d97706', bg: 'rgba(217, 119, 6, 0.2)' },   // Ámbar
+  { main: '#2563eb', bg: 'rgba(37, 99, 235, 0.2)' },   // Azul
+  { main: '#9333ea', bg: 'rgba(147, 51, 234, 0.2)' },  // Púrpura
+  { main: '#dc2626', bg: 'rgba(220, 38, 38, 0.2)' },   // Rojo
+  { main: '#0891b2', bg: 'rgba(8, 145, 178, 0.2)' },   // Cian
+  { main: '#db2777', bg: 'rgba(219, 39, 119, 0.2)' },  // Rosa
+  { main: '#4f46e5', bg: 'rgba(79, 70, 229, 0.2)' },   // Índigo
+  { main: '#ea580c', bg: 'rgba(234, 88, 12, 0.2)' },   // Naranja
+  { main: '#0d9488', bg: 'rgba(13, 148, 136, 0.2)' }   // Turquesa
 ];
 
 let radarChartInstance = null;
@@ -17,7 +33,19 @@ export async function renderComparisonScreen(container, router, params = {}) {
     await loadChartJs();
   }
 
-  // Extraer IDs desde params, search o hash de la URL
+  // Si el contenedor aún no tiene el template HTML de comparison.html, cargarlo
+  if (!targetContainer.querySelector('.comparison-screen')) {
+    try {
+      const response = await fetch(`/src/screens/comparison/comparison.html?v=${Date.now()}`);
+      if (response.ok) {
+        targetContainer.innerHTML = await response.text();
+      }
+    } catch (err) {
+      console.error('[Comparison] Error al cargar template HTML:', err);
+    }
+  }
+
+  // Extraer IDs desde params, search, hash de la URL o selección guardada desde el Mercado
   let rawIds = params.ids || '';
   if (!rawIds) {
     const searchParams = new URLSearchParams(window.location.search);
@@ -29,103 +57,22 @@ export async function renderComparisonScreen(container, router, params = {}) {
     rawIds = hashParams.get('ids');
   }
 
-  const playerIds = (rawIds || '').split(',').map(id => parseInt(id, 10)).filter(Boolean);
+  let playerIds = (rawIds || '').split(',').map(id => parseInt(id, 10)).filter(Boolean);
 
-  // Inyectar HTML síncronamente
-  targetContainer.innerHTML = `
-    <div style="font-family: 'Plus Jakarta Sans', sans-serif; padding-bottom: 120px; background: #f8fafc; min-height: 100vh; position: relative;">
-      <!-- Header -->
-      <header style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: white; border-bottom: 1px solid #e2e8f0;">
-        <button id="btn-back-to-market" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #0f172a;">❮</button>
-        <div style="text-align: center;">
-          <h1 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: #0f172a;">Comparativa de Jugadores</h1>
-          <span style="font-size: 0.65rem; background: #e2edea; color: #2d6a4f; padding: 2px 8px; border-radius: 10px; font-weight: 700;">SIMULACIÓN COMPARATIVA</span>
-        </div>
-        <button style="background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #0f172a;">📤</button>
-      </header>
+  if (playerIds.length === 0) {
+    try {
+      const storedIds = JSON.parse(localStorage.getItem('fantasy_compare_ids') || '[]');
+      if (Array.isArray(storedIds) && storedIds.length > 0) {
+        playerIds = storedIds.map(id => parseInt(id, 10)).filter(Boolean);
+      }
+    } catch (_) {}
+  } else {
+    try {
+      localStorage.setItem('fantasy_compare_ids', JSON.stringify(playerIds));
+    } catch (_) {}
+  }
 
-      <!-- Barra superior -->
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: white; margin-bottom: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-        <div>
-          <span style="width: 8px; height: 8px; background: #2d6a4f; display: inline-block; border-radius: 50%; margin-right: 6px;"></span>
-          <strong id="comp-player-count" style="font-size: 0.85rem; color: #0f172a;">0</strong> <strong style="font-size: 0.85rem; color: #0f172a;">JUGADORES COMPARADOS</strong>
-        </div>
-        <button id="btn-add-more-players" style="background: #2d6a4f; color: white; border: none; padding: 6px 14px; border-radius: 16px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-          + Añadir
-        </button>
-      </div>
-
-      <!-- Barra tricolor -->
-      <div id="comp-color-bar" style="height: 4px; display: flex; width: 100%; margin-bottom: 12px;"></div>
-
-      <!-- Tarjetas superiores con scroll -->
-      <div style="padding: 0 20px;">
-        <div id="comp-cards-scroll"></div>
-      </div>
-
-      <!-- Perfil Táctico (Radar Chart.js) -->
-      <div style="background: white; margin: 16px 20px; border-radius: 20px; padding: 16px; border: 1px solid #e2e8f0;">
-        <div style="font-size: 0.65rem; font-weight: 800; color: #64748b; margin-bottom: 12px; letter-spacing: 0.5px; display: flex; justify-content: space-between;">
-          <span>[PERFIL TÁCTICO]</span>
-          <span>MULTI-JUGADOR</span>
-        </div>
-        <div style="width: 100%; height: 220px; position: relative; display: flex; justify-content: center; align-items: center;">
-          <canvas id="radarChart"></canvas>
-        </div>
-        <div id="radar-legend"></div>
-      </div>
-
-      <!-- Benchmark Estadístico Dinámico -->
-      <div style="background: white; margin: 0 20px; border-radius: 20px; padding: 16px; border: 1px solid #e2e8f0;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <span id="benchmark-title-label" style="font-size: 0.65rem; font-weight: 800; color: #64748b; letter-spacing: 0.5px;">[BENCHMARK ESTADÍSTICO]</span>
-          <span style="font-size: 0.65rem; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; font-weight: 700; color: #475569;">5 MÉTRICAS</span>
-        </div>
-        <div id="benchmark-list"></div>
-      </div>
-
-      <!-- MODAL AÑADIR JUGADOR -->
-      <div id="add-player-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: none; align-items: flex-end; justify-content: center; z-index: 99999; font-family: 'Plus Jakarta Sans', sans-serif;">
-        <div style="background: white; width: 100%; max-width: 480px; height: 85vh; border-top-left-radius: 24px; border-top-right-radius: 24px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -10px 25px rgba(0,0,0,0.2);">
-          
-          <div style="padding: 20px 20px 12px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-              <h2 style="margin: 0 0 4px 0; font-size: 1.15rem; font-weight: 800; color: #0f172a;">Añadir Jugador</h2>
-              <p style="margin: 0; font-size: 0.75rem; color: #64748b;">Selecciona una leyenda para comparar estadísticas</p>
-            </div>
-            <button id="btn-close-modal" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
-          </div>
-
-          <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
-            <div style="position: relative; margin-bottom: 12px;">
-              <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;">🔍</span>
-              <input type="text" id="modal-search" placeholder="Buscar por apellido o nombre..." style="width: 100%; padding: 10px 12px 10px 36px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.8rem; background: white; outline: none; box-sizing: border-box;">
-            </div>
-
-            <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;" id="modal-filters">
-              <button class="modal-filter-btn active" data-pos="TODOS" style="background: #2d6a4f; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Todos</button>
-              <button class="modal-filter-btn" data-pos="POR" style="background: white; color: #475569; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; white-space: nowrap;">POR</button>
-              <button class="modal-filter-btn" data-pos="DEF" style="background: white; color: #475569; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; white-space: nowrap;">DEF</button>
-              <button class="modal-filter-btn" data-pos="MC" style="background: white; color: #475569; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; white-space: nowrap;">MC</button>
-              <button class="modal-filter-btn" data-pos="DEL" style="background: white; color: #475569; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; white-space: nowrap;">DEL</button>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 0.75rem; color: #475569; font-weight: 700;">
-              <span id="sort-name-btn" style="cursor: pointer;">🔤 Orden: Apellido (A-Z)</span>
-              <span id="sort-price-btn" style="cursor: pointer;">↕️ Por Precio</span>
-            </div>
-          </div>
-
-          <div id="modal-player-list" style="flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px;"></div>
-
-        </div>
-      </div>
-    </div>
-  `;
-
-  setTimeout(() => {
-    initComparisonLogic(targetContainer, router, playerIds);
-  }, 0);
+  await initComparisonLogic(targetContainer, router, playerIds);
 }
 
 async function initComparisonLogic(container, router, playerIds) {
@@ -142,6 +89,8 @@ async function initComparisonLogic(container, router, playerIds) {
   const modalSearch = container.querySelector('#modal-search');
   const modalPlayerList = container.querySelector('#modal-player-list');
   const modalFilterBtns = container.querySelectorAll('.modal-filter-btn');
+  const sortNameBtn = container.querySelector('#sort-name-btn');
+  const sortPriceBtn = container.querySelector('#sort-price-btn');
 
   let modalPosFilter = 'TODOS';
   let sortByName = true;
@@ -158,16 +107,65 @@ async function initComparisonLogic(container, router, playerIds) {
       cachedAllPlayers = await playerService.getAllPlayers();
     }
   } catch (err) {
-    console.error("Error al obtener jugadores:", err);
+    console.error('[Comparison] Error al obtener jugadores:', err);
     cachedAllPlayers = [];
   }
 
-  const allPlayers = cachedAllPlayers || [];
+  const allPlayersMap = new Map();
+  (cachedAllPlayers || []).forEach(p => {
+    if (p && p.id != null) allPlayersMap.set(Number(p.id), p);
+  });
+
+  // Incorporar jugadores guardados desde el Mercado o Plantilla activa como respaldo
+  try {
+    const savedComparePlayers = JSON.parse(localStorage.getItem('fantasy_compare_players') || '[]');
+    if (Array.isArray(savedComparePlayers)) {
+      savedComparePlayers.forEach(p => {
+        if (p && p.id != null && !allPlayersMap.has(Number(p.id))) {
+          allPlayersMap.set(Number(p.id), p);
+        }
+      });
+    }
+    const savedSquad = JSON.parse(localStorage.getItem('fantasy_active_squad') || '{}');
+    if (savedSquad && Array.isArray(savedSquad.players)) {
+      savedSquad.players.filter(Boolean).forEach(p => {
+        if (p && p.id != null && !allPlayersMap.has(Number(p.id))) {
+          allPlayersMap.set(Number(p.id), p);
+        }
+      });
+    }
+  } catch (_) {}
+
+  const allPlayers = Array.from(allPlayersMap.values());
+
+  const openModal = () => {
+    if (!modal) return;
+    modal.hidden = false;
+    renderModalList();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        modal.classList.add('is-open');
+        if (modalSearch) modalSearch.focus();
+      });
+    });
+  };
+
+  const closeModal = () => {
+    if (!modal) return;
+    modal.classList.remove('is-open');
+    setTimeout(() => {
+      if (!modal.classList.contains('is-open')) {
+        modal.hidden = true;
+      }
+    }, 280);
+  };
+
+  const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
 
   const renderModalList = () => {
     if (!modalPlayerList) return;
     const query = modalSearch ? modalSearch.value.toLowerCase().trim() : '';
-    let available = allPlayers.filter(p => !playerIds.includes(p.id));
+    let available = allPlayers.filter(p => !playerIds.includes(Number(p.id)));
 
     if (query) {
       available = available.filter(p => (p.nombre || p.name || '').toLowerCase().includes(query));
@@ -188,34 +186,49 @@ async function initComparisonLogic(container, router, playerIds) {
     }
 
     if (available.length === 0) {
-      modalPlayerList.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 0.8rem; padding: 20px;">No se encontraron jugadores disponibles.</p>`;
+      modalPlayerList.innerHTML = '<p class="comp-modal-empty">No se encontraron futbolistas disponibles con los filtros actuales.</p>';
       return;
     }
 
     modalPlayerList.innerHTML = available.map(p => {
-      const ratingStar = p.media_juego ? (p.media_juego / 10).toFixed(1) : (p.rating_general ? (p.rating_general / 10).toFixed(1) : '8.5');
+      const rating = p.media_juego || p.rating_general || 80;
       const nameDisplay = p.nombre || p.name || 'Jugador';
-      const posDisplay = p.posicion_base || p.role || 'Jugador';
-      const priceDisplay = p.precio || p.price || 20.0;
+      const posDisplay = p.posicion_base || p.role || 'MC';
+      const detailDisplay = p.posicion_detalle || p.nacionalidad || 'Leyenda histórica';
+      const priceDisplay = Number(p.precio || p.price || 10).toFixed(1).replace('.0', '');
+      const initials = nameDisplay.split(' ').map(n => n[0]).join('').slice(0, 2);
+      const playerImage = p.image_filename ? `${STORAGE_URL}${p.image_filename}` : null;
 
       return `
-        <div style="display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 12px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 38px; height: 38px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; color: #475569; border: 1px solid #cbd5e1;">
-              👤
+        <article class="comp-modal-item">
+          <div class="comp-modal-item-left">
+            <div class="comp-modal-avatar">
+              ${playerImage
+                ? `<img src="${playerImage}" alt="${nameDisplay}" onerror="this.outerHTML='<span class=\\'comp-modal-avatar-initials\\'>${initials}</span>'"/>`
+                : `<span class="comp-modal-avatar-initials">${initials}</span>`
+              }
             </div>
-            <div>
-              <strong style="font-size: 0.85rem; color: #0f172a; display: block;">${nameDisplay}</strong>
-              <span style="font-size: 0.7rem; color: #64748b;">${posDisplay} • ⭐ ${ratingStar}</span>
+            <div class="comp-modal-item-info">
+              <div class="comp-modal-name-row">
+                <strong class="comp-modal-item-name">${nameDisplay}</strong>
+                <span class="comp-modal-rating-badge">★ ${rating}</span>
+              </div>
+              <div class="comp-modal-sub-row">
+                <span class="comp-modal-role-badge">${posDisplay}</span>
+                <span class="comp-modal-item-meta">${detailDisplay}</span>
+              </div>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <span style="font-size: 0.85rem; font-weight: 800; color: #0f172a;">${priceDisplay}M €</span>
-            <button class="btn-add-to-comparison" data-id="${p.id}" style="width: 32px; height: 32px; border-radius: 50%; background: #f8fafc; color: #2d6a4f; border: 1px solid #cbd5e1; font-size: 1rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-              +
+          <div class="comp-modal-item-right">
+            <span class="comp-modal-item-price">${priceDisplay}M</span>
+            <button type="button" class="btn-add-to-comparison" data-id="${p.id}" aria-label="Añadir a ${nameDisplay}">
+              <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
             </button>
           </div>
-        </div>
+        </article>
       `;
     }).join('');
 
@@ -223,7 +236,10 @@ async function initComparisonLogic(container, router, playerIds) {
       btn.addEventListener('click', () => {
         const idToAdd = parseInt(btn.dataset.id, 10);
         const newIds = [...playerIds, idToAdd];
-        if (modal) modal.style.display = 'none';
+        try {
+          localStorage.setItem('fantasy_compare_ids', JSON.stringify(newIds));
+        } catch (_) {}
+        closeModal();
         router.navigate(`/comparison?ids=${newIds.join(',')}`);
       });
     });
@@ -232,22 +248,17 @@ async function initComparisonLogic(container, router, playerIds) {
   if (btnAdd) {
     btnAdd.addEventListener('click', (e) => {
       e.preventDefault();
-      if (modal) {
-        modal.style.display = 'flex';
-        renderModalList();
-      }
+      openModal();
     });
   }
 
-  if (closeModalBtn && modal) {
-    closeModalBtn.addEventListener('click', () => {
-      modal.style.display = 'none';
-    });
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', closeModal);
   }
 
   if (modal) {
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.style.display = 'none';
+      if (e.target === modal) closeModal();
     });
   }
 
@@ -257,26 +268,18 @@ async function initComparisonLogic(container, router, playerIds) {
 
   modalFilterBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      modalFilterBtns.forEach(b => {
-        b.style.background = 'white';
-        b.style.color = '#475569';
-        b.style.border = '1px solid #e2e8f0';
-      });
-      btn.style.background = '#2d6a4f';
-      btn.style.color = 'white';
-      btn.style.border = 'none';
-
+      modalFilterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
       modalPosFilter = btn.dataset.pos;
       renderModalList();
     });
   });
 
-  const sortNameBtn = container.querySelector('#sort-name-btn');
-  const sortPriceBtn = container.querySelector('#sort-price-btn');
-
   if (sortNameBtn) {
     sortNameBtn.addEventListener('click', () => {
       sortByName = true;
+      sortNameBtn.classList.add('is-active');
+      if (sortPriceBtn) sortPriceBtn.classList.remove('is-active');
       renderModalList();
     });
   }
@@ -284,84 +287,90 @@ async function initComparisonLogic(container, router, playerIds) {
   if (sortPriceBtn) {
     sortPriceBtn.addEventListener('click', () => {
       sortByName = false;
+      sortPriceBtn.classList.add('is-active');
+      if (sortNameBtn) sortNameBtn.classList.remove('is-active');
       renderModalList();
     });
   }
 
   if (playerIds.length === 0) {
     if (cardsScroll) {
-      cardsScroll.innerHTML = '<p style="padding: 20px; text-align: center; color: #64748b; font-size: 0.8rem;">No hay jugadores seleccionados para comparar. Vuelve al mercado y selecciona al menos 2.</p>';
+      cardsScroll.innerHTML = '<p class="comp-empty-msg">No hay jugadores seleccionados para comparar. Vuelve al mercado y selecciona al menos 2.</p>';
     }
     return;
   }
 
-  const players = allPlayers.filter(p => playerIds.includes(p.id));
+  // Preservar el orden exacto de selección de los jugadores
+  const players = playerIds
+    .map(id => allPlayers.find(p => Number(p.id) === Number(id)))
+    .filter(Boolean);
 
   if (countText) countText.textContent = players.length;
 
   if (colorBar) {
     colorBar.innerHTML = players.map((_, idx) => `
-      <span style="flex: 1; background-color: ${PALETTE[idx % PALETTE.length].main}; height: 100%;"></span>
+      <span class="comp-color-segment" style="--player-color: ${PALETTE[idx % PALETTE.length].main};"></span>
     `).join('');
   }
 
   if (cardsScroll) {
-    cardsScroll.style.cssText = "display: flex !important; flex-direction: row !important; gap: 10px; overflow-x: auto !important; overflow-y: hidden; width: 100%; padding-bottom: 8px; margin-bottom: 12px; white-space: nowrap;";
-
     cardsScroll.innerHTML = players.map((p, idx) => {
       const color = PALETTE[idx % PALETTE.length].main;
-      const initials = p.nombre ? p.nombre.split(' ').map(n => n[0]).join('').slice(0, 2) : (p.name ? p.name.slice(0,2) : 'PL');
+      const initials = p.nombre
+        ? p.nombre.split(' ').map(n => n[0]).join('').slice(0, 2)
+        : (p.name ? p.name.slice(0, 2) : 'PL');
 
       return `
-        <div style="flex: 0 0 160px !important; width: 160px !important; min-width: 160px !important; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 10px; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: inline-block; vertical-align: top;">
-          ${players.length > 1 ? `<button class="btn-remove-card" data-id="${p.id}" style="position: absolute; top: 6px; right: 6px; background: transparent; border: none; color: #94a3b8; font-size: 0.9rem; cursor: pointer;">✕</button>` : ''}
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 36px !important; height: 36px !important; min-width: 36px !important; border-radius: 50%; border: 2px solid ${color}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; background: #f1f5f9; color: ${color};">
+        <article class="comp-player-card" style="--player-color: ${color};">
+          ${players.length > 1 ? `<button type="button" class="btn-remove-card" data-id="${p.id}" aria-label="Quitar a ${p.nombre || p.name}">✕</button>` : ''}
+          <div class="comp-card-top">
+            <div class="comp-avatar-circle">
               ${initials}
             </div>
-            <div>
-              <strong style="font-size: 0.8rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95px; color: #0f172a;">${p.nombre || p.name}</strong>
-              <span style="font-size: 0.6rem; font-weight: 700; padding: 1px 6px; border-radius: 6px; border: 1px solid #cbd5e1; color: #475569; display: inline-block; margin-top: 2px;">${p.posicion_base || p.role || 'DEF'}</span>
+            <div class="comp-card-info">
+              <strong class="comp-card-name">${p.nombre || p.name}</strong>
+              <span class="comp-pos-badge">${p.posicion_base || p.role || 'DEF'}</span>
             </div>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.65rem;">
+          <div class="comp-card-stats-row">
             <div>
-              <small style="color: #64748b; font-weight: 600; display: block;">VALOR</small>
-              <strong style="font-size: 0.85rem; font-weight: 800; color: #0f172a;">${p.precio || p.price || 20}M €</strong>
+              <small class="comp-stat-label">VALOR</small>
+              <strong class="comp-stat-value">${p.precio || p.price || 20}M €</strong>
             </div>
-            <div style="text-align: right;">
-              <small style="color: #64748b; font-weight: 600; display: block;">NOTA MEDIA</small>
-              <strong style="font-size: 0.85rem; font-weight: 800; color: ${color};">${p.media_juego || p.rating_general || 85}</strong>
+            <div class="comp-stat-col--right">
+              <small class="comp-stat-label">NOTA MEDIA</small>
+              <strong class="comp-stat-value comp-stat-value--accent">${p.media_juego || p.rating_general || 85}</strong>
             </div>
           </div>
-        </div>
+        </article>
       `;
     }).join('');
 
     cardsScroll.querySelectorAll('.btn-remove-card').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const idToRemove = parseInt(e.target.dataset.id, 10);
+        const idToRemove = parseInt(e.currentTarget.dataset.id, 10);
         const nextIds = playerIds.filter(id => id !== idToRemove);
+        try {
+          localStorage.setItem('fantasy_compare_ids', JSON.stringify(nextIds));
+        } catch (_) {}
         router.navigate(`/comparison?ids=${nextIds.join(',')}`);
       });
     });
   }
 
   if (legendContainer) {
-    legendContainer.style.cssText = "display: flex !important; flex-direction: row !important; justify-content: flex-start; gap: 6px; overflow-x: auto !important; white-space: nowrap !important; padding-bottom: 4px; margin-top: 10px;";
-
     legendContainer.innerHTML = players.map((p, idx) => `
-      <div style="display: inline-flex; align-items: center; gap: 4px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 3px 8px; border-radius: 8px; font-size: 0.65rem; font-weight: 700; flex-shrink: 0;">
-        <span style="width: 6px; height: 6px; border-radius: 50%; background-color: ${PALETTE[idx % PALETTE.length].main}; display: inline-block;"></span>
-        <span style="color: #1e293b;">${p.nombre || p.name}</span>
+      <div class="comp-legend-item" style="--player-color: ${PALETTE[idx % PALETTE.length].main};">
+        <span class="comp-legend-dot"></span>
+        <span class="comp-legend-name">${p.nombre || p.name}</span>
       </div>
     `).join('');
   }
 
-  // 4. Renderizar Gráfico de Radar
+  // Renderizar Gráfico de Radar
   renderRadarChart(container, players);
 
-  // 5. Renderizar Benchmark Estadístico Específico según la Posición
+  // Renderizar Benchmark Estadístico Específico según la Posición
   const targetBenchmarkList = container.querySelector('#benchmark-list') || benchmarkList;
   const titleLabel = container.querySelector('#benchmark-title-label');
   if (targetBenchmarkList) {
@@ -399,7 +408,7 @@ function renderRadarChart(container, players) {
   radarChartInstance = new Chart(canvas, {
     type: 'radar',
     data: {
-      labels: ['ATAQUE', 'CREACIÓN', 'TÉCNICA', 'DEFENSA', 'FÍSICO', 'PALMARES'],
+      labels: ['ATAQUE', 'CREACIÓN', 'TÉCNICA', 'DEFENSA', 'FÍSICO', 'PALMARÉS'],
       datasets: datasets
     },
     options: {
@@ -422,7 +431,6 @@ function renderRadarChart(container, players) {
 function renderPositionBenchmarks(container, titleLabel, players) {
   if (!container || players.length === 0) return;
 
-  // Detectar la posición principal del primer jugador (o del grupo)
   const primaryPos = (players[0]?.posicion_base || players[0]?.role || 'DEL').toUpperCase();
 
   let metrics = [];
@@ -478,10 +486,10 @@ function renderPositionBenchmarks(container, titleLabel, players) {
     const leaderName = leader ? (leader.nombre || leader.name || '').split(' ')[0] : maxVal;
 
     return `
-      <div style="background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 10px; margin-bottom: 8px; font-family: 'Plus Jakarta Sans', sans-serif;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <span style="font-size: 0.7rem; font-weight: 800; color: #1e293b;">${m.title}</span>
-          <span style="font-size: 0.6rem; font-weight: 800; padding: 2px 6px; border-radius: 6px; background:#e6f4ea; color:#2d6a4f;">
+      <div class="comp-bench-card">
+        <div class="comp-bench-header">
+          <span class="comp-bench-title">${m.title}</span>
+          <span class="comp-bench-badge">
             ${m.badge}: ${leaderName} (${maxVal}${m.unit})
           </span>
         </div>
@@ -492,12 +500,12 @@ function renderPositionBenchmarks(container, titleLabel, players) {
           const pName = p.nombre || p.name || 'Jugador';
 
           return `
-            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.7rem;">
-              <span style="width: 80px; font-weight: 600; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${pName}</span>
-              <div style="flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden;">
-                <div style="height: 100%; border-radius: 3px; width: ${pct}%; background-color: ${color};"></div>
+            <div class="comp-bench-row" style="--player-color: ${color}; --bar-width: ${pct}%;">
+              <span class="comp-bench-name">${pName}</span>
+              <div class="comp-bench-bar-track">
+                <div class="comp-bench-bar-fill"></div>
               </div>
-              <span style="width: 45px; text-align: right; font-weight: 800; color: ${color};">${val}${m.unit}</span>
+              <span class="comp-bench-val">${val}${m.unit}</span>
             </div>
           `;
         }).join('')}

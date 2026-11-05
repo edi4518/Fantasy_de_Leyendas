@@ -40,7 +40,7 @@ const routes = {
     fullScreen: true
   },
   "/market": { screen: "market", authRequired: false },
-  "/comparison": { screen: "comparison", authRequired: true },
+  "/comparison": { screen: "comparison", authRequired: false },
   "/lineup": { screen: "lineup", authRequired: false },
   "/match/live": { screen: "match", subview: "live-match", authRequired: false },
   "/match/result": { screen: "match", subview: "match-result", authRequired: false },
@@ -79,7 +79,11 @@ export function navigateTo(url) {
     const cleanUrl = window.location.pathname + "#" + url;
     window.history.replaceState({}, "", cleanUrl);
     handleLocation();
-  } else if (window.location.pathname.includes("index.html") || window.location.pathname.endsWith("/public/")) {
+  } else if (
+    window.location.pathname.includes("index.html") ||
+    window.location.pathname.endsWith("/public/") ||
+    window.location.hash.startsWith("#/")
+  ) {
     const targetHash = "#" + url;
     if (window.location.hash !== targetHash) {
       // El cambio de hash disparará el evento 'hashchange' que invoca handleLocation de forma natural
@@ -332,8 +336,18 @@ async function loadScreenController(route) {
     case "comparison": {
       try {
         const module = await import(`../screens/comparison/comparison.js?t=${Date.now()}`);
-        // Extraemos parámetros de la URL si los hay (ej: ?ids=1,2,3)
-        const urlParams = Object.fromEntries(new URLSearchParams(window.location.search));
+        // Extraemos parámetros de la URL si los hay (ej: ?ids=1,2,3) tanto de search como de hash
+        const hashQuery = window.location.hash.includes("?")
+          ? window.location.hash.split("?")[1]
+          : "";
+        const mergedParams = new URLSearchParams(window.location.search);
+        if (hashQuery) {
+          const hashSearchParams = new URLSearchParams(hashQuery);
+          for (const [k, v] of hashSearchParams.entries()) {
+            mergedParams.set(k, v);
+          }
+        }
+        const urlParams = Object.fromEntries(mergedParams);
         if (typeof module.renderComparisonScreen === "function") {
           module.renderComparisonScreen(appContent, routerInstance, urlParams);
         }
