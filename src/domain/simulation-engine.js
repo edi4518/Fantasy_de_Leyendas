@@ -732,12 +732,12 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
       fouls: { home: homeFouls, away: awayFouls, label: 'Faltas' }
     },
     lineups: {
-      home: initialHomeStarters.map((p) => ({ name: p.name, role: p.assignedRole })),
-      away: initialAwayStarters.map((p) => ({ name: p.name, role: p.assignedRole })),
-      homeStarters: initialHomeStarters.map((p) => ({ name: p.name, role: p.assignedRole })),
-      homeBench: homeBench.map((p) => ({ name: p.name, role: p.role || p.posicion_base || 'MC' })),
-      awayStarters: initialAwayStarters.map((p) => ({ name: p.name, role: p.assignedRole })),
-      awayBench: awayBench.map((p) => ({ name: p.name, role: p.role || p.posicion_base || 'MC' }))
+      home: initialHomeStarters.map((p) => ({ name: p.name, role: p.assignedRole, image_filename: p.image_filename, photo_url: p.photo_url, avatarUrl: p.avatarUrl })),
+      away: initialAwayStarters.map((p) => ({ name: p.name, role: p.assignedRole, image_filename: p.image_filename, photo_url: p.photo_url, avatarUrl: p.avatarUrl })),
+      homeStarters: initialHomeStarters.map((p) => ({ name: p.name, role: p.assignedRole, image_filename: p.image_filename, photo_url: p.photo_url, avatarUrl: p.avatarUrl })),
+      homeBench: homeBench.map((p) => ({ name: p.name, role: p.role || p.posicion_base || 'MC', image_filename: p.image_filename, photo_url: p.photo_url, avatarUrl: p.avatarUrl })),
+      awayStarters: initialAwayStarters.map((p) => ({ name: p.name, role: p.assignedRole, image_filename: p.image_filename, photo_url: p.photo_url, avatarUrl: p.avatarUrl })),
+      awayBench: awayBench.map((p) => ({ name: p.name, role: p.role || p.posicion_base || 'MC', image_filename: p.image_filename, photo_url: p.photo_url, avatarUrl: p.avatarUrl }))
     },
     cycleSnapshots
   };

@@ -7,8 +7,8 @@
  * @exports bootstrapApp
  */
 
-import { initRouter } from './router.js';
-import { renderNavigation } from './navigation.js';
+import { initRouter } from './router.js?v=46';
+import { renderNavigation } from './navigation.js?v=46';
 import { authService } from '../services/auth-service.js';
 
 export async function bootstrapApp() {

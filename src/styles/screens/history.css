@@ -203,13 +203,13 @@
 
 /* Enlace / Botón Ver Detalles */
 .match-details-link {
-  font-size: var(--font-size-xs, 0.6875rem);
-  font-weight: var(--font-weight-semibold, 600);
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-bold, 700);
   color: var(--color-text, #212529);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   cursor: pointer;
   transition: color var(--transition-fast), transform var(--transition-fast);
 }
@@ -217,6 +217,17 @@
 .match-details-link:hover {
   color: var(--color-primary, #2D6A4F);
   transform: translateX(2px);
+}
+
+.match-details-chevron {
+  width: 14px;
+  height: 14px;
+  color: #94A3B8;
+  transition: color var(--transition-fast);
+}
+
+.match-details-link:hover .match-details-chevron {
+  color: var(--color-primary, #2D6A4F);
 }
 
 /* ==========================================================================
@@ -347,8 +358,395 @@
 @media (prefers-reduced-motion: reduce) {
   .history-match-card,
   .match-details-link,
-  .bottom-nav__item {
+  .bottom-nav__item,
+  .history-modal-backdrop,
+  .history-modal-dialog {
     transition: none !important;
     transform: none !important;
   }
+}
+
+/* ==========================================================================
+   7. POPUP / MODAL DE DETALLES DEL PARTIDO
+   ========================================================================== */
+
+.history-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: rgba(15, 23, 42, 0.40);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.history-modal-backdrop[hidden] {
+  display: none !important;
+}
+
+.history-modal-backdrop.is-open {
+  opacity: 1;
+}
+
+.history-modal-dialog {
+  width: 100%;
+  max-width: 400px;
+  background-color: #FFFFFF;
+  border-radius: 24px;
+  border: 1px solid #DEE2E6;
+  box-shadow: 0 20px 48px -10px rgba(15, 23, 42, 0.28), 0 0 1px 1px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: scale(0.96) translateY(8px);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.history-modal-backdrop.is-open .history-modal-dialog {
+  transform: scale(1) translateY(0);
+}
+
+/* Encabezado del Modal */
+.history-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #DEE2E6;
+  background-color: #FFFFFF;
+}
+
+.history-modal-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #212529;
+  margin: 0;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.history-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #64748B;
+  font-size: 1.375rem;
+  line-height: 1;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.history-modal-close:hover {
+  background-color: #F1F5F9;
+  color: #1E293B;
+}
+
+.history-modal-close:focus-visible {
+  outline: 2px solid #2D6A4F;
+  outline-offset: 1px;
+}
+
+/* Cuerpo del Modal */
+.history-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: #FFFFFF;
+}
+
+/* Marcador Central */
+.history-modal-scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+}
+
+.history-modal-team {
+  width: 40%;
+}
+
+.history-modal-team--home {
+  text-align: left;
+}
+
+.history-modal-team--away {
+  text-align: right;
+}
+
+.history-modal-team-name {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #212529;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-modal-score {
+  width: 20%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.history-modal-score-num {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #2D6A4F;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-modal-score-sep {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2D6A4F;
+  line-height: 1;
+}
+
+/* Cronología del Partido */
+.history-modal-events {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-modal-events-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.history-modal-events-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #212529;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.history-modal-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.history-modal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.history-modal-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.history-modal-legend-dot--home {
+  background-color: #2D6A4F;
+}
+
+.history-modal-legend-dot--away {
+  background-color: #495057;
+}
+
+/* Línea de Tiempo Scrollable */
+.history-modal-timeline {
+  position: relative;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px 2px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.history-modal-timeline::-webkit-scrollbar {
+  display: none;
+}
+
+.history-timeline-line {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background-color: #DEE2E6;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.history-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.history-timeline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  position: relative;
+}
+
+.history-timeline-side {
+  width: 45%;
+  box-sizing: border-box;
+  line-height: 1.3;
+}
+
+.history-timeline-side--home {
+  text-align: right;
+  padding-right: 8px;
+}
+
+.history-timeline-side--away {
+  text-align: left;
+  padding-left: 8px;
+}
+
+.history-timeline-player {
+  font-weight: 700;
+  color: #212529;
+  display: block;
+}
+
+.history-timeline-event-tag {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.history-timeline-event-tag--home-goal {
+  color: #2D6A4F;
+}
+
+.history-timeline-event-tag--away-goal {
+  color: #495057;
+}
+
+.history-timeline-event-tag--yellow {
+  color: #D97706;
+}
+
+.history-timeline-event-tag--danger {
+  color: #E11D48;
+}
+
+.history-timeline-event-tag--neutral {
+  color: #475569;
+}
+
+/* Insignia central de minuto (24x24) */
+.history-timeline-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  z-index: 2;
+  box-shadow: 0 0 0 2px #FFFFFF;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-timeline-badge--home-goal {
+  background-color: #2D6A4F;
+  color: #FFFFFF;
+}
+
+.history-timeline-badge--away-goal {
+  background-color: #495057;
+  color: #FFFFFF;
+}
+
+.history-timeline-badge--yellow {
+  background-color: #FFFBEB;
+  color: #B45309;
+  border: 1px solid #FCD34D;
+}
+
+.history-timeline-badge--danger {
+  background-color: #FFF1F2;
+  color: #BE123C;
+  border: 1px solid #FDA4AF;
+}
+
+.history-timeline-badge--neutral {
+  background-color: #F1F5F9;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+}
+
+.history-timeline-empty {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #64748B;
+  padding: 16px 0;
+}
+
+/* Tarjeta Inferior de Puntos Obtenidos */
+.history-modal-points-card {
+  background-color: #F8F9FA;
+  border: 1px solid #DEE2E6;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-modal-points-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.history-modal-points-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-modal-points-value--win {
+  color: #2D6A4F;
+}
+
+.history-modal-points-value--draw {
+  color: #D97706;
+}
+
+.history-modal-points-value--loss {
+  color: #DC2626;
 }
