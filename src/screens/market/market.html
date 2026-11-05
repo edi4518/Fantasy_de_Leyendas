@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="/src/styles/screens/market.css?v=226">
 <div class="market-screen" data-purpose="market-screen-container">
   <!-- BEGIN: MainHeader -->
   <header class="market-header" data-purpose="market-header">
@@ -69,8 +70,8 @@
     </section>
 
     <!-- My Squad Section -->
-    <section class="market-section market-section--squad" data-purpose="my-squad-section">
-      <div class="market-section-header">
+    <section id="my-squad-section" class="market-section market-section--squad" data-purpose="my-squad-section">
+      <div id="squad-section-header" class="market-section-header market-section-header--collapsible">
         <div class="section-title-group">
           <h2 class="section-title">
             Mi Plantilla / Fichados
@@ -79,9 +80,17 @@
             0 / 10
           </span>
         </div>
-        <span class="squad-total-value">
-          Valor: <span id="squad-total-value-num" class="squad-total-num">0M</span>
-        </span>
+        <div class="section-header-right">
+          <span class="squad-total-value">
+            Valor: <span id="squad-total-value-num" class="squad-total-num">0M</span>
+          </span>
+          <button id="btn-toggle-squad" class="btn-toggle-squad" type="button" aria-expanded="true" aria-controls="my-squad-player-list" aria-label="Mostrar u ocultar Mi Plantilla" title="Mostrar u ocultar Mi Plantilla">
+            <span id="toggle-squad-label" class="btn-toggle-squad__label">Ocultar</span>
+            <svg class="toggle-squad-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
       </div>
       <!-- Squad Players List -->
       <div id="my-squad-player-list" class="market-player-list">

@@ -1,5 +1,36 @@
 import { playerService } from '../../services/player-service.js';
 
+const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
+
+/**
+ * Obtiene la URL completa de la imagen del jugador
+ */
+export function getPlayerAvatarUrl(player) {
+  if (!player) return null;
+  const rawImg = player.image_filename || player.avatarUrl || player.photo_url || player.image_url || player.imagen;
+  if (!rawImg) return null;
+  return rawImg.startsWith('http://') || rawImg.startsWith('https://')
+    ? rawImg
+    : `${STORAGE_URL}${rawImg}`;
+}
+
+/**
+ * Genera el HTML del avatar circular del jugador con fallback a su inicial
+ */
+function getPlayerAvatarHtml(player, imgClass = 'lineup-token-img') {
+  const playerName = player?.name || player?.nombre || 'Jugador';
+  const initial = getPlayerInitial(playerName);
+  const avatarUrl = getPlayerAvatarUrl(player);
+  if (!avatarUrl) {
+    return `<span class="lineup-token-initial">${initial}</span>`;
+  }
+  return `
+    <div class="lineup-token-avatar">
+      <img src="${avatarUrl}" alt="${playerName}" class="${imgClass}" onerror="this.parentElement.outerHTML='<span class=\\'lineup-token-initial\\'>${initial}</span>'" />
+    </div>
+  `;
+}
+
 /**
  * Determina la clase CSS de la píldora de valoración según la categoría de la media:
  * - Bronce común: 00 - 47
@@ -492,7 +523,7 @@ function renderLineRow(slotsInRow, rowClass) {
     return `
       <div class="pitch-slot ${isPenalized ? 'is-penalized' : ''} ${isSelected ? 'is-selected' : ''}" data-index="${index}" title="${player.name} (${naturalRole}) - Asignado: ${assignedRole} - Energía: ${Math.round(stamina)}%">
         <div class="pitch-slot__token">
-          <span>${getPlayerInitial(player.name)}</span>
+          ${getPlayerAvatarHtml(player)}
           <span class="pitch-slot__rating-pill ${getRatingTierClass(rating)}" title="Valoración del jugador: ${rating}">${rating}</span>
           ${isPenalized ? '<span class="pitch-slot__penalty-dot" title="Fuera de posición natural (-15% eficacia)"></span>' : ''}
           <button type="button" class="pitch-slot__remove-btn" data-index="${index}" title="Mover ${player.name} al banquillo de reservas">✕</button>
@@ -533,7 +564,7 @@ function renderReserves() {
         <div class="reserve-slot__circle">
           ${hasPlayer ? `
             <button type="button" class="reserve-slot__remove-btn" data-index="${globalIndex}" title="Gestionar / Vender suplente">✕</button>
-            <span>${getPlayerInitial(player.name)}</span>
+            ${getPlayerAvatarHtml(player)}
             <span class="reserve-slot__rating-pill ${getRatingTierClass(rating)}" title="Valoración: ${rating}">${rating}</span>
           ` : '<span class="reserve-slot__plus">+</span>'}
         </div>
@@ -592,7 +623,7 @@ function openPlayerActionModal(slotIndex) {
 
   if (nameEl) nameEl.textContent = player.name;
   if (roleEl) roleEl.textContent = `${player.role || 'MC'} · Rating ${getPlayerRating(player)}`;
-  if (tokenEl) tokenEl.textContent = getPlayerInitial(player.name);
+  if (tokenEl) tokenEl.innerHTML = getPlayerAvatarHtml(player);
 
   // Cargar estadísticas reales acumuladas del jugador
   const statsBox = document.getElementById('player-action-stats-box');
@@ -732,7 +763,10 @@ function openEmptySlotModal(slotIndex, router) {
         <span style="font-size: 0.7rem; font-weight: 700; color: #64748b; margin-bottom: 2px;">SUPLENTES DISPONIBLES EN BANQUILLO:</span>
         ` + availableReserves.map(item => `
           <button type="button" class="empty-slot-reserve-item" data-reserve-index="${item.index}">
-            <span>${item.player.name} (${item.player.role || 'MC'})</span>
+            <span class="empty-slot-reserve-item__left">
+              <span class="empty-slot-reserve-item__avatar">${getPlayerAvatarHtml(item.player)}</span>
+              <span>${item.player.name} (${item.player.role || 'MC'})</span>
+            </span>
             <span style="color: #2D6A4F; font-weight: 800;">Media: ${getPlayerRating(item.player)}</span>
           </button>
         `).join('');

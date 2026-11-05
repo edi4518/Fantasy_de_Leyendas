@@ -10,16 +10,16 @@
 import { playerService } from '../../services/player-service.js';
 
 const PALETTE = [
-  { main: '#2d6a4f', bg: 'rgba(45, 106, 79, 0.2)' },   // Verde
-  { main: '#d97706', bg: 'rgba(217, 119, 6, 0.2)' },   // Ámbar
-  { main: '#2563eb', bg: 'rgba(37, 99, 235, 0.2)' },   // Azul
-  { main: '#9333ea', bg: 'rgba(147, 51, 234, 0.2)' },  // Púrpura
-  { main: '#dc2626', bg: 'rgba(220, 38, 38, 0.2)' },   // Rojo
-  { main: '#0891b2', bg: 'rgba(8, 145, 178, 0.2)' },   // Cian
-  { main: '#db2777', bg: 'rgba(219, 39, 119, 0.2)' },  // Rosa
-  { main: '#4f46e5', bg: 'rgba(79, 70, 229, 0.2)' },   // Índigo
-  { main: '#ea580c', bg: 'rgba(234, 88, 12, 0.2)' },   // Naranja
-  { main: '#0d9488', bg: 'rgba(13, 148, 136, 0.2)' }   // Turquesa
+  { main: '#2d6a4f', bg: 'rgba(45, 106, 79, 0.2)', cardBg: '#eef7f2', cardBorder: 'rgba(45, 106, 79, 0.28)' },   // Verde
+  { main: '#d97706', bg: 'rgba(217, 119, 6, 0.2)', cardBg: '#fef6e8', cardBorder: 'rgba(217, 119, 6, 0.28)' },   // Ámbar
+  { main: '#2563eb', bg: 'rgba(37, 99, 235, 0.2)', cardBg: '#eff6ff', cardBorder: 'rgba(37, 99, 235, 0.28)' },   // Azul
+  { main: '#9333ea', bg: 'rgba(147, 51, 234, 0.2)', cardBg: '#f6effd', cardBorder: 'rgba(147, 51, 234, 0.28)' },  // Púrpura
+  { main: '#dc2626', bg: 'rgba(220, 38, 38, 0.2)', cardBg: '#fef2f2', cardBorder: 'rgba(220, 38, 38, 0.28)' },   // Rojo
+  { main: '#0891b2', bg: 'rgba(8, 145, 178, 0.2)', cardBg: '#ecfeff', cardBorder: 'rgba(8, 145, 178, 0.28)' },   // Cian
+  { main: '#db2777', bg: 'rgba(219, 39, 119, 0.2)', cardBg: '#fdf2f8', cardBorder: 'rgba(219, 39, 119, 0.28)' },  // Rosa
+  { main: '#4f46e5', bg: 'rgba(79, 70, 229, 0.2)', cardBg: '#eef2ff', cardBorder: 'rgba(79, 70, 229, 0.28)' },   // Índigo
+  { main: '#ea580c', bg: 'rgba(234, 88, 12, 0.2)', cardBg: '#fff7ed', cardBorder: 'rgba(234, 88, 12, 0.28)' },   // Naranja
+  { main: '#0d9488', bg: 'rgba(13, 148, 136, 0.2)', cardBg: '#f0fdfa', cardBorder: 'rgba(13, 148, 136, 0.28)' }   // Turquesa
 ];
 
 let radarChartInstance = null;
@@ -315,17 +315,27 @@ async function initComparisonLogic(container, router, playerIds) {
 
   if (cardsScroll) {
     cardsScroll.innerHTML = players.map((p, idx) => {
-      const color = PALETTE[idx % PALETTE.length].main;
+      const paletteItem = PALETTE[idx % PALETTE.length];
+      const color = paletteItem.main;
+      const cardBg = paletteItem.cardBg;
+      const cardBorder = paletteItem.cardBorder;
       const initials = p.nombre
         ? p.nombre.split(' ').map(n => n[0]).join('').slice(0, 2)
         : (p.name ? p.name.slice(0, 2) : 'PL');
+      const rawImage = p.image_filename || p.avatarUrl || p.photo_url || p.image_url || p.imagen;
+      const playerImage = rawImage
+        ? (rawImage.startsWith('http://') || rawImage.startsWith('https://') ? rawImage : `${STORAGE_URL}${rawImage}`)
+        : null;
 
       return `
-        <article class="comp-player-card" style="--player-color: ${color};">
+        <article class="comp-player-card" style="--player-color: ${color}; --player-card-bg: ${cardBg}; --player-card-border: ${cardBorder};">
           ${players.length > 1 ? `<button type="button" class="btn-remove-card" data-id="${p.id}" aria-label="Quitar a ${p.nombre || p.name}">✕</button>` : ''}
           <div class="comp-card-top">
             <div class="comp-avatar-circle">
-              ${initials}
+              ${playerImage
+                ? `<img src="${playerImage}" alt="${p.nombre || p.name}" class="comp-avatar-img" onerror="this.outerHTML='<span class=\\'comp-avatar-initials\\'>${initials}</span>'" />`
+                : `<span class="comp-avatar-initials">${initials}</span>`
+              }
             </div>
             <div class="comp-card-info">
               <strong class="comp-card-name">${p.nombre || p.name}</strong>
@@ -335,7 +345,7 @@ async function initComparisonLogic(container, router, playerIds) {
           <div class="comp-card-stats-row">
             <div>
               <small class="comp-stat-label">VALOR</small>
-              <strong class="comp-stat-value">${p.precio || p.price || 20}M €</strong>
+              <strong class="comp-stat-value">${p.precio || p.price || 20}M</strong>
             </div>
             <div class="comp-stat-col--right">
               <small class="comp-stat-label">NOTA MEDIA</small>

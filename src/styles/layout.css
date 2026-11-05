@@ -173,6 +173,11 @@ body.app-body {
    5. BARRA DE NAVEGACIÓN INFERIOR (App Navigation)
    ========================================================================== */
 
+/* Ocultar barra de navegación inferior durante la pantalla / simulación de partido */
+.app-layout:has(.match-detail-container) #app-navigation {
+  display: none !important;
+}
+
 .app-navigation {
   flex: 0 0 60px;
   height: 60px;

@@ -1,98 +1,98 @@
 /**
  * @file matchmaking.css
- * @description Estilos para la pantalla de Matchmaking y Comparativa Táctica.
- * Totalmente sincronizado con los tokens oficiales de design-tokens.css.
+ * @description Estilos para la pantalla de Matchmaking y Comparativa Táctica (.matchmaking-container).
+ * Alineado con el sistema de diseño global de la PWA (Plus Jakarta Sans, #2D6A4F, #F8F9FA, #DEE2E6, #212529).
  */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: var(--font-family-base);
-  background-color: var(--color-background);
-  color: var(--color-text);
-  display: flex;
-  justify-content: center;
-  min-height: 100vh;
-  padding: var(--space-4) var(--space-3);
-}
+/* =============================================================================
+   1. CONTENEDOR PRINCIPAL DE MATCHMAKING
+   ============================================================================= */
 
 .matchmaking-container {
   width: 100%;
-  max-width: var(--app-max-width);
+  max-width: 440px;
+  min-height: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: 0 var(--space-3);
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 1.75rem;
+  background-color: var(--color-background, #F8F9FA);
+  color: var(--color-text, #212529);
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
   box-sizing: border-box;
+  user-select: none;
 }
 
-/* Tarjeta genérica del sistema */
+/* Tarjeta base del módulo (misma estética que Mercado, Dashboard y Comparativa) */
 .matchmaking-container .card {
-  background: var(--color-surface);
-  border-radius: var(--radius-card);
-  border: var(--border-width-thin) solid var(--color-border-subtle);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4);
+  background-color: var(--color-surface, #FFFFFF);
+  border-radius: 16px;
+  border: 1px solid var(--color-border, #DEE2E6);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  padding: 1rem 1.125rem;
   box-sizing: border-box;
   width: 100%;
 }
 
-/* 1. Header Badges / Pastillas */
+/* =============================================================================
+   2. HEADER: BADGES / PASTILLAS SUPERIORES
+   ============================================================================= */
+
 .matchmaking-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-1) var(--space-1);
+  padding: 0.15rem 0;
   width: 100%;
   box-sizing: border-box;
 }
 
-.pill-badge {
+.matchmaking-container .pill-badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  background: var(--color-surface);
-  border: var(--border-width-thin) solid var(--color-border-subtle);
-  border-radius: var(--radius-pill);
-  padding: var(--space-1) var(--space-3);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-muted);
-  box-shadow: var(--shadow-visual);
+  gap: 0.4rem;
+  background-color: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #DEE2E6);
+  border-radius: 9999px;
+  padding: 0.32rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #6B7280);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
-.status-dot {
-  width: var(--indicator-dot-size);
-  height: var(--indicator-dot-size);
-  border-radius: var(--radius-pill);
-  background-color: var(--color-trend-up);
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+.matchmaking-container .status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--color-primary, #2D6A4F);
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.18);
 }
 
-.icon-pin {
-  color: var(--color-primary);
+.matchmaking-container .icon-pin {
+  color: var(--color-primary, #2D6A4F);
+  flex-shrink: 0;
 }
 
-/* 2. Tarjeta Versus (Alineación Horizontal Neta) */
+/* =============================================================================
+   3. TARJETA VERSUS (EQUIPOS ENFRENTADOS)
+   ============================================================================= */
+
 .matchmaking-container .card.versus-card {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-5) var(--space-3);
+  padding: 1.15rem 0.85rem;
   width: 100%;
   box-sizing: border-box;
 }
 
 .matchmaking-container .versus-card .team-side {
   flex: 1 1 0;
-  width: auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -100,84 +100,104 @@ body {
   text-align: center;
 }
 
-.avatar-wrapper {
+.matchmaking-container .avatar-wrapper {
   position: relative;
-  width: 70px;
-  height: 70px;
-  border-radius: var(--radius-pill);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-surface-subtle);
-  margin-bottom: var(--space-2);
+  background-color: var(--color-background, #F8F9FA);
+  margin-bottom: 0.55rem;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
-.user-border {
-  border: var(--border-width-thick) solid var(--color-primary);
+.matchmaking-container .user-border {
+  border: 2.5px solid var(--color-primary, #2D6A4F);
+  background-color: #F0F7F4;
 }
 
-.rival-border {
-  border: var(--border-width-thick) solid var(--color-gold);
+.matchmaking-container .rival-border {
+  border: 2.5px solid #D97706;
+  background-color: #FFFBEB;
 }
 
-.avatar-circle {
-  color: var(--color-slate-subtle);
+.matchmaking-container .avatar-circle {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.ovr-badge {
+.matchmaking-container .user-border .avatar-circle {
+  color: var(--color-primary, #2D6A4F);
+}
+
+.matchmaking-container .rival-border .avatar-circle {
+  color: #B45309;
+}
+
+.matchmaking-container .ovr-badge {
   position: absolute;
-  bottom: -4px;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-extrabold);
-  color: var(--color-text-inverse);
-  box-shadow: var(--shadow-visual);
+  bottom: -6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #FFFFFF;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.ovr-user {
-  background-color: var(--color-primary);
+.matchmaking-container .ovr-user {
+  background-color: var(--color-primary, #2D6A4F);
 }
 
-.ovr-rival {
-  background-color: var(--color-gold);
+.matchmaking-container .ovr-rival {
+  background-color: #D97706;
 }
 
 .matchmaking-container .versus-card .team-name {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-extrabold);
-  color: var(--color-text);
-  margin-top: var(--space-1);
-  white-space: normal;
-  line-height: var(--line-height-sm);
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--color-text, #212529);
+  margin: 0.25rem 0 0.1rem;
+  line-height: 1.25;
   text-align: center;
   max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.team-owner {
-  font-size: var(--font-size-xs);
-  color: var(--color-slate-subtle);
-  margin-bottom: var(--space-1);
+.matchmaking-container .team-owner {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text-muted, #6B7280);
+  margin: 0 0 0.35rem;
 }
 
-.rank-badge {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  padding: 3px var(--space-2);
-  border-radius: var(--radius-pill);
+.matchmaking-container .rank-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
 }
 
-.rank-user {
-  background-color: var(--color-primary-light);
-  color: var(--color-primary-dark);
+.matchmaking-container .rank-user {
+  background-color: #F0F7F4;
+  color: var(--color-primary, #2D6A4F);
+  border-color: #A7D7C5;
 }
 
-.rank-rival {
-  background-color: var(--color-gold-light);
-  color: var(--color-gold-dark);
+.matchmaking-container .rank-rival {
+  background-color: #FEF3C7;
+  color: #92400E;
+  border-color: #FDE68A;
 }
 
 .matchmaking-container .versus-card .versus-center {
@@ -186,298 +206,343 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 var(--space-2);
+  gap: 0.25rem;
+  padding: 0 0.5rem;
 }
 
-.vs-circle {
-  width: var(--avatar-size-sm);
-  height: var(--avatar-size-sm);
-  background-color: var(--color-dark-slate);
-  color: var(--color-text-inverse);
-  border-radius: var(--radius-pill);
+.matchmaking-container .vs-circle {
+  width: 36px;
+  height: 36px;
+  background-color: #0F172A;
+  color: #FFFFFF;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-extrabold);
-  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
 }
 
-.vs-label {
-  font-size: 0.625rem;
-  font-weight: var(--font-weight-bold);
-  color: var(--color-slate-subtle);
-  letter-spacing: 0.5px;
+.matchmaking-container .vs-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.06em;
 }
 
-/* 3. Tarjeta Comparativa Táctica */
-.stats-header {
+/* =============================================================================
+   4. TARJETA COMPARATIVA TÁCTICA
+   ============================================================================= */
+
+.matchmaking-container .stats-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: var(--space-3);
-  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
-  margin-bottom: var(--space-3);
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--color-border, #DEE2E6);
+  margin-bottom: 0.75rem;
 }
 
-.title-tactics {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-extrabold);
-  color: var(--color-text-muted);
-  letter-spacing: 0.8px;
+.matchmaking-container .title-tactics {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.tag-label {
+.matchmaking-container .tag-label {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
-.tag-user {
-  color: var(--color-primary);
+.matchmaking-container .tag-user {
+  color: var(--color-primary, #2D6A4F);
 }
 
-.tag-rival {
-  color: var(--color-gold);
+.matchmaking-container .tag-rival {
+  color: #D97706;
 }
 
-.dot {
-  width: var(--indicator-dot-size);
-  height: var(--indicator-dot-size);
-  border-radius: var(--radius-pill);
+.matchmaking-container .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
 }
 
-.user-dot {
-  background-color: var(--color-primary);
+.matchmaking-container .user-dot {
+  background-color: var(--color-primary, #2D6A4F);
 }
 
-.rival-dot {
-  background-color: var(--color-gold);
+.matchmaking-container .rival-dot {
+  background-color: #D97706;
 }
 
-.stats-list {
+.matchmaking-container .stats-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 0.65rem;
 }
 
-.stat-row {
+.matchmaking-container .stat-row {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 0.25rem;
 }
 
-.stat-top {
+.matchmaking-container .stat-top {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
 }
 
-.stat-name {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-extrabold);
-  color: var(--color-text-muted);
-  letter-spacing: 0.5px;
+.matchmaking-container .stat-name {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.04em;
 }
 
-.stat-val {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-extrabold);
+.matchmaking-container .stat-val {
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
-.user-val {
-  color: var(--color-primary);
+.matchmaking-container .user-val {
+  color: var(--color-primary, #2D6A4F);
 }
 
-.rival-val {
-  color: var(--color-text);
+.matchmaking-container .rival-val {
+  color: #D97706;
 }
 
-.stat-bars {
+.matchmaking-container .stat-bars {
   display: flex;
-  gap: var(--space-2);
+  gap: 0.5rem;
   width: 100%;
 }
 
-.bar-track {
+.matchmaking-container .bar-track {
   flex: 1;
   height: 6px;
-  background-color: var(--color-chart-neutral);
-  border-radius: var(--radius-pill);
+  background-color: #F1F5F9;
+  border-radius: 9999px;
   overflow: hidden;
   position: relative;
 }
 
-.user-track {
+.matchmaking-container .user-track {
   display: flex;
   justify-content: flex-end;
 }
 
-.bar-fill {
+.matchmaking-container .bar-fill {
   height: 100%;
-  border-radius: var(--radius-pill);
-  transition: width var(--transition-slow);
+  border-radius: 9999px;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.user-fill {
-  background-color: var(--color-primary);
+.matchmaking-container .user-fill {
+  background-color: var(--color-primary, #2D6A4F);
 }
 
-.rival-fill {
-  background-color: var(--color-gold);
+.matchmaking-container .rival-fill {
+  background-color: #D97706;
 }
 
-/* Caja de Ventaja Táctica */
-.tactical-insight {
+/* Caja de Ventaja / Alerta Táctica */
+.matchmaking-container .tactical-insight {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  background-color: var(--color-primary-light);
-  border: var(--border-width-thin) solid rgba(45, 106, 79, 0.2);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  margin-top: var(--space-3);
+  gap: 0.6rem;
+  background-color: #F0F7F4;
+  border: 1px solid rgba(45, 106, 79, 0.25);
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  margin-top: 0.85rem;
 }
 
-.insight-icon {
-  color: var(--color-primary);
+.matchmaking-container .tactical-insight.is-warning {
+  background-color: #FFFBEB;
+  border-color: #FDE68A;
+}
+
+.matchmaking-container .tactical-insight.is-neutral {
+  background-color: #F8FAFC;
+  border-color: #E2E8F0;
+}
+
+.matchmaking-container .insight-icon {
+  color: var(--color-primary, #2D6A4F);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.insight-text {
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-xs);
-  color: var(--color-primary-dark);
+.matchmaking-container .tactical-insight.is-warning .insight-icon {
+  color: #D97706;
 }
 
-/* 4. Tarjeta de Estado y Spinner */
+.matchmaking-container .tactical-insight.is-neutral .insight-icon {
+  color: #475569;
+}
+
+.matchmaking-container .insight-text {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--color-primary-dark, #1B4130);
+  margin: 0;
+}
+
+.matchmaking-container .tactical-insight.is-warning .insight-text {
+  color: #92400E;
+}
+
+.matchmaking-container .tactical-insight.is-neutral .insight-text {
+  color: #334155;
+}
+
+/* =============================================================================
+   5. TARJETA DE ESTADO, SPINNER Y BOTÓN DE ACCIÓN
+   ============================================================================= */
+
 .matchmaking-container .card.status-card {
   text-align: center;
-  padding: var(--space-4) var(--space-3);
+  padding: 0.95rem 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.spinner-wrapper {
-  margin-bottom: var(--space-2);
+.matchmaking-container .spinner-wrapper {
+  margin-bottom: 0.45rem;
 }
 
-.pulse-spinner {
-  width: var(--spinner-size);
-  height: var(--spinner-size);
-  border: var(--border-width-thick) solid var(--color-border-subtle);
-  border-top-color: var(--color-primary);
-  border-radius: var(--radius-pill);
-  animation: spin 0.9s linear infinite;
+.matchmaking-container .pulse-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #E2E8F0;
+  border-top-color: var(--color-primary, #2D6A4F);
+  border-radius: 50%;
+  animation: matchmakingSpin 0.9s linear infinite;
 }
 
-/* Detener el giro del spinner */
 .matchmaking-container .pulse-spinner.is-stopped {
   animation: none;
-  border-color: var(--color-primary);
+  border-color: var(--color-primary, #2D6A4F);
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-primary-light);
+  background-color: #F0F7F4;
 }
 
 .matchmaking-container .pulse-spinner.is-stopped::after {
   content: '✓';
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-extrabold);
-  color: var(--color-primary);
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--color-primary, #2D6A4F);
 }
 
-@keyframes spin {
+@keyframes matchmakingSpin {
   to {
     transform: rotate(360deg);
   }
 }
 
-.match-found-title {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-extrabold);
-  color: var(--color-text);
-  margin-bottom: var(--space-1);
+.matchmaking-container .match-found-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--color-text, #212529);
+  margin: 0 0 0.2rem;
 }
 
-.match-found-desc {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-3);
+.matchmaking-container .match-found-desc {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text-muted, #6B7280);
+  margin: 0 0 0.65rem;
 }
 
-.ready-line {
+.matchmaking-container .ready-line {
   width: 100%;
   height: 3px;
-  background-color: var(--color-primary);
-  border-radius: var(--radius-pill);
+  background-color: var(--color-primary, #2D6A4F);
+  border-radius: 9999px;
 }
 
-/* Botón de Acción Principal (CTA) */
+/* Botón Principal de Inicio de Partido */
 .matchmaking-container .btn-start-match {
   width: 100%;
   box-sizing: border-box;
-  min-height: var(--btn-action-height);
-  background-color: var(--color-primary);
-  color: var(--color-text-inverse);
-  border: var(--border-width-none);
-  border-radius: var(--radius-btn);
-  padding: var(--space-3) var(--space-4);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-extrabold);
-  letter-spacing: 0.5px;
+  min-height: 50px;
+  background-color: var(--color-primary, #2D6A4F);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: var(--space-2);
-  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.25);
-  transition: transform var(--transition-fast), background-color var(--transition-fast);
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.22);
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.matchmaking-container .btn-start-match:hover {
-  background-color: var(--color-primary-hover);
+.matchmaking-container .btn-start-match:hover:not(:disabled) {
+  background-color: var(--color-primary-hover, #245640);
   transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(45, 106, 79, 0.28);
 }
 
-.matchmaking-container .btn-start-match:active {
-  background-color: var(--color-primary-dark);
+.matchmaking-container .btn-start-match:active:not(:disabled) {
+  background-color: var(--color-primary-dark, #1B4130);
   transform: translateY(1px);
 }
 
 .matchmaking-container .btn-start-match:disabled {
-  opacity: var(--opacity-disabled);
+  opacity: 0.65;
   cursor: not-allowed;
   transform: none;
 }
 
-.arrow-icon {
-  font-size: var(--font-size-sm);
+.matchmaking-container .arrow-icon {
+  font-size: 0.75rem;
+  line-height: 1;
 }
 
-/* 5. Footer */
+/* =============================================================================
+   6. FOOTER
+   ============================================================================= */
+
 .matchmaking-footer {
   text-align: center;
-  padding: var(--space-1) 0 var(--space-2);
+  padding: 0.15rem 0 0.25rem;
   width: 100%;
   box-sizing: border-box;
 }
 
-.footer-chip {
+.matchmaking-container .footer-chip {
   display: inline-block;
-  background: var(--color-surface-glass);
-  border: var(--border-width-thin) solid var(--color-border-subtle);
-  border-radius: var(--radius-pill);
-  padding: var(--space-1) var(--space-3);
-  font-size: 0.65rem;
-  font-weight: var(--font-weight-bold);
-  color: var(--color-slate-subtle);
-  letter-spacing: 0.5px;
+  background-color: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #DEE2E6);
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.05em;
 }

@@ -371,6 +371,85 @@
   justify-content: space-between;
 }
 
+.market-section-header--collapsible {
+  cursor: pointer;
+  user-select: none;
+  padding: 0.35rem 0.5rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.market-section-header--collapsible:hover {
+  background-color: #F8F9FA;
+}
+
+.market-section--squad.is-collapsed .market-section-header--collapsible {
+  background-color: #F0F7F4;
+  border: 1.5px dashed rgba(45, 106, 79, 0.4);
+  padding: 0.65rem 0.85rem;
+  box-shadow: 0 2px 6px rgba(45, 106, 79, 0.06);
+}
+
+.market-section--squad.is-collapsed .section-title {
+  color: #2D6A4F;
+}
+
+.section-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-toggle-squad {
+  height: 26px;
+  padding: 0 0.55rem;
+  border-radius: 8px;
+  border: 1px solid #DEE2E6;
+  background-color: #FFFFFF;
+  color: #6B7280;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.65rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.btn-toggle-squad:hover {
+  border-color: #2D6A4F;
+  color: #2D6A4F;
+  background-color: #F0F7F4;
+}
+
+.market-section--squad.is-collapsed .btn-toggle-squad {
+  background-color: #2D6A4F;
+  border-color: #2D6A4F;
+  color: #FFFFFF;
+  box-shadow: 0 2px 5px rgba(45, 106, 79, 0.22);
+}
+
+.btn-toggle-squad__label {
+  line-height: 1;
+}
+
+.toggle-squad-icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.22s ease;
+}
+
+.market-section--squad.is-collapsed .toggle-squad-icon {
+  transform: rotate(180deg);
+}
+
+.market-section--squad.is-collapsed #my-squad-player-list {
+  display: none;
+}
+
 .section-title-group {
   display: flex;
   align-items: center;
@@ -559,13 +638,57 @@
   align-items: center;
   font-size: 0.625rem;
   font-weight: 800;
-  padding: 0.12rem 0.38rem;
-  border-radius: 4px;
+  padding: 0.14rem 0.42rem;
+  border-radius: 9999px;
   background-color: #F0F7F4;
   color: #2D6A4F;
   border: 1px solid #DEE2E6;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
+  line-height: 1.1;
+}
+
+/* Niveles y colores de valoración según rating (Bronce, Plata y Oro) */
+.player-rating-star.tier-bronze-common {
+  background: #78350F !important;
+  color: #FEF3C7 !important;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.player-rating-star.tier-bronze-special {
+  background: linear-gradient(135deg, #B45309 0%, #78350F 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid #FDE68A;
+  box-shadow: 0 1px 4px rgba(120, 53, 15, 0.35);
+}
+
+.player-rating-star.tier-silver-common {
+  background: #64748B !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.player-rating-star.tier-silver-special {
+  background: linear-gradient(135deg, #E2E8F0 0%, #94A3B8 100%) !important;
+  color: #0F172A !important;
+  border: 1px solid #CBD5E1;
+  box-shadow: 0 1px 3px rgba(71, 85, 105, 0.25);
+}
+
+.player-rating-star.tier-gold-common {
+  background: #EAB308 !important;
+  color: #1E293B !important;
+  border: 1px solid #FEF08A;
+  box-shadow: 0 1px 4px rgba(234, 179, 8, 0.35);
+}
+
+.player-rating-star.tier-gold-special {
+  background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 50%, #D97706 100%) !important;
+  color: #0F172A !important;
+  border: 1px solid #FDE68A;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.5), 0 1px 3px rgba(0, 0, 0, 0.25);
+  font-weight: 900 !important;
 }
 
 .player-sub-row {
@@ -576,14 +699,47 @@
 }
 
 .player-role-badge {
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
+  padding: 0.14rem 0.42rem;
+  border-radius: 5px;
   font-size: 0.625rem;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   background-color: #F8F9FA;
   color: #6B7280;
   border: 1px solid #DEE2E6;
   line-height: 1;
+}
+
+/* Colores distintivos por posición para .player-role-badge */
+.player-role-badge--por,
+.player-role-badge[data-role="POR"] {
+  background-color: #FEF9C3;
+  color: #B45309;
+  border-color: #FDE047;
+}
+
+.player-role-badge--def,
+.player-role-badge[data-role="DEF"] {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border-color: #BFDBFE;
+}
+
+.player-role-badge--mc,
+.player-role-badge--med,
+.player-role-badge[data-role="MC"],
+.player-role-badge[data-role="MED"] {
+  background-color: #ECFDF5;
+  color: #047857;
+  border-color: #A7F3D0;
+}
+
+.player-role-badge--del,
+.player-role-badge[data-role="DEL"] {
+  background-color: #FEF2F2;
+  color: #B91C1C;
+  border-color: #FECACA;
 }
 
 .player-desc-text {

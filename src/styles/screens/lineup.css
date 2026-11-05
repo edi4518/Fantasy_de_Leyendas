@@ -345,6 +345,46 @@
   box-sizing: border-box;
 }
 
+.lineup-token-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-top: 3px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.lineup-token-img {
+  width: 38px !important;
+  height: 38px !important;
+  max-width: 38px !important;
+  max-height: 38px !important;
+  object-fit: contain !important;
+  object-position: center bottom !important;
+  display: block !important;
+  margin: 0 auto !important;
+  transform: translateY(2.5px);
+  pointer-events: none;
+}
+
+.empty-slot-reserve-item__avatar .lineup-token-img {
+  width: 24px !important;
+  height: 24px !important;
+  max-width: 24px !important;
+  max-height: 24px !important;
+  transform: translateY(1.5px);
+}
+
+.lineup-token-initial {
+  font-weight: 800;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
 /* Resaltado en ROJO fuerte del borde cuando el jugador estÃ¡ fuera de posiciÃ³n */
 .pitch-slot.is-penalized .pitch-slot__token {
   border: 2.5px solid #ef4444 !important;
@@ -1048,6 +1088,9 @@
   font-size: 1.15rem;
   font-weight: 800;
   flex-shrink: 0;
+  overflow: hidden;
+  border: 2px solid #2D6A4F;
+  box-sizing: border-box;
 }
 
 .player-action-sheet__info {
@@ -1213,6 +1256,27 @@
   font-weight: 700;
   color: #1e293b;
   transition: all 0.15s ease;
+}
+
+.empty-slot-reserve-item__left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.empty-slot-reserve-item__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #2D6A4F;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  flex-shrink: 0;
 }
 
 .empty-slot-reserve-item:hover {
