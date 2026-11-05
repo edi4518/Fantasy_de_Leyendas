@@ -26,7 +26,7 @@ export async function bootstrapApp() {
   if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
     try {
       // Registrado con scope global '/' para interceptar rutas de public y src
-      const registration = await navigator.serviceWorker.register('/public/sw.js', { scope: '/' });
+      const registration = await navigator.serviceWorker.register('/public/sw.js');
       registration.update();
       console.info('[PWA] Service Worker registrado exitosamente con scope:', registration.scope);
     } catch (error) {

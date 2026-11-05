@@ -468,7 +468,6 @@
   width: 46px;
   height: 46px;
   flex-shrink: 0;
-  
 }
 
 .mvp-avatar {
@@ -486,7 +485,7 @@
 .mvp-avatar img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .mvp-avatar-icon {
@@ -582,7 +581,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   6. SECCIÓN "MI EQUIPO" (Círculos posicionales con máscara perfecta y foto centrada)
+   6. SECCIÓN "MI EQUIPO" (Círculos posicionales con código de color)
    -------------------------------------------------------------------------- */
 .team-section {
   display: flex;
@@ -636,37 +635,27 @@
 .player-slot__avatar {
   width: 44px;
   height: 44px;
-  min-width: 44px;
-  min-height: 44px;
   border-radius: 50%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  overflow: hidden; /* Corta la imagen al borde circular */
+  overflow: hidden;
   position: relative;
-  background-color: #FFFFFF;
-  box-sizing: border-box;
-  padding: 0;
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
-.player-slot__avatar img,
-.player-slot__img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
+.player-slot__avatar img {
+  width: 40px;
+  height: 40px;
   object-fit: contain;
-  object-position: center top; /* Centrado y enfocado en la cara */
+  object-position: center bottom;
   display: block;
 }
 
 .player-slot__icon {
   width: 20px;
   height: 20px;
-  display: block;
-  margin: auto;
-  flex-shrink: 0;
 }
 
 .player-slot__role {
@@ -675,6 +664,50 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
   text-align: center;
+}
+
+/* === Slot Vacío: Círculo con líneas punteadas (como pitch-slot__token) === */
+.player-slot--empty {
+  opacity: 0.85;
+}
+
+.player-slot--empty:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.player-slot__avatar--empty,
+.player-slot__avatar.player-slot__avatar--empty,
+.player-slot--empty .player-slot__avatar {
+  border: 2px dashed #94A3B8 !important;
+  background-color: #F8FAFC !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.player-slot__empty-plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1.4rem;
+  font-weight: 300;
+  line-height: 1;
+  color: #64748B !important;
+  user-select: none;
+  pointer-events: none;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+.player-slot__role--empty {
+  color: #94A3B8 !important;
+  font-weight: 700;
 }
 
 /* === Color posicional: POR (Amarillo / Dorado) === */
@@ -1009,7 +1042,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   10. MODAL DE ESTADÍSTICAS DEL EQUIPO & BOTONES DE ESTADÍSTICAS
+   7. MODAL DE ESTADÍSTICAS DEL EQUIPO & BOTONES DE ESTADÍSTICAS
    -------------------------------------------------------------------------- */
 #mvp-stats-clickable {
   cursor: pointer;
@@ -1279,4 +1312,179 @@
 
 .stat-chip--rating .stat-chip__val {
   color: #2D6A4F;
+}
+
+
+/* ==========================================================================
+   MODAL DE REQUISITOS DE ALINEACION PARA BUSCAR RIVAL
+   ========================================================================== */
+.lineup-req-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  z-index: 9999;
+  opacity: 1;
+  animation: lineupModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes lineupModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.lineup-req-overlay.is-closing {
+  animation: lineupModalFadeOut 0.15s ease forwards;
+}
+
+@keyframes lineupModalFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.lineup-req-card {
+  width: 100%;
+  max-width: 380px;
+  background-color: #FFFFFF;
+  border-radius: 20px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: lineupModalScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes lineupModalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.lineup-req-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.875rem;
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.lineup-req-icon-wrap svg {
+  width: 28px;
+  height: 28px;
+}
+
+.lineup-req-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.3;
+}
+
+.lineup-req-desc {
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0 0 1rem 0;
+}
+
+.lineup-req-list {
+  width: 100%;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.lineup-req-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.lineup-req-badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.lineup-req-badge--complete {
+  background-color: #DCFCE7;
+  color: #166534;
+}
+
+.lineup-req-badge--incomplete {
+  background-color: #FEE2E2;
+  color: #991B1B;
+}
+
+.lineup-req-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.lineup-req-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.lineup-req-btn--primary {
+  background: #2D6A4F;
+  color: #FFFFFF;
+}
+
+.lineup-req-btn--primary:hover {
+  background: #1B4332;
+}
+
+.lineup-req-btn--secondary {
+  background: #F1F5F9;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+}
+
+.lineup-req-btn--secondary:hover {
+  background: #E2E8F0;
 }

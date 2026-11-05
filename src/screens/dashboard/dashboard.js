@@ -1,5 +1,7 @@
-import { getPlayerRating, getPlayerPrice, DEFAULT_HOME_SQUAD } from '../lineup/lineup.js';
-import { getPlayerPhoto } from '../../services/player-service.js';
+const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
+import { FORMATIONS_6V6 } from '../../domain/formation-rules.js';
+import { apiClient } from '../../services/api-client.js';
+import { getPlayerRating, getPlayerPrice } from '../lineup/lineup.js';
 /**
  * @file dashboard.js
  * @description Módulo controlador para la vista principal (Dashboard / Inicio) de Fantasy de Leyendas.
@@ -20,42 +22,43 @@ export const DEFAULT_HOME_DATA = {
     avatarUrl: null
   },
   budget: {
-    spent: 86.5,
-    available: 13.5,
-    total: 100.0,
-    percentage: 87
+    spent: 0.0,
+    available: 130.0,
+    total: 130.0,
+    percentage: 0
   },
-  valGlobal: 94,
+  valGlobal: 0,
   formation: '1-2-2-1',
-  startersCount: 6,
-  reservesCount: 3,
-  totalPlayers: 9,
+  startersCount: 0,
+  reservesCount: 0,
+  totalPlayers: 0,
   mvp: {
-    name: 'Messi',
+    name: 'Sin MVP asignado',
     tag: 'MVP',
-    position: 'DEL',
-    score: '-',
+    position: 'Ficha en el mercado',
     matches: 0,
     goals: 0,
+    score: '-',
     maxScore: 10,
     avatarUrl: null
   },
   team: {
-    count: 6,
+    count: 0,
     max: 6,
-    players: [
-      { id: 1, role: 'POR', name: 'Casillas', rating: 89, avatarUrl: null },
-      { id: 2, role: 'DEF', name: 'Maldini', rating: 92, avatarUrl: null },
-      { id: 3, role: 'DEF', name: 'Baresi', rating: 93, avatarUrl: null },
-      { id: 4, role: 'MC', name: 'Zidane', rating: 96, avatarUrl: null },
-      { id: 5, role: 'MC', name: 'Xavi', rating: 97, avatarUrl: null },
-      { id: 6, role: 'DEL', name: 'Messi', rating: 99, avatarUrl: null }
-    ]
+    slots: [
+      { slotIndex: 0, assignedRole: 'POR', player: null, avatarUrl: null },
+      { slotIndex: 1, assignedRole: 'DEF', player: null, avatarUrl: null },
+      { slotIndex: 2, assignedRole: 'DEF', player: null, avatarUrl: null },
+      { slotIndex: 3, assignedRole: 'MC', player: null, avatarUrl: null },
+      { slotIndex: 4, assignedRole: 'MC', player: null, avatarUrl: null },
+      { slotIndex: 5, assignedRole: 'DEL', player: null, avatarUrl: null }
+    ],
+    players: []
   },
   streak: {
     lastMatch: {
       result: 'V',
-      scoreText: 'V 2 - 1',
+      scoreText: 'V 2 – 1',
       opponent: 'vs MánagerX'
     },
     recentResults: ['V', 'V', 'D', 'E', 'V']
@@ -104,7 +107,7 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
     const budgetBarEl = document.getElementById('budget-progress-bar');
     const budgetContainerEl = document.getElementById('budget-progress-container');
 
-    const percentage = data.budget?.percentage ?? Math.round((data.budget?.spent / (data.budget?.total || 100)) * 100);
+    const percentage = data.budget?.percentage ?? Math.round((data.budget?.spent / (data.budget?.total || 130)) * 100);
 
     if (budgetPercentEl) {
       budgetPercentEl.textContent = `${percentage}%`;
@@ -124,10 +127,10 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
 
     const lineupStatusEl = document.getElementById('budget-lineup-status');
     if (lineupStatusEl) {
-      const starters = data.startersCount ?? 6;
-      const reserves = data.reservesCount ?? 3;
-      if (starters < 6 || reserves < 3) {
-        lineupStatusEl.textContent = `Alineación: ${starters}/6 Titulares • ${reserves}/3 Suplentes`;
+      const starters = data.startersCount ?? 0;
+      const reserves = data.reservesCount ?? 0;
+      if (starters < 6 || reserves < 4) {
+        lineupStatusEl.textContent = `Alineación: ${starters}/6 Titulares • ${reserves}/4 Suplentes`;
         lineupStatusEl.classList.add('is-incomplete');
       } else {
         lineupStatusEl.textContent = `Alineación: ${starters} Titulares • ${reserves} Suplentes`;
@@ -178,72 +181,75 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
     }
 
     const mvpAvatarEl = document.getElementById('mvp-avatar');
-    if (mvpAvatarEl) {
-      if (data.mvp?.avatarUrl) {
-        mvpAvatarEl.innerHTML = `
-          <img src="${data.mvp.avatarUrl}" 
-               alt="${data.mvp.name || 'MVP'}" 
-               class="mvp-avatar-img"
-               onerror="this.parentElement.innerHTML='<svg class=\\'mvp-avatar-icon\\' viewBox=\\'0 0 24 24\\' fill=\\'currentColor\\'><path d=\\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\\'/></svg>';">
-        `;
-      } else {
-        mvpAvatarEl.innerHTML = `
-          <svg class="mvp-avatar-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
-            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-          </svg>
-        `;
-      }
+    if (mvpAvatarEl && data.mvp?.avatarUrl) {
+      mvpAvatarEl.innerHTML = `<img src="${data.mvp.avatarUrl}" alt="${data.mvp.name}">`;
     }
 
-    // 5. Mi Equipo (Grid / Flex de Jugadores con imagen centrada y sin silueta residual)
+    // 5. Mi Equipo (Grid / Flex de Jugadores con soporte para slots vacíos punteados)
     const teamCountEl = document.getElementById('team-players-count');
     if (teamCountEl && data.team) {
-      teamCountEl.textContent = `${data.team.count ?? data.team.players?.length ?? 6} / ${data.team.max ?? 6} jugadores`;
+      teamCountEl.textContent = `${data.team.count ?? 0} / ${data.team.max ?? 6} jugadores`;
     }
 
     const teamSlotsContainer = document.getElementById('team-slots-container');
-    if (teamSlotsContainer && Array.isArray(data.team?.players)) {
-      const slots = teamSlotsContainer.querySelectorAll('.player-slot');
-      slots.forEach((slot, index) => {
-        const player = data.team.players[index] || null;
-        const avatar = slot.querySelector('.player-slot__avatar');
-        const roleLabel = slot.querySelector('.player-slot__role');
-        if (!avatar || !roleLabel) return;
+    if (teamSlotsContainer) {
+      const slotsToRender = Array.isArray(data.team?.slots) && data.team.slots.length > 0
+        ? data.team.slots
+        : (data.team?.players?.length > 0
+            ? data.team.players.map((p, i) => ({ slotIndex: i, assignedRole: p.role, player: p, avatarUrl: p.avatarUrl }))
+            : [
+                { slotIndex: 0, assignedRole: 'POR', player: null },
+                { slotIndex: 1, assignedRole: 'DEF', player: null },
+                { slotIndex: 2, assignedRole: 'DEF', player: null },
+                { slotIndex: 3, assignedRole: 'MC', player: null },
+                { slotIndex: 4, assignedRole: 'MC', player: null },
+                { slotIndex: 5, assignedRole: 'DEL', player: null }
+              ]
+          );
 
-        const role = roleLabel.textContent.trim();
-        const name = player?.name || '';
-        const label = name ? `${name} - ${role}` : `Puesto ${role} sin asignar`;
-        const icon = avatar.querySelector('.player-slot__icon');
-        const currentImage = avatar.querySelector('img');
-        currentImage?.remove();
+      teamSlotsContainer.innerHTML = slotsToRender
+        .map((slot) => {
+          const assignedRole = (slot.assignedRole || 'MC').toUpperCase();
+          const player = slot.player;
 
-        slot.classList.toggle('is-empty', !player);
-        slot.title = label;
-        avatar.setAttribute('aria-label', label);
-
-        if (player?.avatarUrl) {
-          const image = document.createElement('img');
-          image.src = player.avatarUrl;
-          image.alt = name || role;
-          image.className = 'player-slot__img';
-
-          if (icon) {
-            icon.style.display = 'none';
+          // CASO 1: Slot vacío con líneas punteadas (idéntico al estilo de pitch-slot__token)
+          if (!player) {
+            return `
+              <div class="player-slot player-slot--empty" role="listitem" title="Puesto libre (${assignedRole})">
+                <div class="player-slot__avatar player-slot__avatar--empty" data-position="${assignedRole}" aria-label="Puesto libre ${assignedRole}">
+                  <span class="player-slot__empty-plus">+</span>
+                </div>
+                <span class="player-slot__role player-slot__role--empty">${assignedRole}</span>
+              </div>
+            `;
           }
-          avatar.appendChild(image);
 
-          image.addEventListener('error', () => {
-            image.remove();
-            if (icon) {
-              icon.style.display = '';
-              icon.removeAttribute('hidden');
-            }
-          }, { once: true });
-        } else if (icon) {
-          icon.style.display = '';
-          icon.removeAttribute('hidden');
-        }
-      });
+          // CASO 2: Slot ocupado con jugador ubicado en el pitch-slot
+          const naturalRole = (player.role || player.posicion_base || assignedRole).toUpperCase();
+          const role = assignedRole.toUpperCase();
+          const roleClass = role.toLowerCase();
+          const name = player.nombre || player.name || `Jugador ${role}`;
+          const rawImg = player.image_filename || player.photo_url || player.avatarUrl || slot.avatarUrl;
+          const avatarUrl = rawImg
+            ? (rawImg.startsWith('http://') || rawImg.startsWith('https://') ? rawImg : `${STORAGE_URL}${rawImg}`)
+            : null;
+
+          return `
+            <div class="player-slot player-slot--${roleClass}" role="listitem" title="${name} (${naturalRole}) - ${role}">
+              <div class="player-slot__avatar" data-position="${role}" aria-label="${name} - ${role}">
+                ${
+                  avatarUrl
+                    ? `<img src="${avatarUrl}" alt="${name}" onerror="this.outerHTML='<svg class=\'player-slot__icon\' viewBox=\'0 0 24 24\' fill=\'currentColor\' stroke=\'none\' aria-hidden=\'true\'><path d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'">`
+                    : `<svg class="player-slot__icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                      </svg>`
+                }
+              </div>
+              <span class="player-slot__role">${role}</span>
+            </div>
+          `;
+        })
+        .join('');
     }
 
     // 6. Racha Reciente (Totalmente dinámica y reactiva)
@@ -320,29 +326,16 @@ export async function fetchHomeData() {
   let managerData = null;
   let analyticsData = null;
 
-  // 1. Fetch Perfil del Mánager (/api/me)
+  // 1. Fetch Perfil del Mánager (/api/me) a través del cliente oficial de FastAPI
   try {
-    const resMe = await fetch('/api/me', { headers });
-    if (resMe.ok) {
-      managerData = await resMe.json();
-    } else {
-      console.warn('[Dashboard] /api/me retornó código:', resMe.status);
-    }
+    managerData = await apiClient.get('/me');
   } catch (err) {
     console.info('[Dashboard] Modo offline o backend no disponible para /api/me:', err.message);
   }
 
-  // 2. Fetch Resumen Analítico (/api/analytics/summary o /api/analytics/meta-stats)
+  // 2. Fetch Resumen Analítico (/api/analytics/summary)
   try {
-    const resAnalytics = await fetch('/api/analytics/summary', { headers });
-    if (resAnalytics.ok) {
-      analyticsData = await resAnalytics.json();
-    } else {
-      const resMeta = await fetch('/api/analytics/meta-stats', { headers }).catch(() => null);
-      if (resMeta && resMeta.ok) {
-        analyticsData = await resMeta.json();
-      }
-    }
+    analyticsData = await apiClient.get('/analytics/summary');
   } catch (err) {
     console.info('[Dashboard] Modo offline o backend no disponible para analíticas:', err.message);
   }
@@ -364,6 +357,15 @@ export async function fetchHomeData() {
     console.debug('[Dashboard] Error leyendo datos locales de partidos:', e);
   }
 
+    // 3.5 Lectura de estadisticas acumuladas de jugadores
+  let playerStats = {};
+  try {
+    const rawPlayerStats = localStorage.getItem('fantasy_player_stats');
+    if (rawPlayerStats) playerStats = JSON.parse(rawPlayerStats);
+  } catch (e) {
+    console.debug('[Dashboard] Error leyendo estadisticas locales de jugadores:', e);
+  }
+
   // 4. Lectura y cálculo reactivo de la Alineación y Plantilla Activa
   let activeSquad = null;
   try {
@@ -375,29 +377,27 @@ export async function fetchHomeData() {
     console.debug('[Dashboard] Error leyendo plantilla activa:', e);
   }
 
-  if (!activeSquad || !Array.isArray(activeSquad.players) || activeSquad.players.length === 0) {
-    activeSquad = DEFAULT_HOME_SQUAD;
+  // Garantizar estructura de plantilla de 10 posiciones (0..5 titulares, 6..9 reservas)
+  if (!activeSquad || !Array.isArray(activeSquad.players)) {
+    activeSquad = {
+      name: 'Tu Equipo',
+      formation: '1-2-2-1',
+      players: new Array(10).fill(null)
+    };
+  }
+  while (activeSquad.players.length < 10) {
+    activeSquad.players.push(null);
   }
 
-  // Leer estadísticas acumuladas reales de los jugadores
-  let playerStats = {};
-  try {
-    const rawStats = localStorage.getItem('fantasy_player_stats');
-    if (rawStats) playerStats = JSON.parse(rawStats);
-  } catch (e) {
-    console.debug('[Dashboard] Error leyendo fantasy_player_stats:', e);
-  }
-
-  const starterSlots = activeSquad.players.slice(0, 6);
-  const starters = starterSlots.filter(Boolean);
-  const reserves = activeSquad.players.slice(6, 9).filter(Boolean);
+  const starters = activeSquad.players.slice(0, 6).filter(Boolean);
+  const reserves = activeSquad.players.slice(6).filter(Boolean);
   const allSquadPlayers = activeSquad.players.filter(Boolean);
 
   // Cálculo del presupuesto gastado y disponible
   const totalSpent = allSquadPlayers.reduce((acc, p) => acc + getPlayerPrice(p), 0);
   const spentRounded = Math.round(totalSpent * 10) / 10;
-  const availableRounded = Math.max(0, Math.round((100.0 - spentRounded) * 10) / 10);
-  const budgetPercentage = Math.min(100, Math.round((spentRounded / 100.0) * 100));
+  const availableRounded = Math.max(0, Math.round((130.0 - spentRounded) * 10) / 10);
+  const budgetPercentage = Math.min(100, Math.round((spentRounded / 130.0) * 100));
 
   // Cálculo de Valoración Global (media real de los 6 puestos titulares)
   const startersTotalRating = starters.reduce((acc, p) => acc + getPlayerRating(p), 0);
@@ -449,7 +449,7 @@ export async function fetchHomeData() {
       ranking: localStats?.ranking ?? managerData?.ranking ?? DEFAULT_HOME_DATA.manager.ranking
     },
     budget: {
-      total: 100.0,
+      total: 130.0,
       spent: spentRounded,
       available: availableRounded,
       percentage: budgetPercentage
@@ -462,13 +462,26 @@ export async function fetchHomeData() {
     team: {
       count: starters.length,
       max: 6,
-      players: starterSlots.map((p) => p ? ({
-        id: p.id,
-        name: p.name || p.nombre,
+      slots: [0, 1, 2, 3, 4, 5].map((slotIdx) => {
+        const formationSlots = FORMATIONS_6V6[activeSquad.formation]?.slots || ['POR', 'DEF', 'DEF', 'MC', 'MC', 'DEL'];
+        const assignedRole = formationSlots[slotIdx] || 'JUG';
+        const p = activeSquad.players[slotIdx];
+        if (!p) {
+          return { slotIndex: slotIdx, assignedRole, player: null, avatarUrl: null };
+        }
+        const rawImg = p.image_filename || p.photo_url || p.avatarUrl;
+        const avatarUrl = rawImg
+          ? (rawImg.startsWith('http://') || rawImg.startsWith('https://') ? rawImg : `${STORAGE_URL}${rawImg}`)
+          : null;
+        return { slotIndex: slotIdx, assignedRole, player: p, avatarUrl };
+      }),
+      players: starters.map((p, idx) => ({
+        id: p.id || idx + 1,
+        name: p.nombre || p.name,
         role: p.role || p.posicion_base,
         rating: getPlayerRating(p),
-        avatarUrl: p.photo_url || p.avatarUrl || (typeof getPlayerPhoto === 'function' ? getPlayerPhoto(p) : null)
-      }) : null)
+        avatarUrl: p.image_filename ? (p.image_filename.startsWith('http') ? p.image_filename : `${STORAGE_URL}${p.image_filename}`) : null
+      }))
     },
     mvp: topPlayer ? {
       name: topPlayer.name || topPlayer.nombre,
@@ -480,11 +493,19 @@ export async function fetchHomeData() {
         ? Number(topStats.avgRating).toFixed(1)
         : '-',
       maxScore: 10,
-      avatarUrl: topPlayer.photo_url 
-        || topPlayer.avatarUrl 
-        || (typeof getPlayerPhoto === 'function' ? getPlayerPhoto(topPlayer) : null)
-        || (topPlayer.image_filename ? `https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/${topPlayer.image_filename}` : null)
-    } : DEFAULT_HOME_DATA.mvp,
+      avatarUrl: topPlayer.image_filename
+        ? (topPlayer.image_filename.startsWith('http') ? topPlayer.image_filename : `${STORAGE_URL}${topPlayer.image_filename}`)
+        : (topPlayer.photo_url || topPlayer.avatarUrl || null)
+    } : {
+      name: 'Sin MVP asignado',
+      tag: 'MVP',
+      position: 'Ficha en el mercado',
+      matches: 0,
+      goals: 0,
+      score: '-',
+      maxScore: 10,
+      avatarUrl: null
+    },
     streak: {
       ...DEFAULT_HOME_DATA.streak,
       ...(analyticsData?.streak || {}),
@@ -507,15 +528,163 @@ export async function fetchHomeData() {
  * Inicializa los eventos de interacción de la pantalla Dashboard.
  * @param {Object} [router] - Instancia de navegación SPA.
  */
+/**
+ * Valida si la plantilla del usuario cumple con los requisitos para disputar partidos:
+ * 6 jugadores titulares en cancha (indices 0 a 5) y 4 suplentes en el banquillo (indices 6 a 9).
+ */
+export function getLineupValidationStatus() {
+  let squad = null;
+  try {
+    const raw = localStorage.getItem('fantasy_active_squad');
+    if (raw) squad = JSON.parse(raw);
+  } catch (e) {}
+
+  const players = Array.isArray(squad?.players) ? squad.players : [];
+  const starters = players.slice(0, 6).filter(Boolean);
+  const reserves = players.slice(6, 10).filter(Boolean);
+
+  const startersCount = starters.length;
+  const reservesCount = reserves.length;
+  const isValid = startersCount === 6 && reservesCount === 4;
+
+  return {
+    isValid,
+    startersCount,
+    reservesCount,
+    missingStarters: 6 - startersCount,
+    missingReserves: 4 - reservesCount,
+    totalCount: startersCount + reservesCount
+  };
+}
+
+export function closeLineupRequirementModal() {
+  const existing = document.getElementById('lineup-req-modal-overlay');
+  if (existing) {
+    existing.classList.add('is-closing');
+    setTimeout(() => existing.remove(), 160);
+  }
+}
+
+/**
+ * Muestra el modal in-game cuando no se cumplen los requisitos para buscar rival.
+ */
+export function showLineupRequirementModal(status, router) {
+  closeLineupRequirementModal();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'lineup-req-modal-overlay';
+  overlay.className = 'lineup-req-overlay';
+
+  overlay.innerHTML = `
+    <div class="lineup-req-card" role="dialog" aria-modal="true" aria-labelledby="lineup-req-title">
+      <div class="lineup-req-icon-wrap" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+      </div>
+
+      <h3 class="lineup-req-title" id="lineup-req-title">Alineacion Incompleta</h3>
+      <p class="lineup-req-desc">
+        Para buscar rival y disputar un partido debes cumplir los requisitos oficiales de tu equipo:
+      </p>
+
+      <div class="lineup-req-list">
+        <div class="lineup-req-item">
+          <span>6 Titulares en cancha</span>
+          <span class="lineup-req-badge ${status.startersCount === 6 ? 'lineup-req-badge--complete' : 'lineup-req-badge--incomplete'}">
+            ${status.startersCount} / 6 ${status.startersCount === 6 ? 'OK' : `(faltan ${status.missingStarters})`}
+          </span>
+        </div>
+        <div class="lineup-req-item">
+          <span>4 Suplentes en banquillo</span>
+          <span class="lineup-req-badge ${status.reservesCount === 4 ? 'lineup-req-badge--complete' : 'lineup-req-badge--incomplete'}">
+            ${status.reservesCount} / 4 ${status.reservesCount === 4 ? 'OK' : `(faltan ${status.missingReserves})`}
+          </span>
+        </div>
+      </div>
+
+      <div class="lineup-req-actions">
+        ${
+          status.totalCount > 0 && status.missingStarters > 0
+            ? `<button type="button" class="lineup-req-btn lineup-req-btn--primary" id="btn-modal-go-lineup">
+                 Configurar en Pizarra
+               </button>`
+            : `<button type="button" class="lineup-req-btn lineup-req-btn--primary" id="btn-modal-go-market">
+                 Fichar en el Mercado
+               </button>`
+        }
+        ${
+          status.totalCount > 0 && status.missingStarters > 0
+            ? `<button type="button" class="lineup-req-btn lineup-req-btn--secondary" id="btn-modal-go-market">
+                 Ir al Mercado a Fichar
+               </button>`
+            : ''
+        }
+        <button type="button" class="lineup-req-btn lineup-req-btn--secondary" id="btn-modal-dismiss-req">
+          Entendido
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const btnLineup = overlay.querySelector('#btn-modal-go-lineup');
+  if (btnLineup) {
+    btnLineup.addEventListener('click', () => {
+      closeLineupRequirementModal();
+      if (window.router && typeof window.router.navigate === 'function') {
+        window.router.navigate('/lineup');
+      } else if (router && typeof router.navigate === 'function') {
+        router.navigate('/lineup');
+      } else {
+        window.location.hash = '#/lineup';
+      }
+    });
+  }
+
+  const btnMarket = overlay.querySelector('#btn-modal-go-market');
+  if (btnMarket) {
+    btnMarket.addEventListener('click', () => {
+      closeLineupRequirementModal();
+      if (window.router && typeof window.router.navigate === 'function') {
+        window.router.navigate('/market');
+      } else if (router && typeof router.navigate === 'function') {
+        router.navigate('/market');
+      } else {
+        window.location.hash = '#/market';
+      }
+    });
+  }
+
+  const btnDismiss = overlay.querySelector('#btn-modal-dismiss-req');
+  if (btnDismiss) {
+    btnDismiss.addEventListener('click', closeLineupRequirementModal);
+  }
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeLineupRequirementModal();
+  });
+}
+
 export function setupHomeEventListeners(router) {
   // 1. Botón "BUSCAR RIVAL" con animación de Matchmaking
+    // 1. Boton "BUSCAR RIVAL" con validacion estricta (6 titulares y 4 suplentes)
   const btnBuscarRival = document.getElementById('btn-buscar-rival');
   if (btnBuscarRival) {
     btnBuscarRival.addEventListener('click', (e) => {
       e.preventDefault();
+
+      // REGLA OFICIAL: Validar que cumpla con 6 titulares en cancha y 4 suplentes en banquillo
+      const lineupStatus = getLineupValidationStatus();
+      if (!lineupStatus.isValid) {
+        showLineupRequirementModal(lineupStatus, router);
+        return;
+      }
+
       console.info('[Dashboard] Iniciando emparejamiento para buscar rival...');
 
-      // Fase 1: Animación de búsqueda activa con radar/spinner
+      // Animacion de busqueda activa
       btnBuscarRival.disabled = true;
       btnBuscarRival.classList.add('is-searching');
       btnBuscarRival.innerHTML = `
@@ -523,7 +692,6 @@ export function setupHomeEventListeners(router) {
         <span>BUSCANDO RIVAL...</span>
       `;
 
-      // Redireccion fluida a la pantalla intermedia de Matchmaking y Comparativa Tactica
       setTimeout(() => {
         if (window.router && typeof window.router.navigate === 'function') {
           window.router.navigate('/matchmaking');
@@ -610,54 +778,55 @@ export function setupHomeEventListeners(router) {
   function renderStatsModalContent() {
     if (!statsListContainer) return;
 
-    let squad = DEFAULT_HOME_SQUAD;
+    let squad = null;
     try {
       const raw = localStorage.getItem('fantasy_active_squad');
       if (raw) squad = JSON.parse(raw);
-    } catch (e) { }
+    } catch (e) {}
 
     let stats = {};
     try {
       const raw = localStorage.getItem('fantasy_player_stats');
       if (raw) stats = JSON.parse(raw);
-    } catch (e) { }
+    } catch (e) {}
 
-    const rawList = Array.isArray(squad?.players) ? squad.players : DEFAULT_HOME_SQUAD.players;
-    const players = [];
-    for (let i = 0; i < 9; i++) {
-      players.push(rawList[i] || DEFAULT_HOME_SQUAD.players[i] || null);
+    const rawList = Array.isArray(squad?.players) ? squad.players : [];
+    const signedPlayers = [];
+    rawList.forEach((player, idx) => {
+      if (player && (player.name || player.nombre)) {
+        signedPlayers.push({ player, slotIndex: idx });
+      }
+    });
+
+    if (signedPlayers.length === 0) {
+      statsListContainer.innerHTML = `
+        <div class="player-stat-card player-stat-card--empty" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2.5rem 1rem; color: #64748B; gap: 0.5rem; width: 100%;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <line x1="17" y1="8" x2="23" y2="14"></line>
+            <line x1="23" y1="8" x2="17" y2="14"></line>
+          </svg>
+          <p style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #1E293B;">Sin futbolistas en tu plantilla</p>
+          <p style="margin: 0; font-size: 0.8rem; color: #64748B;">Ficha jugadores en el mercado para ver sus estadísticas individuales aquí.</p>
+        </div>
+      `;
+      return;
     }
 
-    statsListContainer.innerHTML = players.map((p, idx) => {
-      if (!p) {
-        return `
-          <div class="player-stat-card">
-            <div class="player-stat-card__left">
-              <div class="player-stat-card__token player-stat-card__token--mc">+</div>
-              <div class="player-stat-card__info">
-                <span class="player-stat-card__name">Puesto Vacío</span>
-                <span class="player-stat-card__tag">${idx < 6 ? 'Titular sin asignar' : 'Banquillo libre'}</span>
-              </div>
-            </div>
-            <div class="player-stat-card__right">
-              <span class="stat-chip"><span class="stat-chip__label">PJ</span><strong class="stat-chip__val">-</strong></span>
-              <span class="stat-chip"><span class="stat-chip__label">Goles</span><strong class="stat-chip__val">-</strong></span>
-            </div>
-          </div>
-        `;
-      }
+    function isSameNameModal(a, b) {
+      if (!a || !b) return false;
+      const cleanA = a.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
+      const cleanB = b.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
+      return cleanA === cleanB || cleanA.includes(cleanB) || cleanB.includes(cleanA);
+    }
 
-      function isSameNameModal(a, b) {
-        if (!a || !b) return false;
-        const cleanA = a.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
-        const cleanB = b.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
-        return cleanA === cleanB || cleanA.includes(cleanB) || cleanB.includes(cleanA);
-      }
-
+    statsListContainer.innerHTML = signedPlayers.map(({ player: p, slotIndex: idx }) => {
       const role = (p.role || p.posicion_base || 'MC').toUpperCase();
-      const pStats = stats[p.name] ||
-        Object.values(stats).find(v => isSameNameModal(v.name, p.name)) ||
-        Object.entries(stats).find(([k]) => isSameNameModal(k, p.name))?.[1] ||
+      const pName = p.name || p.nombre || 'Jugador';
+      const pStats = stats[pName] ||
+        Object.values(stats).find(v => isSameNameModal(v.name, pName)) ||
+        Object.entries(stats).find(([k]) => isSameNameModal(k, pName))?.[1] ||
         {};
       const hasPlayed = (pStats.matchesPlayed || 0) > 0;
       const matches = pStats.matchesPlayed || 0;
@@ -675,7 +844,7 @@ export function setupHomeEventListeners(router) {
               ${role}
             </div>
             <div class="player-stat-card__info">
-              <span class="player-stat-card__name">${p.name}</span>
+              <span class="player-stat-card__name">${pName}</span>
               <span class="player-stat-card__tag">${isStarter ? 'Titular' : 'Suplente'} • Rating Base ${getPlayerRating(p)}</span>
             </div>
           </div>
@@ -789,9 +958,21 @@ export function ensureDashboardIntegrity() {
  * @param {Object} [router]
  */
 export async function initDashboard(router) {
+  // Sincronización reactiva en tiempo real con la pantalla de Alineación y Mercado
+  if (!window.__dashboardSquadListenerAttached) {
+    window.__dashboardSquadListenerAttached = true;
+    window.addEventListener('fantasy:squad-updated', async () => {
+      try {
+        const updatedData = await fetchHomeData();
+        renderHome(updatedData);
+      } catch (err) {
+        console.debug('[Dashboard] Error actualizando tras squad-updated:', err);
+      }
+    });
+  }
+
   console.info('[Dashboard] Inicializando vista Dashboard...');
   ensureDashboardIntegrity();
-  renderHome(DEFAULT_HOME_DATA);
   setupHomeEventListeners(router);
 
   try {
@@ -799,6 +980,7 @@ export async function initDashboard(router) {
     renderHome(liveData);
   } catch (error) {
     console.warn('[Dashboard] Fallo al cargar datos remotos, conservando estado inicial:', error);
+    renderHome(DEFAULT_HOME_DATA);
   }
 }
 

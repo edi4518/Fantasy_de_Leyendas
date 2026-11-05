@@ -7,15 +7,30 @@
 /* ==========================================================================
    1. NORMALIZACIÓN DEL CONTENEDOR SPA (#app-content)
    ========================================================================== */
-#app-content:has(.login-card) {
+#app-content:has(.login-card:not(.register-card)) {
   padding: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+#app-content:has(.register-card) {
+  padding: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background-color: #ffffff;
 }
 
 /* ==========================================================================
@@ -25,9 +40,10 @@
 /* --- 2.1 Tarjeta Base de Login --- */
 .login-card {
   width: 100%;
-  max-width: var(--onboarding-max-width, 390px);
+  max-width: var(--onboarding-max-width, 430px);
   min-height: 100vh;
   min-height: 100dvh;
+  margin: 0 auto;
   background-color: var(--color-surface, #ffffff);
   display: flex;
   flex-direction: column;
@@ -124,26 +140,43 @@
   box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.2);
 }
 
-.input-wrapper.has-error {
-  border-color: var(--color-error, #dc2626);
+/* Estados de Error en Form-Group e Inputs */
+.form-group.has-error .form-label {
+  color: var(--color-error, #dc2626) !important;
+  font-weight: 600;
 }
 
+.form-group.has-error .input-wrapper,
+.input-wrapper.has-error {
+  border: 1.5px solid var(--color-error, #dc2626) !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.22) !important;
+  border-radius: 10px;
+}
+
+.form-group.has-error .input-wrapper:focus-within,
 .input-wrapper.has-error:focus-within {
-  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+  border-color: var(--color-error, #dc2626) !important;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.32) !important;
 }
 
 .input-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 18px;
   height: 18px;
   pointer-events: none;
+  z-index: 2;
 }
 
 .form-input {
   width: 100%;
   height: 100%;
-  padding: 0 38px;
+  padding-left: 44px !important;
+  padding-right: 44px !important;
+  padding-top: 0;
+  padding-bottom: 0;
   border: none;
   background: transparent;
   font-family: inherit;
@@ -155,11 +188,14 @@
 
 .form-input::placeholder {
   color: var(--color-text-muted, #9ca3af);
+  opacity: 1;
 }
 
 .toggle-password-btn {
   position: absolute;
-  right: 10px;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
@@ -167,6 +203,7 @@
   align-items: center;
   justify-content: center;
   padding: 4px;
+  z-index: 2;
 }
 
 .eye-icon {
@@ -177,13 +214,19 @@
 
 .error-message {
   color: var(--color-error, #dc2626);
-  font-size: 0.78rem;
-  line-height: 1.25;
-  margin: 0;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 6px 0 2px;
+  display: block;
 }
 
 .error-message.hidden {
-  display: none;
+  display: none !important;
 }
 
 /* --- 2.4 Botones y Autenticación Social en Login --- */
@@ -305,97 +348,70 @@
 
 .register-card {
   width: 100%;
-  height: 100% !important;
-  min-height: 100% !important;
-  max-height: none !important;
-  padding: 16px 20px 24px 20px !important;
+  max-width: 100%;
+  min-height: 100%;
+  background-color: #ffffff;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  gap: 8px;
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch;
+  justify-content: space-between;
+  padding: 20px 24px 32px !important;
+  margin: 0 !important;
   box-sizing: border-box;
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
 
-.register-card .register-top-bar {
-  margin-bottom: 2px;
+@media (min-width: 480px) {
+  .register-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100% !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 20px 24px 32px !important;
+  }
 }
 
-.register-card .register-header-text {
-  margin-top: 2px;
-}
-
-.register-card .avatar-picker-section {
-  margin: 2px 0 6px;
-}
-
-.register-card .avatar-container {
-  width: 64px;
-  height: 64px;
-}
-
-.register-card .avatar-circle img {
-  width: 32px;
-  height: 32px;
-}
-
-.register-card .register-form-body {
-  gap: 8px;
-  margin-bottom: 0;
-}
-
-.register-card .form-group {
-  gap: 2px;
-}
-
-.register-card .input-wrapper {
-  height: 40px;
-}
-
-.register-card .form-input {
-  font-size: 0.88rem;
-}
-
-.register-card .submit-btn {
-  height: 44px;
-  margin-top: 8px;
-}
-
-.register-card .login-footer {
-  text-align: center;
-  margin-top: 12px;
-  margin-bottom: 8px;
-  padding-bottom: 16px;
-  flex-shrink: 0;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* Barra superior con botón volver y trofeo */
+/* 1. Barra superior: Volver y Trofeo de marca */
 .register-top-bar {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+  padding-top: 4px;
+  padding-bottom: 8px;
 }
 
-.back-btn {
+.back-link-btn {
   position: absolute;
   left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 4px;
+  padding: 8px;
+  margin-left: -8px;
+  color: #212529;
+  border-radius: 9999px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  transition: color 0.15s ease;
   text-decoration: none;
+}
+
+.back-link-btn:hover {
+  color: #2D6A4F;
+}
+
+.back-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.2;
 }
 
 .top-trophy-wrapper {
@@ -405,106 +421,335 @@
 }
 
 .top-trophy-wrapper .trophy-badge {
-  width: 42px;
-  height: 42px;
-  margin-bottom: 4px;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  background-color: #F1F4F9;
+  border: 1px solid #DEE2E6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  margin-bottom: 0;
+}
+
+.trophy-svg-icon {
+  width: 20px;
+  height: 20px;
+  color: #2D6A4F;
+  stroke-width: 1.8;
 }
 
 .app-subname {
-  font-size: 0.78rem;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--color-text, #111827);
-}
-
-/* Título y etiqueta de rol */
-.register-header-text {
-  text-align: left;
-  width: 100%;
+  color: #212529;
+  letter-spacing: -0.01em;
   margin-top: 6px;
 }
 
+/* 2. Título principal y categoría */
+.register-header-text {
+  text-align: left;
+  width: 100%;
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
 .role-badge {
-  font-size: 0.72rem;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--color-text-muted, #6b7280);
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: block;
 }
 
 .register-title {
-  font-size: 1.6rem;
+  font-size: 26px;
   font-weight: 800;
-  text-align: left;
+  color: #212529;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
   margin-top: 2px;
+  margin-bottom: 0;
+  text-align: left;
 }
 
-/* Avatar picker */
+/* 3. Selector de Foto de Perfil */
 .avatar-picker-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 4px 0 8px;
+  justify-content: center;
+  margin: 10px 0;
+  text-align: center;
 }
 
-.avatar-container {
+.register-card .avatar-container {
   position: relative;
-  width: 76px;
-  height: 76px;
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+  margin: 0 auto;
 }
 
-.avatar-circle {
+.register-card .avatar-circle {
+  width: 80px !important;
+  height: 80px !important;
+  min-width: 80px !important;
+  min-height: 80px !important;
+  border-radius: 50% !important;
+  background-color: #F8F9FA !important;
+  border: 1px solid #DEE2E6 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: border-color 0.2s ease;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.register-card .avatar-container:hover .avatar-circle {
+  border-color: #2D6A4F !important;
+}
+
+.register-card .avatar-circle img {
   width: 100%;
   height: 100%;
+  object-fit: cover;
   border-radius: 50%;
-  background-color: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
 }
 
-.camera-badge {
+.register-card .avatar-placeholder-svg {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  color: #9CA3AF !important;
+  stroke: #9CA3AF !important;
+  stroke-width: 1.6 !important;
+  display: block;
+}
+
+.register-card .camera-badge {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 24px;
-  height: 24px;
-  background-color: var(--color-primary, #2d6a4f);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  border-radius: 50% !important;
+  background-color: #2D6A4F !important;
+  border: 2px solid #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
   cursor: pointer;
-  border: 2px solid #ffffff;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  z-index: 2;
+  box-sizing: border-box;
 }
 
-.avatar-label {
-  font-size: 0.78rem;
-  color: var(--color-text-muted, #6b7280);
-  margin-top: 6px;
+.register-card .camera-badge:hover {
+  background-color: #245640 !important;
+  transform: scale(1.05);
 }
 
-/* Fila de 2 columnas (Nombre y Apellidos) */
-.form-row {
+.register-card .camera-svg-icon {
+  width: 14px;
+  height: 14px;
+  color: #ffffff;
+  stroke: #ffffff;
+  stroke-width: 1.8;
+  display: block;
+}
+
+.register-card .avatar-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B7280;
+  margin-top: 8px;
+  display: block;
+  text-align: center;
+}
+
+/* 4. Formulario de Registro */
+.register-form-body {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 4px;
+  flex: 1 1 auto;
+}
+
+.register-form-body .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
   width: 100%;
 }
 
-.flex-1 {
-  flex: 1;
+.register-form-body .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  text-align: left;
 }
 
-/* Inputs sin icono a la izquierda */
-.clean-wrapper .form-input {
-  padding-left: 14px;
+.register-form-body .form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #212529;
+  margin-bottom: 6px;
 }
 
-/* Iconos ubicados a la derecha */
-.input-icon-right {
+.register-form-body .input-wrapper {
+  width: 100%;
+  height: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid #DEE2E6;
+  border-radius: 8px;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.register-form-body .input-wrapper:focus-within {
+  border-color: #2D6A4F;
+  box-shadow: 0 0 0 1px #2D6A4F;
+}
+
+.register-form-body .form-input,
+.register-form-body .form-row .form-input,
+.register-form-body .clean-wrapper .form-input {
+  width: 100%;
+  height: 100%;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  text-align: left !important;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  color: #212529;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.register-form-body .form-input::placeholder {
+  color: #9CA3AF;
+  font-size: 14px;
+  text-align: left !important;
+}
+
+.register-form-body .input-wrapper.has-right-icon .form-input,
+.register-form-body .input-wrapper:has(.toggle-password-btn) .form-input {
+  padding-left: 14px !important;
+  padding-right: 42px !important;
+  text-align: left !important;
+}
+
+.input-right-icon {
   position: absolute;
   right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
   pointer-events: none;
+  color: #9CA3AF;
+}
+
+.register-form-body .toggle-password-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9CA3AF;
+  padding: 4px;
+  transition: color 0.15s ease;
+}
+
+.register-form-body .toggle-password-btn:hover {
+  color: #212529;
+}
+
+/* Botón CTA principal */
+.submit-btn-wrap {
+  padding-top: 12px;
+  width: 100%;
+}
+
+.register-form-body .submit-btn {
+  width: 100%;
+  height: 52px;
+  background-color: #2D6A4F;
+  color: #ffffff;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px 0 rgba(45, 106, 79, 0.22);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0;
+}
+
+.register-form-body .submit-btn:hover {
+  background-color: #245640;
+}
+
+.register-form-body .submit-btn:active {
+  transform: scale(0.99);
+}
+
+/* 5. Pie de página de Registro */
+.register-card .login-footer {
+  padding-top: 20px;
+  padding-bottom: 4px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.register-card .signup-prompt {
+  font-size: 13px;
+  color: #6B7280;
+  margin: 0;
+}
+
+.register-card .signup-link {
+  font-weight: 700;
+  color: #2D6A4F;
+  text-decoration: none;
+  margin-left: 4px;
+  transition: all 0.15s ease;
+}
+
+.register-card .signup-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .visually-hidden {

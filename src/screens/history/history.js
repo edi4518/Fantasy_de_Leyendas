@@ -1,3 +1,4 @@
+import { apiClient } from '../../services/api-client.js';
 /**
  * @file history.js
  * @description Controlador modular para la vista de Historial de Partidos de Fantasy de Leyendas.
@@ -146,9 +147,8 @@ export async function fetchMatchHistory() {
   };
 
   try {
-    const response = await fetch('/api/matches/history', { headers });
-    if (response.ok) {
-      const data = await response.json();
+    const data = await apiClient.get('/matches/history');
+    if (data) {
       const rawList = Array.isArray(data) ? data : (data.history || []);
       if (rawList.length > 0) {
         return normalizeHistoryData(rawList);

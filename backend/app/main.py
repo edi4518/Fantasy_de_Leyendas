@@ -20,7 +20,7 @@ from app.core.database import get_db
 from app.models.player import Player
 
 # Routers de la aplicación
-from app.api.routes import players, matches
+from app.api.routes import players, matches, analytics
 from app.api.routes.auth import router as auth_router
 
 # Inicialización de la aplicación FastAPI
@@ -81,6 +81,7 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.include_router(auth_router)
 app.include_router(matches.router, prefix="/api/matches", tags=["Matches"])
 app.include_router(players.router, prefix="/api/players", tags=["Players"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
 
 # 4. Configuración de imágenes en Supabase para jugadores
 SUPABASE_STORAGE_URL = os.getenv(
@@ -96,6 +97,19 @@ def slugify(text: str) -> str:
     normalizado = unicodedata.normalize("NFKD", text)
     limpio = "".join([c for c in normalizado if not unicodedata.combining(c)])
     return limpio.lower().strip().replace(" ", "_").replace("'", "")
+
+
+@app.get("/api/me", tags=["Manager Profile"])
+def get_current_manager_profile():
+    """Retorna los datos de perfil y club del mánager autenticado."""
+    return {
+        "name": "Mánager Leyendas",
+        "username": "Mánager Leyendas",
+        "team_name": "Tu Equipo",
+        "season": "Temporada 24 / 25",
+        "ranking": 450,
+        "avatarUrl": None
+    }
 
 
 @app.get("/api/players/catalog", tags=["Players Catalog"])

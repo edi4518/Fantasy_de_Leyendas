@@ -136,13 +136,26 @@ body.app-body {
 .app-main:has(#home-view),
 .app-main:has(.match-detail-container),
 .app-main:has(.onboarding-screen),
-.app-main:has(.login-card) {
+.app-main:has(.login-card:not(.register-card)) {
   padding: 0 !important;
   height: 100% !important;
   min-height: 0 !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Pantalla de registro: ocupa la totalidad de app-main sin bordes redondeados ni márgenes */
+.app-main:has(.register-card) {
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: block !important;
+  background-color: #ffffff !important;
 }
 
 /* Pantalla de Matchmaking: Scroll vertical completo garantizado sin recortes */

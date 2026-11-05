@@ -307,8 +307,8 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
   const initialHomeStarters = [...homeStarters];
   const initialAwayStarters = [...awayStarters];
 
-  const homeBench = homeRaw.slice(6, 9);
-  const awayBench = awayRaw.slice(6, 9);
+  const homeBench = homeRaw.slice(6);
+  const awayBench = awayRaw.slice(6);
 
   let homeBenchIndex = 0;
   let awayBenchIndex = 0;

@@ -1,273 +1,808 @@
+/**
+ * @file market.js
+ * @description Controlador para la pantalla de Mercado de Fichajes de Leyendas.
+ * Conectado en tiempo real con la API FastAPI (/api/players), la persistencia de la plantilla
+ * y la bandeja interactiva de selección para comparar y fichar.
+ *
+ * @exports { renderMarketScreen }
+ */
+
 import { playerService } from '../../services/player-service.js';
-import { teamState } from '../../services/team-state.js';
+import { DEFAULT_HOME_SQUAD } from '../lineup/lineup.js';
 
-// URL base de tu bucket público en Supabase
-const STORAGE_URL = "https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/";
+const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
 
-const POSITION_MAP = {
-  'POR': 'Portero',
-  'DEF': 'Defensa',
-  'MC': 'Centrocampista',
-  'DEL': 'Delantero'
+const POSITION_NAMES = {
+  POR: 'Portero',
+  DEF: 'Defensa',
+  MC: 'Centrocampista',
+  DEL: 'Delantero'
 };
 
-let selectedIdsForAction = new Set();
+const POSITION_DETAILS = {
+  POR: 'Portero titular',
+  DEF: 'Defensa central',
+  MC: 'Medio organizador',
+  DEL: 'Delantero estrella'
+};
 
+/**
+ * Punto de entrada principal invocado por router.js
+ */
 export async function renderMarketScreen(container, router) {
   const targetContainer = container || document.querySelector('#app-content');
   if (!targetContainer) return;
 
-  try {
-    const allPlayers = await playerService.getAllPlayers();
-    let state = teamState.getState();
+  initMarketController(targetContainer, router);
+}
 
-    targetContainer.innerHTML = `
-      <div style="font-family: 'Plus Jakarta Sans', sans-serif; padding-bottom: 130px; background: #f8fafc; min-height: 100vh; position: relative;">
-        <!-- Header -->
-        <header style="display: flex; justify-content: space-between; align-items: flex-start; padding: 16px 20px; background: white; border-bottom: 1px solid #e2e8f0;">
-          <div>
-            <h1 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: #0f172a;">Mercado de Fichajes</h1>
-            <button id="btn-reset-budget" style="margin-top: 6px; padding: 4px 8px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 6px; font-size: 0.65rem; font-weight: 700; cursor: pointer;">
-              🔄 Reiniciar (100M)
+/**
+ * Inicializador de la lógica y eventos del mercado
+ */
+async function initMarketController(container, router) {
+  const listAvailable = container.querySelector('#market-player-list');
+  const listSquad = container.querySelector('#my-squad-player-list');
+  const searchInput = container.querySelector('#market-search-input');
+  const filterBtns = container.querySelectorAll('.filter-pill');
+  const sortBtn = container.querySelector('#btn-sort-market');
+  const traySection = container.querySelector('#selected-players-tray');
+  const trayChips = container.querySelector('#tray-chips-container');
+  const trayCountBadge = container.querySelector('#tray-count-badge');
+  const trayTotalPrice = container.querySelector('#tray-total-price');
+  const bottomDock = container.querySelector('#market-bottom-dock');
+  const btnCompare = container.querySelector('#btn-go-to-compare');
+  const btnBuy = container.querySelector('#btn-buy-selected');
+  const compareCountSpan = container.querySelector('#compare-count');
+  const buyTotalSpan = container.querySelector('#buy-total-price');
+  const budgetAvailableEl = container.querySelector('#market-budget-available');
+  const squadCountEl = container.querySelector('#market-squad-count');
+  const squadBadgeEl = container.querySelector('#squad-section-count-badge');
+  const squadValueEl = container.querySelector('#squad-total-value-num');
+
+  if (!listAvailable) return;
+
+  let catalog = [];
+  let activeSquad = loadActiveSquadFromStorage();
+  let selectedPosition = 'ALL';
+  let searchQuery = '';
+  let sortMode = 'default'; // 'default' | 'price-desc' | 'price-asc'
+  let selectedForAction = new Set(); // IDs de jugadores seleccionados con (+)
+
+  listAvailable.innerHTML = '<p class="market-feedback-msg p-6 text-center text-sm text-[#6B7280]">Conectando con la base de datos de leyendas...</p>';
+
+  try {
+    catalog = await playerService.getAllPlayers();
+    renderAllViews();
+  } catch (err) {
+    console.error('[Market] Error al conectar con la API de jugadores:', err);
+    listAvailable.innerHTML = '<p class="market-feedback-msg p-6 text-center text-sm text-[#C92A2A]">No se pudo conectar con el servidor de la API.</p>';
+  }
+
+  // =============================================================================
+  // EVENT LISTENERS
+  // =============================================================================
+
+  // Búsqueda en vivo
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.toLowerCase().trim();
+      renderAvailableList();
+    });
+  }
+
+  // Filtros de Posición
+  filterBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach((b) => {
+        b.classList.remove('active', 'bg-[#2D6A4F]', 'text-white');
+        b.classList.add('bg-white', 'text-[#212529]', 'border', 'border-[#DEE2E6]');
+      });
+      btn.classList.add('active', 'bg-[#2D6A4F]', 'text-white');
+      btn.classList.remove('bg-white', 'text-[#212529]');
+      selectedPosition = btn.dataset.position || 'ALL';
+      renderAvailableList();
+    });
+  });
+
+  // Ordenar por precio
+  if (sortBtn) {
+    sortBtn.addEventListener('click', () => {
+      if (sortMode === 'default') sortMode = 'price-desc';
+      else if (sortMode === 'price-desc') sortMode = 'price-asc';
+      else sortMode = 'default';
+
+      sortBtn.style.color = sortMode !== 'default' ? '#2D6A4F' : '#6B7280';
+      renderAvailableList();
+    });
+  }
+
+  // Botón Comparar
+  if (btnCompare) {
+    btnCompare.addEventListener('click', () => {
+      if (selectedForAction.size < 2) return;
+      const ids = Array.from(selectedForAction).join(',');
+      router.navigate(`/comparison?ids=${ids}`);
+    });
+  }
+
+  // Botón Fichar Jugadores Seleccionados
+  if (btnBuy) {
+    btnBuy.addEventListener('click', () => {
+      handleBuySelected();
+    });
+  }
+
+  // Delegación de eventos para eliminar futbolistas de la bandeja
+  container.addEventListener('click', (e) => {
+    const removeBtn = e.target.closest('.btn-remove-tray');
+    if (removeBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = removeBtn.getAttribute('data-id') || removeBtn.dataset.id;
+      removeSelectedPlayer(id);
+    }
+  });
+
+  // =============================================================================
+  // MÉTODOS DE RENDERIZADO
+  // =============================================================================
+
+  function renderAllViews() {
+    renderHeaderStats();
+    renderSquadList();
+    renderAvailableList();
+    renderTrayAndDock();
+  }
+
+  /**
+   * Actualiza el encabezado con el presupuesto disponible y el conteo de plantilla
+   */
+  function renderHeaderStats() {
+    const squadPlayers = (activeSquad.players || []).filter(Boolean);
+    const totalSpent = squadPlayers.reduce((acc, p) => acc + (Number(p.precio) || 0), 0);
+    const spentRounded = Math.round(totalSpent * 10) / 10;
+    const availableBudget = Math.max(0, Math.round((130.0 - spentRounded) * 10) / 10);
+
+    if (budgetAvailableEl) budgetAvailableEl.textContent = `${availableBudget}M`;
+    if (squadCountEl) squadCountEl.textContent = `${squadPlayers.length} / 10`;
+    if (squadBadgeEl) squadBadgeEl.textContent = `${squadPlayers.length} / 10`;
+    if (squadValueEl) squadValueEl.textContent = `${spentRounded}M`;
+  }
+
+  /**
+   * Renderiza la sección "Mi Plantilla / Fichados" con botón para vender
+   */
+  function renderSquadList() {
+    if (!listSquad) return;
+
+    const squadPlayers = (activeSquad.players || []).filter(Boolean);
+
+    if (squadPlayers.length === 0) {
+      listSquad.innerHTML = '<p class="market-feedback-msg">No tienes futbolistas en la plantilla. Ficha abajo en el mercado.</p>';
+      return;
+    }
+
+    listSquad.innerHTML = squadPlayers.map((player) => {
+      const isSelected = selectedForAction.has(player.id) || selectedForAction.has(Number(player.id)) || selectedForAction.has(String(player.id));
+      const playerImage = player.image_filename ? `${STORAGE_URL}${player.image_filename}` : null;
+      const positionLabel = player.posicion_base || player.role || 'MC';
+      const detailLabel = player.posicion_detalle || POSITION_DETAILS[positionLabel] || 'Jugador de leyenda';
+      const rating = player.media_juego || player.rating_general || 75;
+      const price = Number(player.precio || 10).toFixed(1).replace('.0', '');
+
+      return `
+        <article class="player-row-item" data-purpose="squad-player-item" data-id="${player.id}">
+          <div class="player-row-left">
+            <div class="player-row-avatar player-slot__avatar">
+              ${playerImage
+                ? `<img src="${playerImage}" alt="${player.nombre || player.name}" class="player-slot__img" onerror="this.outerHTML='<svg class=\'player-slot__icon\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.8\' viewBox=\'0 0 24 24\'><path d=\'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z\' stroke-linecap=\'round\' stroke-linejoin=\'round\'></path></svg>'"/>`
+                : `<svg class="player-slot__icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" stroke-linecap="round" stroke-linejoin="round"></path></svg>`
+              }
+            </div>
+            <div class="player-row-info">
+              <div class="player-name-row">
+                <h3 class="player-row-name">${player.nombre || player.name}</h3>
+                <span class="player-rating-star">★ ${rating}</span>
+              </div>
+              <div class="player-sub-row">
+                <span class="player-role-badge">${positionLabel}</span>
+                <span class="player-desc-text">${detailLabel}</span>
+              </div>
+            </div>
+          </div>
+          <div class="player-row-right">
+            <span class="player-row-price">${price}M</span>
+            <button aria-label="Comparar a ${player.nombre || player.name}" title="${isSelected ? 'Quitar de la comparativa' : 'Seleccionar para comparar'}" class="btn-player-action btn-toggle-select ${isSelected ? 'is-selected' : ''}" type="button" data-id="${player.id}">
+              ${isSelected
+                ? `<svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+                : `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>`
+              }
+            </button>
+            <button aria-label="Vender a ${player.nombre || player.name}" title="Vender jugador" class="btn-player-action btn-player-action--sell btn-sell-player" type="button" data-id="${player.id}">
+              <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </button>
           </div>
-          <div style="text-align: right;">
-            <span style="font-size: 0.6rem; font-weight: 700; color: #64748b; text-transform: uppercase; display: block;">PRESUPUESTO DISPONIBLE</span>
-            <strong id="market-budget" style="font-size: 1.1rem; font-weight: 800; color: #0f172a;">${(state.budget || 100).toFixed(1)}M</strong>
-            <span style="font-size: 0.65rem; font-weight: 700; color: #64748b; display: block; margin-top: 2px;">Plantilla: <strong id="market-roster-count" style="color: #0f172a;">${state.roster ? state.roster.length : 0} / 9</strong></span>
-          </div>
-        </header>
+        </article>
+      `;
+    }).join('');
 
-        <!-- Buscador y Filtros -->
-        <div style="padding: 16px 20px 8px 20px;">
-          <div style="position: relative; margin-bottom: 12px;">
-            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;">🔍</span>
-            <input type="text" id="market-search" placeholder="Buscar futbolistas..." style="width: 100%; padding: 10px 12px 10px 36px; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.8rem; background: white; outline: none; box-sizing: border-box;">
-          </div>
-          
-          <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;" id="position-filters">
-            <button class="filter-btn active" data-pos="TODOS" style="background: #2d6a4f; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Todos</button>
-            <button class="filter-btn" data-pos="POR" style="background: white; color: #475569; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; white-space: nowrap;">POR</button>
-            <button class="filter-btn" data-pos="DEF" style="background: white; color: #475569; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; white-space: nowrap;">DEF</button>
-            <button class="filter-btn" data-pos="MC" style="background: white; color: #475569; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; white-space: nowrap;">MC</button>
-            <button class="filter-btn" data-pos="DEL" style="background: white; color: #475569; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; cursor: pointer; white-space: nowrap;">DEL</button>
-          </div>
-        </div>
-
-        <!-- Lista de Jugadores Disponibles con Selector de Ordenar -->
-        <div style="padding: 0 20px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <div style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Jugadores Disponibles</div>
-            <select id="market-sort" style="font-size: 0.7rem; font-weight: 700; color: #475569; background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px; outline: none; cursor: pointer;">
-              <option value="default">↕️ Ordenar</option>
-              <option value="price-asc">Precio: Menor a Mayor</option>
-              <option value="price-desc">Precio: Mayor a Menor</option>
-              <option value="rating-desc">Mayor Valoración</option>
-              <option value="name-asc">Nombre (A-Z)</option>
-            </select>
-          </div>
-          <div id="market-player-list" style="display: flex; flex-direction: column; gap: 8px;">
-            <!-- Renderizado dinámico -->
-          </div>
-        </div>
-
-        <!-- Footer Dual-Action sellado directamente sobre la navegación -->
-        <div class="market-bottom-bar">
-          <button id="btn-compare" class="btn-compare">
-            🔀 Comparar (<span id="compare-count">0</span>)
-          </button>
-          <button id="btn-sign" class="btn-fichar">
-            🛍️ Fichar (<span id="sign-count">0</span>)
-          </button>
-        </div>
-      </div>
-    `;
-
-    const listContainer = targetContainer.querySelector('#market-player-list');
-    const searchInput = targetContainer.querySelector('#market-search');
-    const sortSelect = targetContainer.querySelector('#market-sort');
-    const filterBtns = targetContainer.querySelectorAll('.filter-btn');
-    const compareCountSpan = targetContainer.querySelector('#compare-count');
-    const signCountSpan = targetContainer.querySelector('#sign-count');
-    const budgetDisplay = targetContainer.querySelector('#market-budget');
-    const rosterDisplay = targetContainer.querySelector('#market-roster-count');
-
-    let currentPos = 'TODOS';
-
-    const updateUIList = () => {
-      const currentState = teamState.getState();
-      budgetDisplay.textContent = `${currentState.budget.toFixed(1)}M`;
-      rosterDisplay.textContent = `${currentState.roster.length} / 9`;
-
-      const query = searchInput.value.toLowerCase().trim();
-      const sortVal = sortSelect.value;
-      const rosterIds = currentState.roster ? currentState.roster.map(p => p.id) : [];
-
-      let filtered = allPlayers.filter(p => {
-        const matchesSearch = p.nombre ? p.nombre.toLowerCase().includes(query) : true;
-        const matchesPos = currentPos === 'TODOS' || (p.posicion_base && p.posicion_base.toUpperCase().includes(currentPos));
-        const notInRoster = !rosterIds.includes(p.id);
-        return matchesSearch && matchesPos && notInRoster;
+    listSquad.querySelectorAll('.btn-toggle-select').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.currentTarget.dataset.id, 10);
+        toggleSelectPlayer(id);
       });
+    });
 
-      // Lógica de Ordenamiento
-      if (sortVal === 'price-asc') {
-        filtered.sort((a, b) => (a.precio || 0) - (b.precio || 0));
-      } else if (sortVal === 'price-desc') {
-        filtered.sort((a, b) => (b.precio || 0) - (a.precio || 0));
-      } else if (sortVal === 'rating-desc') {
-        filtered.sort((a, b) => (b.media_juego || 0) - (a.media_juego || 0));
-      } else if (sortVal === 'name-asc') {
-        filtered.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    listSquad.querySelectorAll('.btn-sell-player').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.currentTarget.dataset.id, 10);
+        handleSellPlayer(id);
+      });
+    });
+  }
+
+  /**
+   * Renderiza la lista de "Jugadores Disponibles" en el mercado
+   */
+  function renderAvailableList() {
+    if (!listAvailable) return;
+
+    const squadPlayerIds = new Set(
+      (activeSquad.players || []).filter(Boolean).map(p => p.id)
+    );
+
+    let filtered = catalog.filter((player) => {
+      if (squadPlayerIds.has(player.id)) return false;
+
+      const matchPos = selectedPosition === 'ALL' || player.posicion_base === selectedPosition;
+      const matchSearch = (player.nombre || '').toLowerCase().includes(searchQuery);
+      return matchPos && matchSearch;
+    });
+
+    if (sortMode === 'price-desc') {
+      filtered.sort((a, b) => (b.precio || 0) - (a.precio || 0));
+    } else if (sortMode === 'price-asc') {
+      filtered.sort((a, b) => (a.precio || 0) - (b.precio || 0));
+    }
+
+    if (filtered.length === 0) {
+      listAvailable.innerHTML = '<p class="market-feedback-msg">No se encontraron futbolistas disponibles con los filtros actuales.</p>';
+      return;
+    }
+
+    listAvailable.innerHTML = filtered.map((player) => {
+      const isSelected = selectedForAction.has(player.id) || selectedForAction.has(Number(player.id)) || selectedForAction.has(String(player.id));
+      const playerImage = player.image_filename ? `${STORAGE_URL}${player.image_filename}` : null;
+      const positionLabel = player.posicion_base || 'MC';
+      const positionReadable = POSITION_NAMES[positionLabel] || positionLabel;
+      const rating = player.media_juego || 75;
+      const price = Number(player.precio || 10).toFixed(1).replace('.0', '');
+
+      return `
+        <article class="player-row-item" data-purpose="player-item" data-id="${player.id}">
+          <div class="player-row-left">
+            <div class="player-row-avatar player-slot__avatar">
+              ${playerImage
+                ? `<img src="${playerImage}" alt="${player.nombre}" class="player-slot__img" onerror="this.outerHTML='<svg class=\\\'player-slot__icon\\\' fill=\\\'none\\\' stroke=\\\'currentColor\\\' stroke-width=\\\'1.8\\\' viewBox=\\\'0 0 24 24\\\'><path d=\\\'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z\\\' stroke-linecap=\\\'round\\\' stroke-linejoin=\\\'round\\\'></path></svg>'"/>`
+                : `<svg class="player-slot__icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" stroke-linecap="round" stroke-linejoin="round"></path></svg>`
+              }
+            </div>
+            <div class="player-row-info">
+              <div class="player-name-row">
+                <h3 class="player-row-name">${player.nombre}</h3>
+                <span class="player-rating-star">★ ${rating}</span>
+              </div>
+              <span class="player-desc-text">${positionReadable}</span>
+            </div>
+          </div>
+          <div class="player-row-right">
+            <span class="player-row-price">${price}M</span>
+            <button aria-label="Fichar o seleccionar a ${player.nombre}" class="btn-player-action btn-toggle-select ${isSelected ? 'is-selected' : ''}" type="button" data-id="${player.id}">
+              ${isSelected
+                ? `<svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+                : `<svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`
+              }
+            </button>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    listAvailable.querySelectorAll('.btn-toggle-select').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.currentTarget.dataset.id, 10);
+        toggleSelectPlayer(id);
+      });
+    });
+  }
+
+  /**
+   * Renderiza la bandeja interactiva de seleccionados y el dock inferior
+   */
+  function renderTrayAndDock() {
+    const selectedCount = selectedForAction.size;
+
+    if (selectedCount === 0) {
+      if (traySection) {
+        traySection.hidden = true;
+        traySection.style.setProperty('display', 'none', 'important');
       }
-
-      if (filtered.length === 0) {
-        listContainer.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 0.75rem; padding: 20px;">No hay jugadores disponibles en este filtro.</p>`;
-        return;
+      if (bottomDock) {
+        bottomDock.hidden = true;
+        bottomDock.style.setProperty('display', 'none', 'important');
       }
+      if (trayChips) {
+        trayChips.innerHTML = '';
+      }
+      return;
+    }
 
-      listContainer.innerHTML = filtered.map(p => {
-        const isSelected = selectedIdsForAction.has(p.id);
-        const ratingStar = p.media_juego ? (p.media_juego / 10).toFixed(1) : '8.0';
+    // Actualizar Visibilidad de Bandeja y Dock
+    if (traySection) {
+      traySection.hidden = false;
+      traySection.style.removeProperty('display');
+    }
+    if (bottomDock) {
+      bottomDock.hidden = false;
+      bottomDock.style.removeProperty('display');
+    }
 
-        // Normalizar clave de posición para las clases de color
-        const rawPos = (p.posicion_base || 'MC').toUpperCase();
-        const posKey = (rawPos === 'ARQ' || rawPos === 'GK' || rawPos === 'POR')
-          ? 'por'
-          : (rawPos === 'MED' || rawPos === 'MC')
-          ? 'mc'
-          : rawPos.toLowerCase();
+    const squadPlayerIds = new Set(
+      (activeSquad.players || []).filter(Boolean).map(p => Number(p.id))
+    );
 
-        const playerImage = p.image_filename
-          ? `${STORAGE_URL}${p.image_filename}`
-          : null;
+    const selectedPlayers = catalog.filter(p => selectedForAction.has(p.id) || selectedForAction.has(Number(p.id)) || selectedForAction.has(String(p.id)));
+    const toBuyPlayers = selectedPlayers.filter(p => !squadPlayerIds.has(Number(p.id)));
+    const totalPrice = toBuyPlayers.reduce((acc, p) => acc + (Number(p.precio) || 0), 0);
+    const totalPriceFormatted = Math.round(totalPrice * 10) / 10;
+
+    // Actualizar Metricas de Bandeja
+    if (trayCountBadge) trayCountBadge.textContent = `${selectedCount} ${selectedCount === 1 ? 'jugador' : 'jugadores'}`;
+    if (trayTotalPrice) trayTotalPrice.textContent = `${totalPriceFormatted}M`;
+
+    if (trayChips) {
+      trayChips.innerHTML = selectedPlayers.map((p) => {
+        const isOwned = squadPlayerIds.has(Number(p.id));
+        const price = Number(p.precio || 10).toFixed(1).replace('.0', '');
+        const metaText = isOwned ? `${p.posicion_base} • En tu equipo` : `${p.posicion_base} • ${price}M`;
+        const ownedClass = isOwned ? 'tray-chip--owned' : '';
 
         return `
-          <div class="market-player-card player-item-card--${posKey}" data-id="${p.id}" style="display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid ${isSelected ? '#2d6a4f' : '#e2e8f0'}; border-radius: 16px; padding: 10px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <div class="player-avatar-box player-avatar-box--${posKey}">
-                ${playerImage
-                  ? `<img src="${playerImage}" alt="${p.nombre || 'Jugador'}" class="player-avatar-img" onerror="this.style.display='none';">`
-                  : `<span class="pos-initial" style="font-size: 0.75rem; font-weight: 800;">${rawPos}</span>`
-                }
-              </div>
-              <div>
-                <strong style="font-size: 0.85rem; color: #0f172a; display: block;">${p.nombre || 'Sin nombre'}</strong>
-                <span style="font-size: 0.7rem; color: #64748b;">
-                  <strong class="player-pos--${posKey}">${rawPos}</strong> • ⭐ ${ratingStar}
-                </span>
-              </div>
+          <div class="tray-chip ${ownedClass}">
+            <div class="tray-chip__info">
+              <span class="tray-chip__name">${p.nombre}</span>
+              <span class="tray-chip__meta ${isOwned ? 'tray-chip__meta--owned' : ''}">${metaText}</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span style="font-size: 0.85rem; font-weight: 800; color: #0f172a;">${p.precio || 0}M €</span>
-              <button class="btn-toggle-select" data-id="${p.id}" style="width: 32px; height: 32px; border-radius: 50%; background: ${isSelected ? '#2d6a4f' : '#f1f5f9'}; color: ${isSelected ? 'white' : '#2d6a4f'}; border: 1px solid ${isSelected ? '#2d6a4f' : '#cbd5e1'}; font-size: 1rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                ${isSelected ? '✓' : '+'}
-              </button>
-            </div>
+            <button type="button" aria-label="Quitar de selección a ${p.nombre}" title="Eliminar" class="tray-chip__remove-btn btn-remove-tray" data-id="${p.id}">✕</button>
           </div>
         `;
       }).join('');
 
-      listContainer.querySelectorAll('.btn-toggle-select').forEach(btn => {
+      trayChips.querySelectorAll('.btn-remove-tray').forEach((btn) => {
         btn.addEventListener('click', (e) => {
+          e.preventDefault();
           e.stopPropagation();
-          const id = parseInt(btn.dataset.id, 10);
-          if (selectedIdsForAction.has(id)) {
-            selectedIdsForAction.delete(id);
-          } else {
-            selectedIdsForAction.add(id);
-          }
-          compareCountSpan.textContent = selectedIdsForAction.size;
-          signCountSpan.textContent = selectedIdsForAction.size;
-          updateUIList();
+          const id = e.currentTarget.getAttribute('data-id') || e.currentTarget.dataset.id;
+          removeSelectedPlayer(id);
         });
       });
-    };
+    }
 
-    updateUIList();
+    // Actualizar Dock Inferior
+    if (compareCountSpan) compareCountSpan.textContent = selectedCount;
 
-    targetContainer.querySelector('#btn-reset-budget').addEventListener('click', () => {
-      teamState.resetState();
-      selectedIdsForAction.clear();
-      compareCountSpan.textContent = 0;
-      signCountSpan.textContent = 0;
-      updateUIList();
-      alert('¡Presupuesto restablecido a 100.0M!');
-    });
+    if (btnCompare) {
+      btnCompare.disabled = selectedCount < 2 || selectedCount > 3;
+    }
 
-    searchInput.addEventListener('input', updateUIList);
-    sortSelect.addEventListener('change', updateUIList);
-
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        filterBtns.forEach(b => {
-          b.style.background = 'white';
-          b.style.color = '#475569';
-          b.style.border = '1px solid #e2e8f0';
-        });
-        btn.style.background = '#2d6a4f';
-        btn.style.color = 'white';
-        btn.style.border = 'none';
-
-        currentPos = btn.dataset.pos;
-        updateUIList();
-      });
-    });
-
-    // Acción Comparar
-    targetContainer.querySelector('#btn-compare').addEventListener('click', () => {
-      if (selectedIdsForAction.size === 0) {
-        alert('Selecciona al menos 1 jugador para comparar.');
-        return;
-      }
-      const idsParam = Array.from(selectedIdsForAction).join(',');
-      router.navigate(`/comparison?ids=${idsParam}`);
-    });
-
-    // Acción Fichar
-    targetContainer.querySelector('#btn-sign').addEventListener('click', () => {
-      if (selectedIdsForAction.size === 0) {
-        alert('Selecciona al menos 1 jugador para fichar.');
-        return;
-      }
-      const playersToSign = allPlayers.filter(p => selectedIdsForAction.has(p.id));
-      const success = teamState.addPlayers(playersToSign);
-
-      if (success) {
-        selectedIdsForAction.clear();
-
-        const modalOverlay = document.createElement('div');
-        modalOverlay.style.cssText = `
-          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-          background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
-          display: flex; align-items: center; justify-content: center; z-index: 99999;
-          font-family: 'Plus Jakarta Sans', sans-serif;
+    if (btnBuy) {
+      if (toBuyPlayers.length > 0) {
+        btnBuy.disabled = false;
+        btnBuy.innerHTML = `
+          <svg class="dock-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+          </svg>
+          <span>Fichar (<span id="buy-total-price">${totalPriceFormatted}M</span>)</span>
         `;
+      } else {
+        btnBuy.disabled = true;
+        btnBuy.innerHTML = `
+          <svg class="dock-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>En tu plantilla</span>
+        `;
+      }
+    }
+  }
 
-        modalOverlay.innerHTML = `
-          <div style="background: white; width: 85%; max-width: 320px; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-            <div style="font-size: 2.5rem; margin-bottom: 12px;">✅</div>
-            <h3 style="margin: 0 0 8px 0; font-size: 1.1rem; font-weight: 800; color: #0f172a;">¡Jugadores Fichados!</h3>
-            <p style="margin: 0 0 20px 0; font-size: 0.8rem; color: #64748b;">Se han sumado a tu plantilla. Revisa la alineación para colocarlos en la cancha.</p>
-            <button id="modal-accept-btn" style="width: 100%; padding: 10px; background: #2d6a4f; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 0.85rem; cursor: pointer;">Ver Alineación</button>
+  // =============================================================================
+  // ACCIONES DEL USUARIO (SELECCIONAR, QUITAR, COMPRAR, VENDER)
+  // =============================================================================
+
+  function removeSelectedPlayer(rawId) {
+    const numId = Number(rawId);
+    const strId = String(rawId);
+
+    selectedForAction.delete(rawId);
+    if (!Number.isNaN(numId)) selectedForAction.delete(numId);
+    selectedForAction.delete(strId);
+
+    for (const id of Array.from(selectedForAction)) {
+      if (id === rawId || id === numId || String(id) === strId || Number(id) === numId) {
+        selectedForAction.delete(id);
+      }
+    }
+
+    renderSquadList();
+    renderAvailableList();
+    renderTrayAndDock();
+  }
+
+  function clearAllSelectedPlayers() {
+    selectedForAction.clear();
+    renderAvailableList();
+    renderTrayAndDock();
+  }
+
+  function toggleSelectPlayer(rawId) {
+    const playerId = Number(rawId);
+
+    // Comprobar si ya esta en la seleccion
+    let existingId = null;
+    for (const id of selectedForAction) {
+      if (Number(id) === playerId || String(id) === String(rawId)) {
+        existingId = id;
+        break;
+      }
+    }
+
+    if (existingId !== null) {
+      selectedForAction.delete(existingId);
+    } else {
+      if (selectedForAction.size >= 3) {
+        showMarketAlert({
+          title: 'Límite de selección',
+          message: 'Puedes seleccionar hasta 3 futbolistas simultáneamente para contrastar sus estadísticas o fichar.',
+          type: 'warning'
+        });
+        return;
+      }
+      selectedForAction.add(playerId);
+    }
+
+    renderSquadList();
+    renderAvailableList();
+    renderTrayAndDock();
+  }
+
+  /**
+   * Vende a un futbolista de la plantilla activa
+   */
+  function handleSellPlayer(playerId) {
+    const playerIndex = (activeSquad.players || []).findIndex(p => p && p.id === playerId);
+    if (playerIndex === -1) return;
+
+    const player = activeSquad.players[playerIndex];
+    showSellConfirmModal(player, () => {
+      activeSquad.players[playerIndex] = null;
+      persistActiveSquad(activeSquad);
+
+      selectedForAction.delete(playerId);
+      renderAllViews();
+      showMarketToast(`Has vendido a ${player.nombre || player.name} por +${player.precio || 10}M`, 'success');
+    });
+  }
+
+  /**
+   * Ficha a los jugadores seleccionados y los coloca en los puestos libres de la plantilla
+   */
+  function handleBuySelected() {
+    const squadPlayerIds = new Set(
+      (activeSquad.players || []).filter(Boolean).map(p => Number(p.id))
+    );
+
+    const selectedPlayers = catalog.filter(p => selectedForAction.has(p.id) || selectedForAction.has(Number(p.id)) || selectedForAction.has(String(p.id)));
+    const toBuyPlayers = selectedPlayers.filter(p => !squadPlayerIds.has(Number(p.id)));
+
+    if (toBuyPlayers.length === 0) {
+      showMarketToast('Los futbolistas seleccionados ya forman parte de tu plantilla.', 'info');
+      return;
+    }
+
+    const currentSquadPlayers = (activeSquad.players || []).filter(Boolean);
+    const freeSlotsCount = 10 - currentSquadPlayers.length;
+
+    if (toBuyPlayers.length > freeSlotsCount) {
+      showMarketAlert({
+        title: 'Plantilla sin espacio suficiente',
+        message: `Sólo dispones de ${freeSlotsCount} hueco(s) libre(s) en tu plantilla e intentas fichar a ${toBuyPlayers.length} futbolista(s). Vende jugadores primero para hacer espacio.`,
+        type: 'warning'
+      });
+      return;
+    }
+
+    const currentSpent = currentSquadPlayers.reduce((acc, p) => acc + (Number(p.precio) || 0), 0);
+    const costToBuy = toBuyPlayers.reduce((acc, p) => acc + (Number(p.precio) || 0), 0);
+
+    if (currentSpent + costToBuy > 130.0) {
+      const excess = Math.round((currentSpent + costToBuy - 130.0) * 10) / 10;
+      showMarketAlert({
+        title: 'Presupuesto insuficiente',
+        message: `La operación supera el límite salarial de 130.0M por ${excess}M. Necesitas vender futbolistas para equilibrar las finanzas.`,
+        type: 'danger'
+      });
+      return;
+    }
+
+    ensureTenSlots(activeSquad);
+
+    toBuyPlayers.forEach((p) => {
+      // 1. Buscar puesto libre en los 6 titulares (pitch-card, indices 0 a 5)
+      let targetIdx = -1;
+
+      if (p.posicion_base === 'POR' && !activeSquad.players[0]) {
+        targetIdx = 0;
+      } else {
+        for (let i = 1; i < 6; i++) {
+          if (!activeSquad.players[i]) {
+            targetIdx = i;
+            break;
+          }
+        }
+        if (targetIdx === -1 && !activeSquad.players[0]) {
+          targetIdx = 0;
+        }
+      }
+
+      // 2. Si los 6 puestos titulares están completos, ubicar en reservas (indices 6 a 9)
+      if (targetIdx === -1) {
+        for (let i = 6; i < 10; i++) {
+          if (!activeSquad.players[i]) {
+            targetIdx = i;
+            break;
+          }
+        }
+      }
+
+      if (targetIdx !== -1) {
+        activeSquad.players[targetIdx] = {
+          ...p,
+          id: p.id,
+          name: p.nombre,
+          nombre: p.nombre,
+          role: p.posicion_base,
+          posicion_base: p.posicion_base,
+          posicion_detalle: p.posicion_detalle,
+          rating_general: p.media_juego,
+          media_juego: p.media_juego,
+          precio: p.precio,
+          price: p.precio,
+          rating_ataque: p.rating_ataque,
+          rating_defensa: p.rating_defensa,
+          rating_creacion: p.rating_creacion,
+          rating_tecnica: p.rating_tecnica,
+          rating_fisico: p.rating_fisico,
+          rating_palmares: p.rating_palmares,
+          image_filename: p.image_filename,
+          energia: 100,
+          minutosJugados: 0
+        };
+
+        // Eliminar jugador fichado de la selección
+        selectedForAction.delete(p.id);
+        selectedForAction.delete(Number(p.id));
+        selectedForAction.delete(String(p.id));
+      }
+    });
+
+    persistActiveSquad(activeSquad);
+
+    showMarketToast(`¡Fichaje completado! ${toBuyPlayers.length} futbolista(s) incorporados a tu plantilla.`, 'success');
+    renderAllViews();
+  }
+}
+
+// =============================================================================
+// SISTEMA DE MODALES Y NOTIFICACIONES ESTÉTICAS IN-GAME (ZERO WINDOW ALERTS)
+// =============================================================================
+
+function showMarketAlert({ title, message, type = 'warning' }) {
+  closeMarketModal();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'market-active-modal';
+  overlay.className = 'market-modal-overlay';
+
+  const isDanger = type === 'danger';
+  const iconSvg = isDanger
+    ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`
+    : `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+
+  overlay.innerHTML = `
+    <div class="market-modal-card" role="dialog" aria-modal="true">
+      <div class="market-modal-icon-wrap market-modal-icon-wrap--${type}">
+        ${iconSvg}
+      </div>
+      <h3 class="market-modal-title">${title}</h3>
+      <p class="market-modal-desc">${message}</p>
+      <div class="market-modal-actions">
+        <button type="button" class="market-modal-btn market-modal-btn--primary" id="market-modal-dismiss-btn">
+          Entendido
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const dismissBtn = overlay.querySelector('#market-modal-dismiss-btn');
+  dismissBtn.focus();
+  dismissBtn.addEventListener('click', closeMarketModal);
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeMarketModal();
+  });
+}
+
+function showSellConfirmModal(player, onConfirm) {
+  closeMarketModal();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'market-active-modal';
+  overlay.className = 'market-modal-overlay';
+
+  const playerName = player.nombre || player.name || 'Futbolista';
+  const playerRole = player.posicion_base || player.role || 'JUG';
+  const playerPrice = Number(player.precio || player.price || 10).toFixed(1);
+  const playerRating = player.media_juego || player.rating_general || 80;
+  
+  const rawImage = player.image_filename || player.image_url || player.imagen;
+  const playerImage = rawImage
+    ? (rawImage.startsWith('http://') || rawImage.startsWith('https://') ? rawImage : `${STORAGE_URL}${rawImage}`)
+    : null;
+
+  overlay.innerHTML = `
+    <div class="market-modal-card" role="dialog" aria-modal="true">
+      <div class="market-modal-icon-wrap market-modal-icon-wrap--danger">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </div>
+      <h3 class="market-modal-title">¿Vender a ${playerName}?</h3>
+      <p class="market-modal-desc">El jugador abandonará tu plantilla y el saldo se añadirá a tu presupuesto.</p>
+      
+      <div class="market-modal-player-preview">
+        <div class="modal-preview-avatar player-slot__avatar">
+          ${playerImage
+            ? `<img src="${playerImage}" alt="${playerName}" class="player-slot__img" onerror="this.outerHTML='<svg class=\\\'player-slot__icon\\\' fill=\\\'none\\\' stroke=\\\'currentColor\\\' stroke-width=\\\'1.8\\\' viewBox=\\\'0 0 24 24\\\'><path d=\\\'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z\\\' stroke-linecap=\\\'round\\\' stroke-linejoin=\\\'round\\\'></path></svg>'"/>`
+            : `<svg class="player-slot__icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" stroke-linecap="round" stroke-linejoin="round"></path></svg>`
+          }
+        </div>
+        <div class="modal-preview-info">
+          <div class="modal-preview-name">${playerName}</div>
+          <div class="modal-preview-sub">
+            <span class="modal-preview-badge">${playerRole}</span>
+            <span>★ ${playerRating}</span>
           </div>
-        `;
+        </div>
+        <div class="modal-preview-refund">
+          <div class="modal-preview-refund-label">Recuperas</div>
+          <div class="modal-preview-refund-val">+${playerPrice}M</div>
+        </div>
+      </div>
 
-        document.body.appendChild(modalOverlay);
+      <div class="market-modal-actions">
+        <button type="button" class="market-modal-btn market-modal-btn--cancel" id="market-modal-cancel-btn">
+          Cancelar
+        </button>
+        <button type="button" class="market-modal-btn market-modal-btn--danger" id="market-modal-confirm-btn">
+          Sí, vender
+        </button>
+      </div>
+    </div>
+  `;
 
-        modalOverlay.querySelector('#modal-accept-btn').addEventListener('click', () => {
-          modalOverlay.remove();
+  document.body.appendChild(overlay);
 
-          if (!localStorage.getItem("auth_token")) {
-            localStorage.setItem("auth_token", "dev-test-token");
-          }
+  overlay.querySelector('#market-modal-cancel-btn').addEventListener('click', closeMarketModal);
+  overlay.querySelector('#market-modal-confirm-btn').addEventListener('click', () => {
+    closeMarketModal();
+    if (typeof onConfirm === 'function') onConfirm();
+  });
 
-          router.navigate('/lineup');
-        });
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeMarketModal();
+  });
+}
+
+function closeMarketModal() {
+  const modal = document.getElementById('market-active-modal');
+  if (!modal) return;
+
+  modal.classList.add('is-closing');
+  setTimeout(() => {
+    if (modal && modal.parentNode) {
+      modal.parentNode.removeChild(modal);
+    }
+  }, 160);
+}
+
+function showMarketToast(message, type = 'success') {
+  let container = document.getElementById('market-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'market-toast-container';
+    container.className = 'market-toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `market-toast market-toast--${type}`;
+
+  const iconSvg = type === 'success'
+    ? `<svg class="market-toast-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>`
+    : `<svg class="market-toast-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+
+  toast.innerHTML = `
+    ${iconSvg}
+    <span>${message}</span>
+  `;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add('is-hiding');
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
       }
-    });
+    }, 220);
+  }, 2800);
+}
 
+// =============================================================================
+// FUNCIONES AUXILIARES DE ESTADO Y PERSISTENCIA
+// =============================================================================
+
+function loadActiveSquadFromStorage() {
+  try {
+    const raw = localStorage.getItem('fantasy_active_squad');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.players)) {
+        ensureTenSlots(parsed);
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.debug('[Market] Error leyendo plantilla activa:', e);
+  }
+
+  const defaultSquad = {
+    name: 'Tu Equipo',
+    formation: '1-2-2-1',
+    players: new Array(10).fill(null)
+  };
+  ensureTenSlots(defaultSquad);
+  return defaultSquad;
+}
+
+function ensureTenSlots(squad) {
+  if (!Array.isArray(squad.players)) squad.players = [];
+  while (squad.players.length < 10) {
+    squad.players.push(null);
+  }
+}
+
+function persistActiveSquad(squad) {
+  try {
+    localStorage.setItem('fantasy_active_squad', JSON.stringify(squad));
+    window.dispatchEvent(new CustomEvent('fantasy:squad-updated', { detail: squad }));
   } catch (err) {
-    console.error("Error al cargar el mercado:", err);
+    console.debug('[Market] Error al persistir plantilla activa:', err);
   }
 }
