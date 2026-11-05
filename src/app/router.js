@@ -42,8 +42,8 @@ const routes = {
   "/market": { screen: "market", authRequired: false },
   "/comparison": { screen: "comparison", authRequired: false },
   "/lineup": { screen: "lineup", authRequired: false },
-  "/match/live": { screen: "match", subview: "live-match", authRequired: false },
-  "/match/result": { screen: "match", subview: "match-result", authRequired: false },
+  "/match/live": { screen: "match", subview: "live-match", authRequired: false, fullScreen: true },
+  "/match/result": { screen: "match", subview: "match-result", authRequired: false, fullScreen: true },
   "/history": { screen: "history", authRequired: false },
   "/ranking": {
     screen: "ranking",

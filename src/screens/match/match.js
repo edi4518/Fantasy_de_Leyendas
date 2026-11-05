@@ -663,6 +663,9 @@ function clearGlobalSimulationTimers() {
 export async function startLiveMatchPlayback() {
   clearGlobalSimulationTimers();
 
+  const appNav = document.getElementById('app-navigation');
+  if (appNav) appNav.style.display = 'none';
+
   const liveBtn = document.getElementById('btn-live-sim');
   if (liveBtn) liveBtn.classList.add('is-running');
 
@@ -1202,6 +1205,9 @@ export async function fetchMatchDetail(matchId) {
  * Inicialización al cargar la página
  */
 export async function initMatchDetailView() {
+  const appNav = document.getElementById('app-navigation');
+  if (appNav) appNav.style.display = 'none';
+
   setupMatchTabs();
 
   // Validar requisitos reglamentarios de plantilla completa (6 titulares y 4 suplentes)

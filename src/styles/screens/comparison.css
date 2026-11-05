@@ -188,8 +188,8 @@
   flex: 0 0 160px;
   width: 160px;
   min-width: 160px;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  background-color: var(--player-card-bg, #eef7f2);
+  border: 1px solid var(--player-card-border, rgba(45, 106, 79, 0.28));
   border-radius: 16px;
   padding: 10px;
   position: relative;
@@ -223,19 +223,41 @@
 }
 
 .comp-avatar-circle {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
   border-radius: 50%;
   border: 2px solid var(--player-color, #2d6a4f);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   font-weight: 800;
   font-size: 0.75rem;
-  background-color: #f1f5f9;
+  background-color: #f8fafc;
   color: var(--player-color, #2d6a4f);
   overflow: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.comp-avatar-img,
+.comp-avatar-circle img {
+  width: 32px !important;
+  height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  object-fit: contain !important;
+  object-position: center bottom !important;
+  display: block !important;
+  margin: 0 auto !important;
+  transform: translateY(2px);
+  pointer-events: none;
+}
+
+.comp-avatar-initials {
+  align-self: center;
+  line-height: 1;
 }
 
 .comp-card-info {

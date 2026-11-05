@@ -465,34 +465,43 @@
 
 .mvp-avatar-wrapper {
   position: relative;
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
 }
 
 .mvp-avatar {
-  width: 100%;
-  height: 100%;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
-  border: 2.5px solid var(--color-primary, #2D6A4F);
+  border: 2px solid var(--color-primary, #2D6A4F);
   background-color: #FFFFFF;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
 }
 
 .mvp-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 40px !important;
+  height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  object-fit: contain !important;
+  object-position: center bottom !important;
+  display: block !important;
 }
 
 .mvp-avatar-icon {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   fill: #2D6A4F;
   color: #2D6A4F;
+  align-self: center;
 }
 
 .mvp-star-badge {

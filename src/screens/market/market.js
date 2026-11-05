@@ -8,7 +8,7 @@
  */
 
 import { playerService } from '../../services/player-service.js';
-import { DEFAULT_HOME_SQUAD } from '../lineup/lineup.js';
+import { DEFAULT_HOME_SQUAD, getRatingTierClass } from '../lineup/lineup.js';
 
 const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
 
@@ -58,6 +58,10 @@ async function initMarketController(container, router) {
   const squadCountEl = container.querySelector('#market-squad-count');
   const squadBadgeEl = container.querySelector('#squad-section-count-badge');
   const squadValueEl = container.querySelector('#squad-total-value-num');
+  const squadSectionEl = container.querySelector('#my-squad-section') || container.querySelector('.market-section--squad');
+  const squadHeaderEl = container.querySelector('#squad-section-header');
+  const btnToggleSquad = container.querySelector('#btn-toggle-squad');
+  const toggleSquadLabel = container.querySelector('#toggle-squad-label');
 
   if (!listAvailable) return;
 
@@ -81,6 +85,31 @@ async function initMarketController(container, router) {
   // =============================================================================
   // EVENT LISTENERS
   // =============================================================================
+
+  // Desplegar / contraer la sección "Mi Plantilla / Fichados"
+  const toggleSquadCollapse = () => {
+    if (!squadSectionEl) return;
+    const isCollapsed = squadSectionEl.classList.toggle('is-collapsed');
+    if (btnToggleSquad) {
+      btnToggleSquad.setAttribute('aria-expanded', String(!isCollapsed));
+    }
+    if (toggleSquadLabel) {
+      toggleSquadLabel.textContent = isCollapsed ? 'Mostrar' : 'Ocultar';
+    }
+  };
+
+  if (btnToggleSquad) {
+    btnToggleSquad.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSquadCollapse();
+    });
+  }
+
+  if (squadHeaderEl) {
+    squadHeaderEl.addEventListener('click', () => {
+      toggleSquadCollapse();
+    });
+  }
 
   // Búsqueda en vivo
   if (searchInput) {
@@ -217,10 +246,10 @@ async function initMarketController(container, router) {
             <div class="player-row-info">
               <div class="player-name-row">
                 <h3 class="player-row-name">${player.nombre || player.name}</h3>
-                <span class="player-rating-star">★ ${rating}</span>
+                <span class="player-rating-star ${getRatingTierClass(rating)}">${rating}</span>
               </div>
               <div class="player-sub-row">
-                <span class="player-role-badge">${positionLabel}</span>
+                <span class="player-role-badge player-role-badge--${positionLabel.toLowerCase()}" data-role="${positionLabel}">${positionLabel}</span>
                 <span class="player-desc-text">${detailLabel}</span>
               </div>
             </div>
@@ -292,7 +321,7 @@ async function initMarketController(container, router) {
       const isSelected = selectedForAction.has(player.id) || selectedForAction.has(Number(player.id)) || selectedForAction.has(String(player.id));
       const playerImage = player.image_filename ? `${STORAGE_URL}${player.image_filename}` : null;
       const positionLabel = player.posicion_base || 'MC';
-      const positionReadable = POSITION_NAMES[positionLabel] || positionLabel;
+      const positionReadable = player.posicion_detalle || POSITION_NAMES[positionLabel] || positionLabel;
       const rating = player.media_juego || 75;
       const price = Number(player.precio || 10).toFixed(1).replace('.0', '');
 
@@ -308,9 +337,12 @@ async function initMarketController(container, router) {
             <div class="player-row-info">
               <div class="player-name-row">
                 <h3 class="player-row-name">${player.nombre}</h3>
-                <span class="player-rating-star">★ ${rating}</span>
+                <span class="player-rating-star ${getRatingTierClass(rating)}">${rating}</span>
               </div>
-              <span class="player-desc-text">${positionReadable}</span>
+              <div class="player-sub-row">
+                <span class="player-role-badge player-role-badge--${positionLabel.toLowerCase()}" data-role="${positionLabel}">${positionLabel}</span>
+                <span class="player-desc-text">${positionReadable}</span>
+              </div>
             </div>
           </div>
           <div class="player-row-right">
@@ -576,16 +608,21 @@ async function initMarketController(container, router) {
       }
 
       if (targetIdx !== -1) {
+        const rawImage = p.image_filename || p.image_url || p.photo_url || p.avatarUrl || p.imagen || null;
+        const resolvedAvatarUrl = rawImage
+          ? (rawImage.startsWith('http://') || rawImage.startsWith('https://') ? rawImage : `${STORAGE_URL}${rawImage}`)
+          : null;
+
         activeSquad.players[targetIdx] = {
           ...p,
           id: p.id,
-          name: p.nombre,
-          nombre: p.nombre,
-          role: p.posicion_base,
-          posicion_base: p.posicion_base,
+          name: p.nombre || p.name,
+          nombre: p.nombre || p.name,
+          role: p.posicion_base || p.role,
+          posicion_base: p.posicion_base || p.role,
           posicion_detalle: p.posicion_detalle,
-          rating_general: p.media_juego,
-          media_juego: p.media_juego,
+          rating_general: p.media_juego || p.rating_general,
+          media_juego: p.media_juego || p.rating_general,
           precio: p.precio,
           price: p.precio,
           rating_ataque: p.rating_ataque,
@@ -594,7 +631,9 @@ async function initMarketController(container, router) {
           rating_tecnica: p.rating_tecnica,
           rating_fisico: p.rating_fisico,
           rating_palmares: p.rating_palmares,
-          image_filename: p.image_filename,
+          image_filename: p.image_filename || rawImage,
+          avatarUrl: resolvedAvatarUrl,
+          photo_url: resolvedAvatarUrl,
           energia: 100,
           minutosJugados: 0
         };
