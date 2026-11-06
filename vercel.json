@@ -7,6 +7,14 @@
     {
       "source": "/uploads/:path*",
       "destination": "https://fantasy-de-leyendas-api.onrender.com/uploads/:path*"
+    },
+    {
+      "source": "/(onboarding|login|register|dashboard|matchmaking|market|comparison|lineup|history|ranking|profile|admin)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/match/:path*",
+      "destination": "/index.html"
     }
   ]
 }

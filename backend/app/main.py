@@ -324,6 +324,7 @@ def serve_manifest():
 
 
 @app.get("/", include_in_schema=False)
+@app.get("/index.html", include_in_schema=False)
 @app.get("/onboarding", include_in_schema=False)
 @app.get("/login", include_in_schema=False)
 @app.get("/register", include_in_schema=False)
@@ -335,6 +336,7 @@ def serve_manifest():
 @app.get("/history", include_in_schema=False)
 @app.get("/ranking", include_in_schema=False)
 @app.get("/profile", include_in_schema=False)
+@app.get("/admin", include_in_schema=False)
 @app.get("/match/{subpath:path}", include_in_schema=False)
 def serve_spa_index():
     """Sirve el index.html de la PWA en la raíz y en todas las rutas del router SPA."""
