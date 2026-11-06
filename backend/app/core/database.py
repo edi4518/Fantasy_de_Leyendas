@@ -117,6 +117,37 @@ def _ensure_optimized_schema():
                         conn.execute(text(f"DROP TABLE IF EXISTS {tbl}"))
                 if engine.dialect.name == "mysql":
                     conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+
+        # 3. TiDB Cloud: Configurar AUTO_ID_CACHE = 1 en todas las tablas para evitar saltos de 30.000
+        # y normalizar IDs históricos desfasados.
+        if engine.dialect.name == "mysql":
+            with engine.begin() as conn:
+                all_tables = ["users", "plantillas", "plantilla_jugadores", "user_players", "partidos", "eventos_partido", "players"]
+                for tbl in all_tables:
+                    if tbl in existing_tables:
+                        try:
+                            conn.execute(text(f"ALTER TABLE {tbl} AUTO_ID_CACHE = 1"))
+                        except Exception:
+                            pass
+
+                # Normalizar IDs de usuarios y plantillas si existen 30001 o 30002
+                try:
+                    conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
+                    conn.execute(text("UPDATE users SET id = 3 WHERE id = 30001"))
+                    conn.execute(text("UPDATE users SET id = 4 WHERE id = 30002"))
+                    conn.execute(text("UPDATE plantillas SET user_id = 3 WHERE user_id = 30001"))
+                    conn.execute(text("UPDATE plantillas SET user_id = 4 WHERE user_id = 30002"))
+                    conn.execute(text("UPDATE user_players SET user_id = 3 WHERE user_id = 30001"))
+                    conn.execute(text("UPDATE user_players SET user_id = 4 WHERE user_id = 30002"))
+                    conn.execute(text("UPDATE plantillas SET id = 2 WHERE id = 30001"))
+                    conn.execute(text("UPDATE plantillas SET id = 3 WHERE id = 60001"))
+                    conn.execute(text("UPDATE plantillas SET id = 4 WHERE id = 60002"))
+                    conn.execute(text("UPDATE plantilla_jugadores SET plantilla_id = 2 WHERE plantilla_id = 30001"))
+                    conn.execute(text("UPDATE plantilla_jugadores SET plantilla_id = 3 WHERE plantilla_id = 60001"))
+                    conn.execute(text("UPDATE plantilla_jugadores SET plantilla_id = 4 WHERE plantilla_id = 60002"))
+                    conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+                except Exception as norm_err:
+                    logger.debug(f"Aviso durante normalización de IDs TiDB: {norm_err}")
     except Exception as mig_err:
         logger.warning(f"Aviso durante verificación de esquema optimizado: {mig_err}")
 

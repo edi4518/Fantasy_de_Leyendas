@@ -238,3 +238,14 @@ CREATE TABLE eventos_partido (
     FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE SET NULL,
     INDEX idx_evento_minuto (partido_id, minuto)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 8. COMPATIBILIDAD CON TiDB CLOUD (Secuencia estricta sin saltos de 30.000)
+-- -----------------------------------------------------------------------------
+ALTER TABLE users AUTO_ID_CACHE = 1;
+ALTER TABLE plantillas AUTO_ID_CACHE = 1;
+ALTER TABLE plantilla_jugadores AUTO_ID_CACHE = 1;
+ALTER TABLE user_players AUTO_ID_CACHE = 1;
+ALTER TABLE partidos AUTO_ID_CACHE = 1;
+ALTER TABLE eventos_partido AUTO_ID_CACHE = 1;
+ALTER TABLE players AUTO_ID_CACHE = 1;
