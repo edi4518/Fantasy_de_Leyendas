@@ -7,11 +7,11 @@
  * @exports { apiClient }
  */
 
+const IS_LOCAL = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
 export const API_BASE_URL = (typeof window !== 'undefined' && window.ENV_API_BASE_URL)
   ? window.ENV_API_BASE_URL
-  : ((typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-      ? 'http://127.0.0.1:8000/api'
-      : '/api');
+  : (IS_LOCAL ? 'http://127.0.0.1:8000/api' : 'https://fantasy-de-leyendas-api.onrender.com/api');
 
 export const apiClient = {
   async request(endpoint, options = {}) {
@@ -28,7 +28,8 @@ export const apiClient = {
     };
 
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeoutId = controller ? setTimeout(() => controller.abort(), 6000) : null;
+    const timeoutMs = IS_LOCAL ? 6000 : 25000;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     if (controller && !config.signal) {
       config.signal = controller.signal;
     }

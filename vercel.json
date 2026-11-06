@@ -1,7 +1,7 @@
 {
   "framework": null,
-  "buildCommand": "",
-  "outputDirectory": ".",
+  "buildCommand": "mkdir -p dist && cp -r public/* dist/ && cp -r public src index.html dist/",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -12,16 +12,12 @@
       "destination": "https://fantasy-de-leyendas-api.onrender.com/uploads/:path*"
     },
     {
-      "source": "/",
-      "destination": "/public/index.html"
-    },
-    {
       "source": "/(onboarding|login|register|dashboard|matchmaking|market|comparison|lineup|history|ranking|profile)",
-      "destination": "/public/index.html"
+      "destination": "/index.html"
     },
     {
       "source": "/match/:path*",
-      "destination": "/public/index.html"
+      "destination": "/index.html"
     }
   ]
 }
