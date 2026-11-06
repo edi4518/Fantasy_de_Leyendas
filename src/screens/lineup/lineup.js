@@ -139,6 +139,19 @@ export function persistActiveSquad() {
   try {
     localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
     window.dispatchEvent(new CustomEvent('fantasy:squad-updated', { detail: activeSquad }));
+    let currentUserId = null;
+    try {
+      const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+      if (userObj && userObj.id) currentUserId = Number(userObj.id);
+    } catch (_) {}
+    squadService.saveSquad({
+      formation: activeSquad.formation || '1-2-2-1',
+      players: activeSquad.players || [],
+      name: activeSquad.name || undefined,
+      user_id: currentUserId
+    }).catch((err) => {
+      console.debug('[Lineup] Sincronización automática con backend omitida:', err.message);
+    });
   } catch (err) {
     console.debug('[Lineup] Error al persistir plantilla:', err);
   }
@@ -163,12 +176,34 @@ window.addEventListener('fantasy:player-stats-updated', () => {
  */
 export async function syncSquadWithDatabase() {
   try {
-    const catalog = await playerService.getAllPlayers();
-    if (!Array.isArray(catalog) || catalog.length === 0) return;
-
     if (!activeSquad || !Array.isArray(activeSquad.players)) {
       loadActiveSquad();
     }
+
+    // Si en localStorage no hay jugadores cargados, recuperar la plantilla guardada en MySQL (/api/squads/my-squad)
+    const hasLocalPlayers = Array.isArray(activeSquad?.players) && activeSquad.players.some(Boolean);
+    if (!hasLocalPlayers) {
+      try {
+        const remoteSquad = await squadService.getMySquad();
+        if (remoteSquad && Array.isArray(remoteSquad.players) && remoteSquad.players.some(Boolean)) {
+          activeSquad = {
+            name: remoteSquad.name || activeSquad.name || 'Tu Equipo',
+            formation: remoteSquad.formation || activeSquad.formation || '1-2-2-1',
+            players: remoteSquad.players
+          };
+          while (activeSquad.players.length < 10) {
+            activeSquad.players.push(null);
+          }
+          localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
+          renderScreen();
+        }
+      } catch (e) {
+        console.debug('[Lineup] No se pudo recuperar plantilla remota de MySQL:', e.message);
+      }
+    }
+
+    const catalog = await playerService.getAllPlayers();
+    if (!Array.isArray(catalog) || catalog.length === 0) return;
 
     let updated = false;
     activeSquad.players = activeSquad.players.map((p) => {

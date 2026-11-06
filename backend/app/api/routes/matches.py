@@ -1,25 +1,31 @@
 """
-Rutas de simulación de partidos: cálculo de resultado basado en atributos y penalizaciones activas.
-Integración con CPU Opponents (20 planteles), base de datos de partidos y cálculo de puntos (+15, +5, 0).
+Rutas de simulación e historial de partidos en MySQL (tablas 'partidos' y 'eventos_partido').
+Persiste formaciones, MVP del encuentro, estadísticas cara a cara (posesión, tiros, atajadas, tarjetas),
+timeline de eventos con equipo ('local'/'visitante'), récords competitivos en 'users' y rendimiento en 'user_players'.
 """
 
 import json
 import os
 import random
-from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, Query
+from typing import Any, Dict, List, Optional
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 
 from app.core.database import get_db
+from app.models.match import EventoPartido, Partido
+from app.models.player import Player
+from app.models.squad import Plantilla, UserPlayer
+from app.models.user import User
 from app.services.simulation_service import SimulationService
 
 router = APIRouter()
 simulation_service = SimulationService()
 
 # Carga de equipos CPU
-CPU_TEAMS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "seed", "cpu_teams.json")
+CPU_TEAMS_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "seed", "cpu_teams.json"
+)
 CPU_TEAMS: List[Dict[str, Any]] = []
 
 if os.path.exists(CPU_TEAMS_PATH):
@@ -29,14 +35,61 @@ if os.path.exists(CPU_TEAMS_PATH):
     except Exception as e:
         print(f"[Matches API] Error cargando cpu_teams.json: {e}")
 
-# Historial en memoria (fallback resiliente para desarrollo/offline)
 MATCH_HISTORY_CACHE: List[Dict[str, Any]] = []
 
 
 class SimulateRequest(BaseModel):
     home_squad: Optional[Dict[str, Any]] = None
     away_squad: Optional[Dict[str, Any]] = None
-    user_id: Optional[int] = 1
+    user_id: Optional[int] = None
+
+
+class RecordMatchRequest(BaseModel):
+    rival_name: str = "Leyendas Rival"
+    home_score: int = 0
+    away_score: int = 0
+    formation: Optional[str] = "1-2-2-1"
+    away_formation: Optional[str] = "1-2-2-1"
+    events: Optional[List[Dict[str, Any]]] = None
+    stats: Optional[Dict[str, Any]] = None
+    mvp: Optional[Dict[str, Any]] = None
+    squad_players: Optional[List[Optional[Dict[str, Any]]]] = None
+    player_stats: Optional[Dict[str, Any]] = None
+    user_id: Optional[int] = None
+
+
+def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int] = None) -> Optional[User]:
+    auth_header = request.headers.get("Authorization", "")
+    if "token_user_" in auth_header:
+        try:
+            uid = int(auth_header.split("token_user_")[-1].strip())
+            user = db.query(User).filter(User.id == uid).first()
+            if user:
+                return user
+        except ValueError:
+            pass
+    if explicit_user_id:
+        user = db.query(User).filter(User.id == explicit_user_id).first()
+        if user:
+            return user
+    return db.query(User).order_by(User.id.desc()).first()
+
+
+def _normalize_event_type(raw_type: str) -> str:
+    t = (raw_type or "").lower().strip()
+    mapping = {
+        "goal": "GOL",
+        "penalty-goal": "GOL",
+        "save": "PARADA",
+        "post": "DISPARO_POSTE",
+        "crossbar": "DISPARO_POSTE",
+        "foul": "FALTA",
+        "freekick": "FALTA",
+        "yellow-card": "TARJETA_AMARILLA",
+        "red-card": "TARJETA_ROJA",
+        "substitution": "CAMBIO",
+    }
+    return mapping.get(t, t.upper()[:50] or "EVENTO")
 
 
 def _get_random_cpu_squad() -> Dict[str, Any]:
@@ -50,8 +103,8 @@ def _get_random_cpu_squad() -> Dict[str, Any]:
                 {"name": "Maradona", "role": "MC", "rating_general": 95, "rating_creacion": 98, "rating_tecnica": 99, "rating_fisico": 78, "rating_palmares": 98},
                 {"name": "Cruyff", "role": "MC", "rating_general": 93, "rating_creacion": 95, "rating_tecnica": 96, "rating_fisico": 82, "rating_palmares": 95},
                 {"name": "Pirlo", "role": "MC", "rating_general": 89, "rating_creacion": 94, "rating_tecnica": 93, "rating_fisico": 75, "rating_palmares": 90},
-                {"name": "Pelé", "role": "DEL", "rating_general": 97, "rating_ataque": 98, "rating_tecnica": 97, "rating_fisico": 88, "rating_palmares": 99}
-            ]
+                {"name": "Pelé", "role": "DEL", "rating_general": 97, "rating_ataque": 98, "rating_tecnica": 97, "rating_fisico": 88, "rating_palmares": 99},
+            ],
         }
     team = random.choice(CPU_TEAMS)
     return {
@@ -68,16 +121,206 @@ def _get_random_cpu_squad() -> Dict[str, Any]:
                 "rating_creacion": j.get("rating_creacion") or 70,
                 "rating_tecnica": j.get("rating_tecnica") or 70,
                 "rating_fisico": j.get("rating_fisico") or 80,
-                "rating_palmares": j.get("rating_palmares") or 70
+                "rating_palmares": j.get("rating_palmares") or 70,
             }
             for j in team.get("jugadores", [])
-        ]
+        ],
+    }
+
+
+@router.post("/record")
+def record_finished_match(
+    payload: RecordMatchRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Guarda en MySQL ('partidos', 'eventos_partido', 'users' y 'user_players') toda la información de un partido finalizado."""
+    home_score = int(payload.home_score or 0)
+    away_score = int(payload.away_score or 0)
+
+    if home_score > away_score:
+        res_enum = "local"
+        res_label = "VICTORIA"
+        elo_var = 25
+    elif home_score == away_score:
+        res_enum = "empate"
+        res_label = "EMPATE"
+        elo_var = 5
+    else:
+        res_enum = "visitante"
+        res_label = "DERROTA"
+        elo_var = -15
+
+    user = _resolve_user(request, db, payload.user_id)
+    if not user:
+        return {"status": "skipped", "reason": "No user in database"}
+
+    # 1. Resolver o crear plantilla activa del usuario
+    plantilla = (
+        db.query(Plantilla)
+        .filter(Plantilla.user_id == user.id)
+        .order_by(Plantilla.id.desc())
+        .first()
+    )
+    if not plantilla:
+        plantilla = Plantilla(
+            user_id=user.id,
+            nombre=user.team_name or "Mi Alineación Principal",
+            formacion=payload.formation or "1-2-2-1",
+            costo_total=0.0,
+            es_activa=True,
+        )
+        db.add(plantilla)
+        db.flush()
+
+    # 2. Extraer métricas cara a cara y MVP
+    events_list = payload.events or []
+    stats_obj = payload.stats or {}
+    mvp_obj = payload.mvp or {}
+
+    pos_home = int(stats_obj.get("homePossession") or stats_obj.get("possessionHome") or 50)
+    pos_away = max(0, 100 - pos_home)
+
+    home_saves = sum(1 for e in events_list if e.get("side") == "home" and e.get("type") == "save")
+    away_saves = sum(1 for e in events_list if e.get("side") == "away" and e.get("type") == "save")
+    home_yellows = sum(1 for e in events_list if e.get("side") == "home" and e.get("type") == "yellow-card")
+    away_yellows = sum(1 for e in events_list if e.get("side") == "away" and e.get("type") == "yellow-card")
+    home_reds = sum(1 for e in events_list if e.get("side") == "home" and e.get("type") == "red-card")
+    away_reds = sum(1 for e in events_list if e.get("side") == "away" and e.get("type") == "red-card")
+
+    tiros_local = int(stats_obj.get("homeShots") or stats_obj.get("shotsHome") or (home_score + away_saves + 2))
+    tiros_visitante = int(stats_obj.get("awayShots") or stats_obj.get("shotsAway") or (away_score + home_saves + 2))
+
+    mvp_name = mvp_obj.get("name")
+    mvp_role = mvp_obj.get("role")
+    mvp_rating = float(mvp_obj.get("matchRating")) if mvp_obj.get("matchRating") is not None else None
+    mvp_side = "visitante" if mvp_obj.get("isRival") else "local"
+
+    # 3. Crear registro en 'partidos'
+    partido = Partido(
+        local_user_id=user.id,
+        visitante_user_id=None,
+        nombre_visitante_ia=payload.rival_name or "Leyendas Rival",
+        plantilla_local_id=plantilla.id,
+        plantilla_visitante_id=None,
+        formacion_local=(payload.formation or plantilla.formacion or "1-2-2-1")[:10],
+        formacion_visitante=(payload.away_formation or "1-2-2-1")[:10],
+        goles_local=home_score,
+        goles_visitante=away_score,
+        resultado=res_enum,
+        variacion_elo_local=elo_var,
+        variacion_elo_visitante=-elo_var,
+        mvp_nombre=mvp_name,
+        mvp_rol=mvp_role,
+        mvp_rating=mvp_rating,
+        mvp_equipo=mvp_side,
+        posesion_local=pos_home,
+        posesion_visitante=pos_away,
+        tiros_local=tiros_local,
+        tiros_visitante=tiros_visitante,
+        atajadas_local=home_saves,
+        atajadas_visitante=away_saves,
+        amarillas_local=home_yellows,
+        amarillas_visitante=away_yellows,
+        rojas_local=home_reds,
+        rojas_visitante=away_reds,
+    )
+    db.add(partido)
+    db.flush()
+
+    # 4. Insertar timeline en 'eventos_partido'
+    all_players = db.query(Player.id, Player.nombre).all()
+    player_id_by_name = {p.nombre.lower(): p.id for p in all_players if p.nombre}
+
+    for ev in events_list:
+        minute = max(0, min(120, int(ev.get("minute") or ev.get("minuto") or 0)))
+        second = max(0, min(59, int(ev.get("second") or ev.get("segundo") or 0)))
+        ev_type = _normalize_event_type(str(ev.get("type") or ev.get("tipo") or "EVENTO"))
+        side = "visitante" if ev.get("side") == "away" else "local"
+        p_name = str(ev.get("player") or "").strip()
+        detail = str(ev.get("detail") or ev.get("description") or ev.get("text") or "").strip()
+        desc = f"{p_name} - {detail}".strip(" -") or ev_type
+
+        matched_pid = player_id_by_name.get(p_name.lower()) if p_name else None
+        db.add(
+            EventoPartido(
+                partido_id=partido.id,
+                minuto=minute,
+                segundo=second,
+                tipo=ev_type,
+                descripcion=desc[:255],
+                equipo=side,
+                player_id=matched_pid,
+                jugador_nombre=p_name[:120] if p_name else None,
+            )
+        )
+
+    # 5. Actualizar récord competitivo y ELO del mánager en 'users'
+    user.elo_rating = max(0, (user.elo_rating or 1000) + elo_var)
+    user.partidos_jugados = (user.partidos_jugados or 0) + 1
+    if res_enum == "local":
+        user.victorias = (user.victorias or 0) + 1
+    elif res_enum == "empate":
+        user.empates = (user.empates or 0) + 1
+    else:
+        user.derrotas = (user.derrotas or 0) + 1
+    user.goles_favor = (user.goles_favor or 0) + home_score
+    user.goles_contra = (user.goles_contra or 0) + away_score
+
+    # 6. Actualizar energía (stamina) y estadísticas en el club dentro de 'user_players'
+    user_players = db.query(UserPlayer).filter(UserPlayer.user_id == user.id).all()
+    up_by_pid = {up.player_id: up for up in user_players}
+
+    if payload.squad_players:
+        for sp in payload.squad_players:
+            if not sp or not isinstance(sp, dict):
+                continue
+            pid = sp.get("id")
+            if pid and int(pid) in up_by_pid:
+                up = up_by_pid[int(pid)]
+                if isinstance(sp.get("energia"), (int, float)):
+                    up.energia = max(0, min(100, int(round(float(sp["energia"])))))
+
+    if payload.player_stats and isinstance(payload.player_stats, dict):
+        for p_key, st in payload.player_stats.items():
+            if not isinstance(st, dict):
+                continue
+            matched_pid = player_id_by_name.get(p_key.lower().strip())
+            if matched_pid and matched_pid in up_by_pid:
+                up = up_by_pid[matched_pid]
+                up.partidos_club = int(st.get("matchesPlayed") or up.partidos_club or 0)
+                up.goles_club = int(st.get("goals") or up.goles_club or 0)
+                up.vallas_invictas_club = int(st.get("cleanSheets") or up.vallas_invictas_club or 0)
+                up.mvps_club = int(st.get("mvpAwards") or up.mvps_club or 0)
+                if st.get("avgRating") is not None:
+                    up.rating_promedio = float(st["avgRating"])
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "status": "recorded",
+        "partido_id": partido.id,
+        "user_id": user.id,
+        "resultado": res_label,
+        "variacion_elo": elo_var,
+        "nuevo_elo": user.elo_rating,
+        "record": {
+            "partidos_jugados": user.partidos_jugados,
+            "victorias": user.victorias,
+            "empates": user.empates,
+            "derrotas": user.derrotas,
+        },
     }
 
 
 @router.post("/simulate")
-def simulate_match(req: Optional[SimulateRequest] = None, db: Optional[Session] = Depends(get_db)):
-    """Ejecuta el motor de simulación 6v6 entre dos plantillas de leyendas con los 5 componentes clave."""
+def simulate_match(
+    request: Request,
+    req: Optional[SimulateRequest] = None,
+    db: Session = Depends(get_db),
+):
+    """Ejecuta el motor de simulación 6v6 en servidor y registra el encuentro en MySQL."""
     payload = req.model_dump() if req else {}
     home_squad = payload.get("home_squad")
     away_squad = payload.get("away_squad")
@@ -92,16 +335,14 @@ def simulate_match(req: Optional[SimulateRequest] = None, db: Optional[Session] 
                 {"name": "Baresi", "role": "DEF", "rating_general": 90, "rating_defensa": 93, "rating_creacion": 68, "rating_tecnica": 75, "rating_ataque": 35, "rating_fisico": 79, "rating_palmares": 90},
                 {"name": "Zidane", "role": "MC", "rating_general": 96, "rating_creacion": 96, "rating_tecnica": 98, "rating_ataque": 88, "rating_defensa": 65, "rating_fisico": 83, "rating_palmares": 95},
                 {"name": "Xavi", "role": "MC", "rating_general": 94, "rating_creacion": 97, "rating_tecnica": 95, "rating_ataque": 78, "rating_defensa": 68, "rating_fisico": 76, "rating_palmares": 94},
-                {"name": "Messi", "role": "DEL", "rating_general": 99, "rating_ataque": 99, "rating_tecnica": 99, "rating_creacion": 95, "rating_defensa": 35, "rating_fisico": 80, "rating_palmares": 99}
-            ]
+                {"name": "Messi", "role": "DEL", "rating_general": 99, "rating_ataque": 99, "rating_tecnica": 99, "rating_creacion": 95, "rating_defensa": 35, "rating_fisico": 80, "rating_palmares": 99},
+            ],
         }
 
     if not away_squad or not away_squad.get("players"):
         away_squad = _get_random_cpu_squad()
 
     sim_result = simulation_service.simulate(home_squad, away_squad)
-
-    # Cálculo de resultado y puntos
     home_score = sim_result["home_team"]["score"]
     away_score = sim_result["away_team"]["score"]
 
@@ -118,52 +359,15 @@ def simulate_match(req: Optional[SimulateRequest] = None, db: Optional[Session] 
         pts = 0
         elo_var = -15
 
-    # MVP
     goal_events = [e for e in sim_result.get("events", []) if e.get("type") == "goal"]
     mvp = goal_events[0]["player"] if goal_events else home_squad["players"][0]["name"]
 
-    summary = {
+    sim_result["summary"] = {
         "result_type": res_type,
         "points_gained": pts,
         "elo_variation": elo_var,
-        "mvp": mvp
+        "mvp": mvp,
     }
-    sim_result["summary"] = summary
-
-    # Intento de persistencia en base de datos si la conexión está disponible
-    try:
-        if db:
-            db.execute(
-                text("""
-                    INSERT INTO partidos (user_id, plantilla_id, rival_nombre, goles_local, goles_visitante, resultado, variacion_elo)
-                    VALUES (:uid, 1, :rival, :g_home, :g_away, :res, :elo)
-                """),
-                {
-                    "uid": payload.get("user_id", 1),
-                    "rival": away_squad.get("name", "Equipo Rival"),
-                    "g_home": home_score,
-                    "g_away": away_score,
-                    "res": res_type.lower(),
-                    "elo": elo_var
-                }
-            )
-            db.commit()
-    except Exception as db_err:
-        print(f"[Matches API] DB persist error (fallback activo): {db_err}")
-
-    MATCH_HISTORY_CACHE.insert(0, {
-        "match_id": sim_result["match_id"],
-        "home_team": sim_result["home_team"]["name"],
-        "away_team": sim_result["away_team"]["name"],
-        "home_score": home_score,
-        "away_score": away_score,
-        "result": res_type,
-        "points": pts,
-        "date": "Reciente"
-    })
-    if len(MATCH_HISTORY_CACHE) > 50:
-        MATCH_HISTORY_CACHE.pop()
-
     return sim_result
 
 
@@ -174,29 +378,109 @@ def get_cpu_opponents():
 
 
 @router.get("/history")
-def get_match_history(limit: int = Query(10, ge=1, le=50), db: Optional[Session] = Depends(get_db)):
-    """Retorna el historial de partidos disputados con sus marcadores y puntos obtenidos."""
+def get_match_history(
+    request: Request,
+    limit: int = Query(15, ge=1, le=50),
+    user_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Retorna el historial completo de partidos desde MySQL ('partidos' + 'eventos_partido') listo para el Popup de Historial."""
     try:
-        if db:
-            res = db.execute(
-                text("SELECT id, rival_nombre, goles_local, goles_visitante, resultado, variacion_elo, fecha_partido FROM partidos ORDER BY id DESC LIMIT :lim"),
-                {"lim": limit}
-            )
-            rows = res.fetchall()
-            if rows:
-                return {
-                    "history": [
-                        {
-                            "id": r[0],
-                            "rival": r[1],
-                            "score": f"{r[2]} - {r[3]}",
-                            "resultado": r[4].upper(),
-                            "elo": r[5],
-                            "fecha": str(r[6])
-                        }
-                        for r in rows
-                    ]
-                }
+        user = _resolve_user(request, db, user_id)
+        query = db.query(Partido)
+        if user:
+            query = query.filter(Partido.local_user_id == user.id)
+        partidos = query.order_by(Partido.id.desc()).limit(limit).all()
+
+        if partidos:
+            history_list = []
+            for p in partidos:
+                eventos = (
+                    db.query(EventoPartido)
+                    .filter(EventoPartido.partido_id == p.id)
+                    .order_by(EventoPartido.minuto.asc(), EventoPartido.id.asc())
+                    .all()
+                )
+                if p.resultado == "local":
+                    res_label = "VICTORIA"
+                    res_type = "win"
+                    pts = p.variacion_elo_local if p.variacion_elo_local is not None else 25
+                elif p.resultado == "empate":
+                    res_label = "EMPATE"
+                    res_type = "draw"
+                    pts = p.variacion_elo_local if p.variacion_elo_local is not None else 5
+                else:
+                    res_label = "DERROTA"
+                    res_type = "loss"
+                    pts = p.variacion_elo_local if p.variacion_elo_local is not None else -15
+
+                serialized_events = [
+                    {
+                        "minute": ev.minuto,
+                        "second": ev.segundo,
+                        "type": "goal" if ev.tipo == "GOL" else (
+                            "save" if ev.tipo == "PARADA" else (
+                                "yellow-card" if ev.tipo == "TARJETA_AMARILLA" else (
+                                    "red-card" if ev.tipo == "TARJETA_ROJA" else (
+                                        "substitution" if ev.tipo == "CAMBIO" else ev.tipo.lower()
+                                    )
+                                )
+                            )
+                        ),
+                        "tipo": ev.tipo,
+                        "side": "away" if ev.equipo == "visitante" else "home",
+                        "player": ev.jugador_nombre or "",
+                        "detail": ev.descripcion,
+                    }
+                    for ev in eventos
+                ]
+
+                history_list.append(
+                    {
+                        "id": p.id,
+                        "rival": p.nombre_visitante_ia or "Leyendas Rival",
+                        "opponent": p.nombre_visitante_ia or "Leyendas Rival",
+                        "homeScore": p.goles_local,
+                        "awayScore": p.goles_visitante,
+                        "score": f"{p.goles_local} - {p.goles_visitante}",
+                        "resultado": res_label,
+                        "resultType": res_type,
+                        "points": pts,
+                        "elo": p.variacion_elo_local,
+                        "homeTeam": {
+                            "name": user.team_name if user else "Tu Equipo",
+                            "score": p.goles_local,
+                            "formation": p.formacion_local,
+                        },
+                        "awayTeam": {
+                            "name": p.nombre_visitante_ia or "Leyendas Rival",
+                            "score": p.goles_visitante,
+                            "formation": p.formacion_visitante,
+                        },
+                        "mvp": {
+                            "name": p.mvp_nombre,
+                            "role": p.mvp_rol,
+                            "matchRating": p.mvp_rating,
+                            "isRival": p.mvp_equipo == "visitante",
+                        } if p.mvp_nombre else None,
+                        "stats": {
+                            "homePossession": p.posesion_local,
+                            "awayPossession": p.posesion_visitante,
+                            "homeShots": p.tiros_local,
+                            "awayShots": p.tiros_visitante,
+                            "homeSaves": p.atajadas_local,
+                            "awaySaves": p.atajadas_visitante,
+                            "homeYellowCards": p.amarillas_local,
+                            "awayYellowCards": p.amarillas_visitante,
+                            "homeRedCards": p.rojas_local,
+                            "awayRedCards": p.rojas_visitante,
+                        },
+                        "events": serialized_events,
+                        "fecha": p.fecha_partido.strftime("%H:%M") if p.fecha_partido else "Reciente",
+                        "relativeDate": p.fecha_partido.strftime("%d/%m/%Y") if p.fecha_partido else "Hoy",
+                    }
+                )
+            return {"history": history_list}
     except Exception as e:
         print(f"[Matches API] DB read error: {e}")
 

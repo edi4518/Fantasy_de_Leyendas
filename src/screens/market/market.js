@@ -8,6 +8,7 @@
  */
 
 import { playerService } from '../../services/player-service.js';
+import { squadService } from '../../services/squad-service.js';
 import { DEFAULT_HOME_SQUAD, getRatingTierClass } from '../lineup/lineup.js';
 
 const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
@@ -76,6 +77,20 @@ async function initMarketController(container, router) {
 
   try {
     catalog = await playerService.getAllPlayers();
+    try {
+      const remoteRes = await squadService.getMySquad();
+      if (remoteRes && remoteRes.squad && Array.isArray(remoteRes.squad.players)) {
+        activeSquad = {
+          name: remoteRes.squad.name || activeSquad.name || 'Tu Equipo',
+          formation: remoteRes.squad.formation || activeSquad.formation || '1-2-2-1',
+          players: remoteRes.squad.players
+        };
+        ensureTenSlots(activeSquad);
+        localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
+      }
+    } catch (_) {
+      // Si no hay plantilla previa en BD, se mantiene la local
+    }
     renderAllViews();
   } catch (err) {
     console.error('[Market] Error al conectar con la API de jugadores:', err);
@@ -205,7 +220,7 @@ async function initMarketController(container, router) {
     const squadPlayers = (activeSquad.players || []).filter(Boolean);
     const totalSpent = squadPlayers.reduce((acc, p) => acc + (Number(p.precio) || 0), 0);
     const spentRounded = Math.round(totalSpent * 10) / 10;
-    const availableBudget = Math.max(0, Math.round((130.0 - spentRounded) * 10) / 10);
+    const availableBudget = Math.max(0, Math.round((150.0 - spentRounded) * 10) / 10);
 
     if (budgetAvailableEl) budgetAvailableEl.textContent = `${availableBudget}M`;
     if (squadCountEl) squadCountEl.textContent = `${squadPlayers.length} / 10`;
@@ -567,11 +582,11 @@ async function initMarketController(container, router) {
     const currentSpent = currentSquadPlayers.reduce((acc, p) => acc + (Number(p.precio) || 0), 0);
     const costToBuy = toBuyPlayers.reduce((acc, p) => acc + (Number(p.precio) || 0), 0);
 
-    if (currentSpent + costToBuy > 130.0) {
-      const excess = Math.round((currentSpent + costToBuy - 130.0) * 10) / 10;
+    if (currentSpent + costToBuy > 150.0) {
+      const excess = Math.round((currentSpent + costToBuy - 150.0) * 10) / 10;
       showMarketAlert({
         title: 'Presupuesto insuficiente',
-        message: `La operación supera el límite salarial de 130.0M por ${excess}M. Necesitas vender futbolistas para equilibrar las finanzas.`,
+        message: `La operación supera el límite salarial de 150.0M por ${excess}M. Necesitas vender futbolistas para equilibrar las finanzas.`,
         type: 'danger'
       });
       return;
@@ -848,6 +863,19 @@ function persistActiveSquad(squad) {
   try {
     localStorage.setItem('fantasy_active_squad', JSON.stringify(squad));
     window.dispatchEvent(new CustomEvent('fantasy:squad-updated', { detail: squad }));
+    let currentUserId = null;
+    try {
+      const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+      if (userObj && userObj.id) currentUserId = Number(userObj.id);
+    } catch (_) {}
+    squadService.saveSquad({
+      formation: squad.formation || '1-2-2-1',
+      players: squad.players || [],
+      name: squad.name || undefined,
+      user_id: currentUserId
+    }).catch((err) => {
+      console.debug('[Market] Sincronización de plantilla con backend omitida:', err.message);
+    });
   } catch (err) {
     console.debug('[Market] Error al persistir plantilla activa:', err);
   }

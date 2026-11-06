@@ -2,7 +2,7 @@ import os
 import csv
 import logging
 from typing import Generator
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from app.core.config import settings
 
@@ -12,23 +12,45 @@ Base = declarative_base()
 
 
 def create_db_engine():
-    """Intenta conectar a MySQL según settings.DATABASE_URL.
-    Si MySQL no responde o falla, realiza un fallback automático e inteligente
-    a SQLite local (fantasy_leyendas.db) para permitir el desarrollo continuo y
-    la ejecución sin depender de que XAMPP o MySQL estén activos.
+    """Intenta conectar a MySQL / TiDB Cloud / PostgreSQL (Supabase) según settings.DATABASE_URL.
+    Si la BD remota o local no responde, realiza un fallback automático a SQLite local.
     """
-    mysql_url = settings.DATABASE_URL
+    db_url = settings.DATABASE_URL.strip()
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
     try:
-        connect_args = {"connect_timeout": 2} if "mysql" in mysql_url else {}
+        connect_args = {}
+        if "mysql" in db_url:
+            connect_args["connect_timeout"] = 5
+            if "tidbcloud.com" in db_url or "ssl=" in db_url:
+                connect_args["ssl"] = {"check_hostname": False}
+
+        # Ejecutar CREATE DATABASE IF NOT EXISTS fantasy_leyendas tanto en MySQL local como en TiDB Cloud
+        if "mysql" in db_url and "/fantasy_leyendas" in db_url:
+            base_mysql_url = db_url.rsplit("/fantasy_leyendas", 1)[0]
+            if "tidbcloud.com" in base_mysql_url:
+                base_mysql_url = f"{base_mysql_url}/test"
+            temp_eng = create_engine(base_mysql_url, connect_args=connect_args)
+            with temp_eng.connect() as conn:
+                conn.execute(
+                    text(
+                        "CREATE DATABASE IF NOT EXISTS fantasy_leyendas "
+                        "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+                    )
+                )
+                conn.commit()
+            temp_eng.dispose()
+
         eng = create_engine(
-            mysql_url,
+            db_url,
             pool_pre_ping=True,
-            pool_recycle=3600,
+            pool_recycle=300,
             connect_args=connect_args
         )
         with eng.connect() as conn:
             conn.execute(text("SELECT 1"))
-        logger.info(f"Conexión exitosa a MySQL: {mysql_url}")
+        logger.info("Conexión exitosa a la base de datos configurada en DATABASE_URL")
         return eng
     except Exception as e:
         logger.warning(
@@ -47,10 +69,64 @@ engine = create_db_engine()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def seed_database_if_needed():
-    """Crea las tablas y siembra las 80 leyendas históricas desde players_seed.csv si la base está vacía."""
-    from app.models.player import Player
+def _ensure_optimized_schema():
+    """Actualiza automáticamente el esquema en MySQL/SQLite si proviene de la versión anterior de 6 tablas,
+    preservando los usuarios registrados y las 80 leyendas."""
     try:
+        insp = inspect(engine)
+        existing_tables = set(insp.get_table_names())
+
+        # 1. Asegurar nuevas columnas en 'users' sin borrar los usuarios ya registrados
+        if "users" in existing_tables:
+            user_cols = {c["name"] for c in insp.get_columns("users")}
+            new_user_columns = [
+                ("partidos_jugados", "INT NOT NULL DEFAULT 0"),
+                ("victorias", "INT NOT NULL DEFAULT 0"),
+                ("empates", "INT NOT NULL DEFAULT 0"),
+                ("derrotas", "INT NOT NULL DEFAULT 0"),
+                ("goles_favor", "INT NOT NULL DEFAULT 0"),
+                ("goles_contra", "INT NOT NULL DEFAULT 0"),
+                ("notif_activas", "BOOLEAN NOT NULL DEFAULT 1"),
+                ("sonido_activo", "BOOLEAN NOT NULL DEFAULT 0"),
+            ]
+            with engine.begin() as conn:
+                for col_name, col_def in new_user_columns:
+                    if col_name not in user_cols:
+                        conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}"))
+
+        # 2. Si aún no existe 'user_players' o 'partidos' tiene el esquema viejo (sin 'local_user_id'),
+        # recrear las tablas relacionales de plantillas y partidos para aplicar el nuevo modelo completo.
+        needs_recreate = "user_players" not in existing_tables
+        if not needs_recreate and "partidos" in existing_tables:
+            partido_cols = {c["name"] for c in insp.get_columns("partidos")}
+            if "local_user_id" not in partido_cols or "mvp_nombre" not in partido_cols:
+                needs_recreate = True
+        if not needs_recreate and "plantilla_jugadores" in existing_tables:
+            pj_cols = {c["name"] for c in insp.get_columns("plantilla_jugadores")}
+            if "user_player_id" not in pj_cols:
+                needs_recreate = True
+
+        if needs_recreate:
+            with engine.begin() as conn:
+                if engine.dialect.name == "mysql":
+                    conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
+                for tbl in ["eventos_partido", "partidos", "plantilla_jugadores", "plantillas", "user_players"]:
+                    if tbl in existing_tables:
+                        conn.execute(text(f"DROP TABLE IF EXISTS {tbl}"))
+                if engine.dialect.name == "mysql":
+                    conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+    except Exception as mig_err:
+        logger.warning(f"Aviso durante verificación de esquema optimizado: {mig_err}")
+
+
+def seed_database_if_needed():
+    """Crea las 7 tablas optimizadas y siembra las 80 leyendas históricas desde players_seed.csv si la base está vacía."""
+    from app.models.player import Player
+    from app.models.user import User  # noqa: F401
+    from app.models.squad import UserPlayer, Plantilla, PlantillaJugador  # noqa: F401
+    from app.models.match import Partido, EventoPartido  # noqa: F401
+    try:
+        _ensure_optimized_schema()
         Base.metadata.create_all(bind=engine)
         db = SessionLocal()
         try:
@@ -121,6 +197,24 @@ def seed_database_if_needed():
                         db.add_all(players_to_add)
                         db.commit()
                         logger.info(f"Base de datos sembrada con {len(players_to_add)} leyendas exitosamente.")
+
+            # Actualizar presupuesto disponible de los mánagers al nuevo tope oficial de 150.0M
+            users_all = db.query(User).all()
+            budget_updated = False
+            for u in users_all:
+                pl = (
+                    db.query(Plantilla)
+                    .filter(Plantilla.user_id == u.id, Plantilla.es_activa == True)  # noqa: E712
+                    .order_by(Plantilla.id.desc())
+                    .first()
+                )
+                spent = float(pl.costo_total or 0.0) if pl else 0.0
+                expected_available = round(max(0.0, 150.0 - spent), 2)
+                if abs(float(u.presupuesto or 0.0) - expected_available) > 0.01:
+                    u.presupuesto = expected_available
+                    budget_updated = True
+            if budget_updated:
+                db.commit()
         finally:
             db.close()
     except Exception as e:

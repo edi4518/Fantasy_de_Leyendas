@@ -34,19 +34,9 @@ export const matchService = {
   async simulateMatch(homeSquad, awaySquad) {
     const rival = awaySquad || getRandomCpuTeam();
 
-    // 1. Generación inmediata del encuentro táctico con todos los snapshots interactivos
+    // Generación inmediata del encuentro táctico con todos los snapshots interactivos.
+    // El resultado oficial se persiste en MySQL al finalizar el encuentro mediante saveMatchResult() -> POST /api/matches/record.
     const match = simulateMatchEngine(homeSquad, rival);
-
-    // 2. Sincronización asíncrona con el backend FastAPI (si está online)
-    apiClient.post('/matches/simulate', {
-      home_squad: homeSquad,
-      away_squad: rival
-    }).then(res => {
-      console.debug('[MatchService] Partido sincronizado exitosamente con el backend:', res?.match_id);
-    }).catch(err => {
-      console.debug('[MatchService] Backend offline o deshabilitado, funcionando en modo local:', err.message);
-    });
-
     return match;
   },
 
@@ -222,6 +212,47 @@ export const matchService = {
 
     // 3. Registrar estadísticas acumuladas reales de los jugadores
     const statsResult = this.recordPlayerMatchStats(matchData);
+
+    // 4. Persistir el resultado oficial, MVP, estadísticas cara a cara, eventos y stamina en MySQL
+    try {
+      let currentUserId = null;
+      const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      if (savedUser && savedUser.id) currentUserId = Number(savedUser.id);
+
+      let activeSquadPlayers = [];
+      try {
+        const rawSq = localStorage.getItem('fantasy_active_squad');
+        if (rawSq) {
+          const parsedSq = JSON.parse(rawSq);
+          if (Array.isArray(parsedSq?.players)) activeSquadPlayers = parsedSq.players;
+        }
+      } catch (_) {}
+
+      apiClient.post('/matches/record', {
+        rival_name: matchData.awayTeam.name || 'Leyendas Rival',
+        home_score: homeScore,
+        away_score: awayScore,
+        formation: matchData.homeTeam?.formation || '1-2-2-1',
+        away_formation: matchData.awayTeam?.formation || '1-2-2-1',
+        events: Array.isArray(matchData.events) ? matchData.events : [],
+        stats: matchData.stats || {},
+        mvp: statsResult.matchMvp || null,
+        squad_players: activeSquadPlayers,
+        player_stats: statsResult.stats || {},
+        user_id: currentUserId
+      }).then((res) => {
+        if (res && typeof res.nuevo_elo === 'number') {
+          try {
+            const u = JSON.parse(localStorage.getItem('user') || '{}');
+            u.elo_rating = res.nuevo_elo;
+            localStorage.setItem('user', JSON.stringify(u));
+          } catch (_) {}
+        }
+        console.debug('[MatchService] Partido guardado en MySQL exitosamente:', res);
+      }).catch((err) => {
+        console.debug('[MatchService] Guardado en MySQL omitido (modo local):', err.message);
+      });
+    } catch (_) {}
 
     const outcome = {
       resultType,

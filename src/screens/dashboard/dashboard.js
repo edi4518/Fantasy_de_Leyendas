@@ -102,8 +102,8 @@ export const DEFAULT_HOME_DATA = {
   },
   budget: {
     spent: 0.0,
-    available: 130.0,
-    total: 130.0,
+    available: 150.0,
+    total: 150.0,
     percentage: 0
   },
   valGlobal: 0,
@@ -185,8 +185,13 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
     const budgetPercentEl = document.getElementById('budget-percentage');
     const budgetBarEl = document.getElementById('budget-progress-bar');
     const budgetContainerEl = document.getElementById('budget-progress-container');
+    const budgetLimitEl = document.getElementById('budget-limit-text');
 
-    const percentage = data.budget?.percentage ?? Math.round((data.budget?.spent / (data.budget?.total || 130)) * 100);
+    if (budgetLimitEl) {
+      budgetLimitEl.textContent = `Límite: ${data.budget?.total || 150}M`;
+    }
+
+    const percentage = data.budget?.percentage ?? Math.round((data.budget?.spent / (data.budget?.total || 150)) * 100);
 
     if (budgetPercentEl) {
       budgetPercentEl.textContent = `${percentage}%`;
@@ -335,7 +340,7 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
         .join('');
     }
 
-    // 6. Racha Reciente (Totalmente dinámica y reactiva)
+    // 6. Racha Reciente (Totalmente dinámica y reactiva desde MySQL)
     const streakResultBadge = document.getElementById('streak-result-badge');
     const streakResultScore = document.getElementById('streak-result-score');
     const streakOpponentEl = document.getElementById('streak-opponent-text');
@@ -344,7 +349,7 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
       const res = (data.streak.lastMatch.result || 'V').toUpperCase();
       let colorClass = 'text-win';
       if (res === 'D') colorClass = 'text-loss';
-      else if (res === 'E') colorClass = 'text-draw';
+      else if (res === 'E' || res === '-') colorClass = 'text-draw';
 
       if (streakResultBadge) {
         streakResultBadge.textContent = res;
@@ -352,37 +357,43 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
       }
 
       if (streakResultScore) {
-        const rawScore = data.streak.lastMatch.score || '2 – 1';
+        const rawScore = data.streak.lastMatch.score || '0 – 0';
         streakResultScore.textContent = rawScore.replace('-', '–');
       }
 
       if (streakOpponentEl) {
         let opp = data.streak.lastMatch.opponent || 'MánagerX';
-        if (!opp.startsWith('vs ')) opp = `vs ${opp}`;
+        if (!opp.startsWith('vs ') && !opp.startsWith('¡')) opp = `vs ${opp}`;
         streakOpponentEl.textContent = opp;
       }
     }
 
     const streakCirclesContainer = document.getElementById('streak-circles-container');
     if (streakCirclesContainer && Array.isArray(data.streak?.recentResults)) {
-      streakCirclesContainer.innerHTML = data.streak.recentResults
-        .slice(0, 5)
-        .map((result) => {
-          const normalized = (result || 'V').toUpperCase();
-          let modifier = 'streak-circle--win';
-          let title = 'Victoria';
+      if (data.streak.recentResults.length === 0) {
+        streakCirclesContainer.innerHTML = [1, 2, 3, 4, 5]
+          .map(() => `<span class="streak-circle streak-circle--draw" title="Sin partido disputado">-</span>`)
+          .join('');
+      } else {
+        streakCirclesContainer.innerHTML = data.streak.recentResults
+          .slice(0, 5)
+          .map((result) => {
+            const normalized = (result || 'V').toUpperCase();
+            let modifier = 'streak-circle--win';
+            let title = 'Victoria';
 
-          if (normalized === 'D') {
-            modifier = 'streak-circle--loss';
-            title = 'Derrota';
-          } else if (normalized === 'E') {
-            modifier = 'streak-circle--draw';
-            title = 'Empate';
-          }
+            if (normalized === 'D') {
+              modifier = 'streak-circle--loss';
+              title = 'Derrota';
+            } else if (normalized === 'E') {
+              modifier = 'streak-circle--draw';
+              title = 'Empate';
+            }
 
-          return `<span class="streak-circle ${modifier}" title="${title} (${normalized})">${normalized}</span>`;
-        })
-        .join('');
+            return `<span class="streak-circle ${modifier}" title="${title} (${normalized})">${normalized}</span>`;
+          })
+          .join('');
+      }
     }
   } catch (error) {
     console.error('[Dashboard] Error al renderizar la vista Home:', error);
@@ -449,7 +460,7 @@ export async function fetchHomeData() {
     console.debug('[Dashboard] Error leyendo estadisticas locales de jugadores:', e);
   }
 
-  // 4. Lectura y cálculo reactivo de la Alineación y Plantilla Activa
+  // 4. Lectura y cálculo reactivo de la Alineación y Plantilla Activa (LocalStorage + MySQL /squads/my-squad)
   let activeSquad = null;
   try {
     const rawSquad = localStorage.getItem('fantasy_active_squad');
@@ -458,6 +469,44 @@ export async function fetchHomeData() {
     }
   } catch (e) {
     console.debug('[Dashboard] Error leyendo plantilla activa:', e);
+  }
+
+  // Si en localStorage no hay jugadores o queremos sincronizar estadísticas desde MySQL:
+  try {
+    const remoteSquad = await apiClient.get('/squads/my-squad');
+    if (remoteSquad && Array.isArray(remoteSquad.players)) {
+      const remoteHasPlayers = remoteSquad.players.some(Boolean);
+      const localHasPlayers = Array.isArray(activeSquad?.players) && activeSquad.players.some(Boolean);
+      if (remoteHasPlayers && !localHasPlayers) {
+        activeSquad = {
+          name: remoteSquad.name || managerData?.team_name || 'Tu Equipo',
+          formation: remoteSquad.formation || '1-2-2-1',
+          players: remoteSquad.players
+        };
+        localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
+      }
+      // Sincronizar estadísticas del club desde user_players de MySQL
+      remoteSquad.players.forEach((rp) => {
+        if (rp && (rp.nombre || rp.name) && (rp.partidos_club > 0 || rp.goles_club > 0 || rp.mvps_club > 0)) {
+          const pKey = rp.nombre || rp.name;
+          if (!playerStats[pKey] || (rp.partidos_club || 0) >= (playerStats[pKey].matchesPlayed || 0)) {
+            playerStats[pKey] = {
+              name: pKey,
+              matchesPlayed: rp.partidos_club || 0,
+              goals: rp.goles_club || 0,
+              cleanSheets: rp.vallas_invictas_club || 0,
+              mvpAwards: rp.mvps_club || 0,
+              avgRating: rp.rating_promedio ?? null
+            };
+          }
+        }
+      });
+      if (Object.keys(playerStats).length > 0) {
+        localStorage.setItem('fantasy_player_stats', JSON.stringify(playerStats));
+      }
+    }
+  } catch (err) {
+    console.debug('[Dashboard] Sincronización de plantilla MySQL omitida:', err.message);
   }
 
   // Garantizar estructura de plantilla de 10 posiciones (0..5 titulares, 6..9 reservas)
@@ -476,11 +525,11 @@ export async function fetchHomeData() {
   const reserves = activeSquad.players.slice(6).filter(Boolean);
   const allSquadPlayers = activeSquad.players.filter(Boolean);
 
-  // Cálculo del presupuesto gastado y disponible
+  // Cálculo del presupuesto gastado y disponible (Tope salarial oficial: 150.0M)
   const totalSpent = allSquadPlayers.reduce((acc, p) => acc + getPlayerPrice(p), 0);
   const spentRounded = Math.round(totalSpent * 10) / 10;
-  const availableRounded = Math.max(0, Math.round((130.0 - spentRounded) * 10) / 10);
-  const budgetPercentage = Math.min(100, Math.round((spentRounded / 130.0) * 100));
+  const availableRounded = Math.max(0, Math.round((150.0 - spentRounded) * 10) / 10);
+  const budgetPercentage = Math.min(100, Math.round((spentRounded / 150.0) * 100));
 
   // Cálculo de Valoración Global (media real de los 6 puestos titulares)
   const startersTotalRating = starters.reduce((acc, p) => acc + getPlayerRating(p), 0);
@@ -532,7 +581,7 @@ export async function fetchHomeData() {
       ranking: localStats?.ranking ?? managerData?.ranking ?? DEFAULT_HOME_DATA.manager.ranking
     },
     budget: {
-      total: 130.0,
+      total: 150.0,
       spent: spentRounded,
       available: availableRounded,
       percentage: budgetPercentage
@@ -591,16 +640,24 @@ export async function fetchHomeData() {
     },
     streak: {
       ...DEFAULT_HOME_DATA.streak,
-      ...(analyticsData?.streak || {}),
-      recentResults: (localStats?.streak && Array.isArray(localStats.streak) && localStats.streak.length > 0)
-        ? localStats.streak.slice(0, 5)
-        : (analyticsData?.streak?.recentResults || DEFAULT_HOME_DATA.streak.recentResults),
-      lastMatch: localLastMatch ? {
-        result: localLastMatch.resultado === 'VICTORIA' ? 'V' : (localLastMatch.resultado === 'EMPATE' ? 'E' : 'D'),
-        score: localLastMatch.score || '2 – 1',
-        scoreText: `${localLastMatch.resultado === 'VICTORIA' ? 'V' : (localLastMatch.resultado === 'EMPATE' ? 'E' : 'D')} ${localLastMatch.score || '2 – 1'}`,
-        opponent: localLastMatch.rival ? (localLastMatch.rival.startsWith('vs ') ? localLastMatch.rival : `vs ${localLastMatch.rival}`) : 'vs MánagerX'
-      } : (analyticsData?.streak?.lastMatch || DEFAULT_HOME_DATA.streak.lastMatch)
+      recentResults: (Array.isArray(analyticsData?.streak?.recentResults) && analyticsData.streak.recentResults.length > 0)
+        ? analyticsData.streak.recentResults.slice(0, 5)
+        : ((localStats?.streak && Array.isArray(localStats.streak) && localStats.streak.length > 0)
+            ? localStats.streak.slice(0, 5)
+            : (analyticsData?.has_matches === false ? [] : DEFAULT_HOME_DATA.streak.recentResults)),
+      lastMatch: analyticsData?.streak?.lastMatch
+        ? analyticsData.streak.lastMatch
+        : (localLastMatch ? {
+            result: localLastMatch.resultado === 'VICTORIA' ? 'V' : (localLastMatch.resultado === 'EMPATE' ? 'E' : 'D'),
+            score: localLastMatch.score || '2 – 1',
+            scoreText: `${localLastMatch.resultado === 'VICTORIA' ? 'V' : (localLastMatch.resultado === 'EMPATE' ? 'E' : 'D')} ${localLastMatch.score || '2 – 1'}`,
+            opponent: localLastMatch.rival ? (localLastMatch.rival.startsWith('vs ') ? localLastMatch.rival : `vs ${localLastMatch.rival}`) : 'vs MánagerX'
+          } : (analyticsData?.has_matches === false ? {
+            result: '-',
+            score: '0 – 0',
+            scoreText: '- 0 – 0',
+            opponent: '¡Busca tu primer rival!'
+          } : DEFAULT_HOME_DATA.streak.lastMatch))
     }
   };
 

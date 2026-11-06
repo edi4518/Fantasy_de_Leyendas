@@ -1,10 +1,12 @@
-﻿/**
+/**
  * @file ranking.js
  * @description Controlador de la pantalla de Ranking Global.
  * Asegura la integridad del DOM del podio Top 3, el listado clasificado y la tarjeta de mánager.
  */
 
-// 1. Datos simulados (Mock Data) exactos de la maqueta
+import { apiClient } from '../../services/api-client.js';
+
+// 1. Datos base de la liga (combinados con los mánagers reales de MySQL)
 const MOCK_RANKING = [
   { rank: 1, name: 'David Villa', points: 1520, trend: 'equal' },
   { rank: 2, name: 'Alex Mercer', points: 1480, trend: 'equal' },
@@ -16,18 +18,18 @@ const MOCK_RANKING = [
 ];
 
 const CURRENT_USER_MOCK = {
-  rank: 450,
+  rank: 8,
   teamName: 'Leyendas FC',
-  points: 840,
+  points: 1000,
   trend: 'up'
 };
 
 /**
  * Función principal inicializadora de la pantalla
  */
-export function initRanking() {
+export async function initRanking() {
   ensurePodiumIntegrity();
-  ensureListAndManagerIntegrity();
+  await ensureListAndManagerIntegrity();
 }
 
 /**
@@ -58,11 +60,56 @@ function ensurePodiumIntegrity() {
 /**
  * Asegura y renderiza los puestos del 4 al 7 y la tarjeta del mánager conectado
  */
-function ensureListAndManagerIntegrity() {
+async function ensureListAndManagerIntegrity() {
   const container = document.querySelector('.ranking-screen');
   if (!container) return;
 
-  // 1. Verificar o crear la lista #ranking-list
+  // 1. Consultar mánagers reales en MySQL (/api/ranking/leaderboard y /api/me)
+  let dbLeaderboard = [];
+  let meData = null;
+  try {
+    const [lbRes, meRes] = await Promise.all([
+      apiClient.get('/ranking/leaderboard').catch(() => null),
+      apiClient.get('/me').catch(() => null)
+    ]);
+    if (lbRes && Array.isArray(lbRes.leaderboard)) {
+      dbLeaderboard = lbRes.leaderboard;
+    }
+    if (meRes && meRes.team_name) {
+      meData = meRes;
+    }
+  } catch (_) {}
+
+  const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const teamName = meData?.team_name || savedUser.team_name || CURRENT_USER_MOCK.teamName;
+  const userPoints = Number(meData?.ranking ?? savedUser.elo_rating ?? CURRENT_USER_MOCK.points);
+
+  // Combinar competidores de la liga con mánagers reales de MySQL y ordenar por puntos ELO
+  const combinedEntries = [
+    ...MOCK_RANKING.map(m => ({ name: m.name, points: m.points, trend: m.trend, isDbUser: false })),
+    ...dbLeaderboard.map(u => ({
+      name: `${u.manager_name} (${u.team_name})`,
+      points: Number(u.elo_rating || 1000),
+      trend: 'up',
+      isDbUser: true,
+      userId: u.user_id,
+      teamName: u.team_name
+    }))
+  ].sort((a, b) => b.points - a.points);
+
+  // Asignar posición real tras ordenar
+  combinedEntries.forEach((entry, idx) => {
+    entry.rank = idx + 1;
+  });
+
+  const myEntry = combinedEntries.find(e =>
+    (meData?.id && e.userId === meData.id) ||
+    (savedUser?.id && e.userId === Number(savedUser.id)) ||
+    (e.teamName && e.teamName === teamName)
+  );
+  const userRank = myEntry ? myEntry.rank : (combinedEntries.filter(e => e.points > userPoints).length + 1);
+
+  // 2. Verificar o crear la lista #ranking-list
   let listEl = document.getElementById('ranking-list');
   if (!listEl) {
     listEl = document.createElement('ul');
@@ -76,8 +123,8 @@ function ensureListAndManagerIntegrity() {
     }
   }
 
-  // Renderizar puestos 4 a 7
-  const items = MOCK_RANKING.slice(3, 7);
+  // Renderizar puestos del 4 en adelante
+  const items = combinedEntries.slice(3, 10);
   listEl.innerHTML = items.map(item => {
     let trendSymbol = '-';
     let trendClass = 'trend-neutral';
@@ -108,7 +155,7 @@ function ensureListAndManagerIntegrity() {
     `;
   }).join('');
 
-  // 2. Verificar o crear la tarjeta del mánager
+  // 3. Verificar o crear la tarjeta del mánager
   let userCard = container.querySelector('.ranking-current-user');
   if (!userCard) {
     userCard = document.createElement('div');
@@ -116,13 +163,10 @@ function ensureListAndManagerIntegrity() {
     container.appendChild(userCard);
   }
 
-  const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const teamName = savedUser.team_name || CURRENT_USER_MOCK.teamName;
-
   userCard.innerHTML = `
     <div class="user-position-box">
       <span class="user-position-label">POSICIÓN</span>
-      <span class="user-rank" id="user-rank-val">#${CURRENT_USER_MOCK.rank}</span>
+      <span class="user-rank" id="user-rank-val">#${userRank}</span>
     </div>
     <div class="user-avatar-badge">
       <svg class="avatar-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,7 +179,7 @@ function ensureListAndManagerIntegrity() {
       <span class="user-team" id="user-team-name">${teamName}</span>
     </div>
     <div class="user-points-badge">
-      <span class="user-points" id="user-points-val">${CURRENT_USER_MOCK.points.toLocaleString('es-AR')} pts</span>
+      <span class="user-points" id="user-points-val">${userPoints.toLocaleString('es-AR')} pts</span>
       <span class="user-points-trend">↑</span>
     </div>
   `;

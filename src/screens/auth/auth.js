@@ -5,6 +5,7 @@
  */
 
 import { navigateTo } from "../../app/router.js";
+import { API_BASE_URL } from "../../services/api-client.js";
 
 const ICON_EYE_PATH = '/src/assets/icons/eye-open.svg';
 const ICON_EYE_OFF_PATH = '/src/assets/icons/eye-off.svg';
@@ -147,24 +148,15 @@ function initLogin(router) {
         let token = 'login_token_' + Date.now();
         let userData = null;
 
+        let response = null;
         try {
-          const response = await fetch('http://127.0.0.1:8000/api/auth/login', {
+          response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ email, password }),
           });
-
-          if (response.ok) {
-            const data = await response.json().catch(() => ({}));
-            token = data.token || data.access_token || token;
-            userData = data.user;
-            loggedIn = true;
-          } else {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.detail || 'Credenciales inválidas');
-          }
         } catch (fetchErr) {
           console.warn('[Auth] Backend FastAPI offline. Verificando en modo local PWA:', fetchErr.message);
           const savedUserStr = localStorage.getItem('user');
@@ -175,9 +167,20 @@ function initLogin(router) {
             } catch (_) {}
           }
           if (!loggedIn) {
-            // Permitir inicio de sesión local para pruebas
             userData = { name: email.split('@')[0], email: email, team_name: 'Mi Equipo FC' };
             loggedIn = true;
+          }
+        }
+
+        if (response) {
+          if (response.ok) {
+            const data = await response.json().catch(() => ({}));
+            token = data.token || data.access_token || token;
+            userData = data.user;
+            loggedIn = true;
+          } else {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Credenciales inválidas');
           }
         }
 
@@ -383,26 +386,29 @@ function initRegister(router) {
         }
 
         let token = 'auth_token_' + Date.now();
-        let apiSucceeded = false;
+        let dbUser = null;
+        let response = null;
 
         try {
-          const response = await fetch('http://127.0.0.1:8000/api/auth/register', {
+          response = await fetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
             body: formData,
           });
-
-          if (response.ok) {
-            const data = await response.json().catch(() => ({}));
-            token = data.token || data.access_token || token;
-            apiSucceeded = true;
-          } else {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.detail || 'Error en el servidor al registrar usuario');
-          }
         } catch (fetchErr) {
           // Si el backend FastAPI no está activo o hay error de red/fetch, fallback transparente a PWA Local
           console.warn('[Auth] Backend FastAPI offline o no disponible. Registrando usuario en modo PWA Local:', fetchErr.message);
           token = 'pwa_local_' + Date.now();
+        }
+
+        if (response) {
+          if (response.ok) {
+            const data = await response.json().catch(() => ({}));
+            token = data.token || data.access_token || token;
+            dbUser = data.user || null;
+          } else {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail || 'Error en el servidor al registrar usuario');
+          }
         }
 
         // Persistencia de sesión y datos de usuario en localStorage
@@ -411,12 +417,14 @@ function initRegister(router) {
         localStorage.setItem('hasSeenOnboarding', 'true');
 
         const userData = {
-          team_name: teamName,
-          name: `${firstName} ${lastName}`,
-          first_name: firstName,
-          last_name: lastName,
-          email: email,
-          birthdate: birthdate
+          ...(dbUser || {}),
+          id: dbUser?.id || null,
+          team_name: dbUser?.team_name || teamName,
+          name: dbUser?.name || `${firstName} ${lastName}`,
+          first_name: dbUser?.first_name || firstName,
+          last_name: dbUser?.last_name || lastName,
+          email: dbUser?.email || email,
+          birthdate: dbUser?.birthdate || birthdate
         };
         localStorage.setItem('user', JSON.stringify(userData));
 

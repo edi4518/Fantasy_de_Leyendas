@@ -6,21 +6,25 @@ autenticación de mánagers y verificación de estado del servicio.
 
 import os
 import unicodedata
-from typing import List
+from typing import List, Optional
 
 from fastapi import FastAPI, Depends, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 # Configuración central y base de datos
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.player import Player
+from app.models.user import User
+from app.models.squad import UserPlayer, Plantilla, PlantillaJugador
+from app.models.match import Partido, EventoPartido
 
 # Routers de la aplicación
-from app.api.routes import players, matches, analytics
+from app.api.routes import players, matches, analytics, squads, ranking
 from app.api.routes.auth import router as auth_router
 
 # Inicialización de la aplicación FastAPI
@@ -79,6 +83,8 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # 3. Registrar routers modulares
 app.include_router(auth_router)
+app.include_router(squads.router, prefix="/api/squads", tags=["Squads"])
+app.include_router(ranking.router, prefix="/api/ranking", tags=["Ranking"])
 app.include_router(matches.router, prefix="/api/matches", tags=["Matches"])
 app.include_router(players.router, prefix="/api/players", tags=["Players"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
@@ -100,15 +106,117 @@ def slugify(text: str) -> str:
 
 
 @app.get("/api/me", tags=["Manager Profile"])
-def get_current_manager_profile():
-    """Retorna los datos de perfil y club del mánager autenticado."""
+def get_current_manager_profile(request: Request, db: Session = Depends(get_db)):
+    """Retorna los datos de perfil y club del mánager autenticado desde la base de datos."""
+    user = None
+    auth_header = request.headers.get("Authorization", "")
+    if "token_user_" in auth_header:
+        try:
+            uid = int(auth_header.split("token_user_")[-1].strip())
+            user = db.query(User).filter(User.id == uid).first()
+        except ValueError:
+            pass
+
+    if not user:
+        user = db.query(User).order_by(User.id.desc()).first()
+
+    if user:
+        full_name = f"{user.nombre} {user.apellido}".strip()
+        return {
+            "id": user.id,
+            "name": full_name,
+            "username": user.username or full_name,
+            "first_name": user.nombre,
+            "last_name": user.apellido,
+            "team_name": user.team_name,
+            "email": user.email,
+            "season": "Temporada 24 / 25",
+            "ranking": user.elo_rating or 1000,
+            "presupuesto": float(user.presupuesto if user.presupuesto is not None else 150.0),
+            "partidos_jugados": user.partidos_jugados or 0,
+            "victorias": user.victorias or 0,
+            "empates": user.empates or 0,
+            "derrotas": user.derrotas or 0,
+            "goles_favor": user.goles_favor or 0,
+            "goles_contra": user.goles_contra or 0,
+            "preferences": {
+                "notifications": bool(user.notif_activas if user.notif_activas is not None else True),
+                "sounds": bool(user.sonido_activo if user.sonido_activo is not None else False),
+            },
+            "avatarUrl": f"{str(request.base_url).rstrip('/')}{user.photo_url}" if user.photo_url and user.photo_url.startswith("/") else user.photo_url,
+        }
+
     return {
         "name": "Mánager Leyendas",
         "username": "Mánager Leyendas",
         "team_name": "Tu Equipo",
         "season": "Temporada 24 / 25",
-        "ranking": 450,
+        "ranking": 1000,
         "avatarUrl": None
+    }
+
+
+class UpdateProfileRequest(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    team_name: Optional[str] = None
+    email: Optional[str] = None
+    preferences: Optional[dict] = None
+
+
+@app.put("/api/me", tags=["Manager Profile"])
+@app.patch("/api/me", tags=["Manager Profile"])
+def update_current_manager_profile(
+    payload: UpdateProfileRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Actualiza el nombre, apellido y nombre del equipo del mánager en la tabla 'users' de MySQL."""
+    user = None
+    auth_header = request.headers.get("Authorization", "")
+    if "token_user_" in auth_header:
+        try:
+            uid = int(auth_header.split("token_user_")[-1].strip())
+            user = db.query(User).filter(User.id == uid).first()
+        except ValueError:
+            pass
+
+    if not user:
+        user = db.query(User).order_by(User.id.desc()).first()
+
+    if not user:
+        return {"status": "offline_fallback", "message": "Sin usuario registrado en BD"}
+
+    if payload.first_name is not None and payload.first_name.strip():
+        user.nombre = payload.first_name.strip()
+    if payload.last_name is not None and payload.last_name.strip():
+        user.apellido = payload.last_name.strip()
+    if payload.team_name is not None and payload.team_name.strip():
+        user.team_name = payload.team_name.strip()
+    if payload.email is not None and payload.email.strip():
+        user.email = payload.email.strip().lower()
+    if payload.preferences and isinstance(payload.preferences, dict):
+        if "notifications" in payload.preferences:
+            user.notif_activas = bool(payload.preferences["notifications"])
+        if "sounds" in payload.preferences:
+            user.sonido_activo = bool(payload.preferences["sounds"])
+
+    user.username = f"{user.nombre} {user.apellido}".strip()
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "status": "updated",
+        "id": user.id,
+        "name": user.username,
+        "username": user.username,
+        "first_name": user.nombre,
+        "last_name": user.apellido,
+        "team_name": user.team_name,
+        "email": user.email,
+        "ranking": user.elo_rating or 1000,
+        "presupuesto": float(user.presupuesto if user.presupuesto is not None else 100.0),
+        "avatarUrl": f"http://127.0.0.1:8000{user.photo_url}" if user.photo_url and user.photo_url.startswith("/") else user.photo_url,
     }
 
 
@@ -155,6 +263,32 @@ def get_players_catalog(
 
 @app.get("/api/health", tags=["Health"])
 @app.get("/health", tags=["Health"], include_in_schema=False)
-def health_check():
-    """Endpoint de verificación de estado y salud del servicio."""
-    return {"status": "ok"}
+def health_check(db: Session = Depends(get_db)):
+    """Endpoint de verificación de estado y conexión activa con las 7 tablas en MySQL (puerto 3306)."""
+    from app.core.database import engine
+    db_url_str = str(engine.url.render_as_string(hide_password=True))
+    return {
+        "status": "ok",
+        "database_engine": engine.dialect.name,
+        "database_url": db_url_str,
+        "port": engine.url.port or 3306,
+        "database_name": engine.url.database,
+        "tables": [
+            "users",
+            "players",
+            "user_players",
+            "plantillas",
+            "plantilla_jugadores",
+            "partidos",
+            "eventos_partido",
+        ],
+        "counts": {
+            "users": db.query(User).count(),
+            "players": db.query(Player).count(),
+            "user_players": db.query(UserPlayer).count(),
+            "plantillas": db.query(Plantilla).count(),
+            "plantilla_jugadores": db.query(PlantillaJugador).count(),
+            "partidos": db.query(Partido).count(),
+            "eventos_partido": db.query(EventoPartido).count(),
+        },
+    }

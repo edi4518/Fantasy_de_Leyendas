@@ -220,14 +220,27 @@ export async function fetchMatchHistory() {
     if (data) {
       const rawList = Array.isArray(data) ? data : (data.history || []);
       if (rawList.length > 0) {
-        return normalizeHistoryData(rawList);
+        const normalized = normalizeHistoryData(rawList);
+        try {
+          localStorage.setItem('fantasy_match_history', JSON.stringify(rawList));
+        } catch (_) {}
+        return normalized;
       }
+      // Si el backend respondió pero el usuario aún no ha jugado en MySQL, comprobar localStorage antes de mostrar vacío
+      const savedLocal = localStorage.getItem('fantasy_match_history');
+      if (savedLocal) {
+        const parsedLocal = JSON.parse(savedLocal);
+        if (Array.isArray(parsedLocal) && parsedLocal.length > 0) {
+          return normalizeHistoryData(parsedLocal);
+        }
+      }
+      return [];
     }
   } catch (error) {
     console.info('[History] Backend no disponible o modo offline. Comprobando persistencia local:', error.message);
   }
 
-  // Fusión con historial guardado en localStorage
+  // Fusión con historial guardado en localStorage (modo offline)
   try {
     const saved = localStorage.getItem('fantasy_match_history');
     if (saved) {
@@ -486,14 +499,14 @@ export async function openHistoryMatchModal(matchId) {
   const modal = document.getElementById('history-details-modal');
   if (!modal) return;
 
-  // 1. Obtener los detalles del partido desde fetchMatchDetail (misma fuente que match-detail-container)
-  const detail = await fetchMatchDetail(matchId);
+  // 1. Priorizar el partido real cargado desde MySQL (currentHistoryMatches) y respaldar con fetchMatchDetail
   const historyEntry = currentHistoryMatches.find(m => String(m.id) === String(matchId));
+  const detail = await fetchMatchDetail(matchId);
 
-  const homeName = detail?.homeTeam?.name || historyEntry?.homeTeam || 'Tu Equipo';
-  const awayName = detail?.awayTeam?.name || historyEntry?.opponent || historyEntry?.awayTeam || 'Rival';
-  const homeScore = detail?.homeTeam?.score ?? historyEntry?.homeScore ?? 0;
-  const awayScore = detail?.awayTeam?.score ?? historyEntry?.awayScore ?? 0;
+  const homeName = historyEntry?.homeTeam || detail?.homeTeam?.name || 'Tu Equipo';
+  const awayName = historyEntry?.opponent || historyEntry?.awayTeam || detail?.awayTeam?.name || 'Rival';
+  const homeScore = historyEntry?.homeScore ?? detail?.homeTeam?.score ?? 0;
+  const awayScore = historyEntry?.awayScore ?? detail?.awayTeam?.score ?? 0;
 
   let points = historyEntry?.points ?? detail?.points;
   let resultType = historyEntry?.resultType || detail?.resultType;
@@ -522,9 +535,9 @@ export async function openHistoryMatchModal(matchId) {
   // 3. Poblar la cronología del partido (ordenada cronológicamente de menor a mayor minuto)
   const timelineContainer = document.getElementById('history-modal-timeline');
   if (timelineContainer) {
-    const rawEvents = (Array.isArray(detail?.events) && detail.events.length > 0)
-      ? detail.events
-      : (Array.isArray(historyEntry?.events) ? historyEntry.events : []);
+    const rawEvents = (Array.isArray(historyEntry?.events) && historyEntry.events.length > 0)
+      ? historyEntry.events
+      : (Array.isArray(detail?.events) ? detail.events : []);
 
     const matchEvents = rawEvents
       .filter(ev => ev && !ev.isPeriodBreak)
