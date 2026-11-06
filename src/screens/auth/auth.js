@@ -39,7 +39,6 @@ function initLogin(router) {
   const submitBtn = document.getElementById('submit-btn');
 
   const googleBtn = document.getElementById('google-login-btn');
-  const appleBtn = document.getElementById('apple-login-btn');
   const guestBtn = document.getElementById('guest-login-btn');
 
   // Integración de Google Identity Services (OAuth 2.0)
@@ -157,38 +156,68 @@ function initLogin(router) {
     });
   }
 
-  // Inicializar Google Identity Services SDK
-  function initGoogleGSI() {
-    if (typeof window !== 'undefined' && window.google?.accounts?.id) {
+  // Inicializar Google OAuth 2.0 (Token Client nativo para evitar bloqueo de popups de iframes)
+  let tokenClient = null;
+
+  function initGoogleOAuth() {
+    if (typeof window !== 'undefined' && window.google?.accounts?.oauth2) {
       try {
-        window.google.accounts.id.initialize({
+        tokenClient = window.google.accounts.oauth2.initTokenClient({
           client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleResponse,
-          auto_select: false,
-          cancel_on_tap_outside: true,
+          scope: 'email profile openid',
+          callback: async (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              await handleGoogleResponse({ credential: tokenResponse.access_token });
+            } else if (tokenResponse && tokenResponse.error) {
+              showErrorMessage('Google: ' + (tokenResponse.error_description || tokenResponse.error));
+            }
+          },
+          error_callback: (err) => {
+            console.warn('[Google OAuth Error]', err);
+            if (err && err.type === 'popup_blocked') {
+              showErrorMessage('El navegador bloqueó la ventana emergente de Google. Por favor, haz clic en el icono de ventana bloqueada en tu barra de direcciones para permitirla.');
+            } else if (err && err.type !== 'popup_closed') {
+              showErrorMessage('No se pudo abrir la autenticación con Google. Por favor, reintenta.');
+            }
+          },
         });
 
-        const gContainer = document.getElementById('google-login-container');
-        if (gContainer) {
-          window.google.accounts.id.renderButton(gContainer, {
-            type: 'standard',
-            theme: 'outline',
-            size: 'large',
-            text: 'continue_with',
-            shape: 'rectangular',
-            logo_alignment: 'left',
-            width: 320,
+        // Inicializar también Google Identity One Tap por si está disponible
+        if (window.google.accounts.id) {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleResponse,
+            auto_select: false,
           });
         }
       } catch (gErr) {
         console.warn('[Google Auth] Aviso al inicializar SDK:', gErr);
       }
-    } else {
-      setTimeout(initGoogleGSI, 300);
+    } else if (typeof window !== 'undefined') {
+      setTimeout(initGoogleOAuth, 250);
     }
   }
 
-  initGoogleGSI();
+  initGoogleOAuth();
+
+  if (googleBtn) {
+    googleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      clearErrorState();
+
+      if (tokenClient) {
+        try {
+          // Ejecutado directamente en el evento click del usuario nativo (Trusted User Gesture)
+          tokenClient.requestAccessToken({ prompt: 'select_account' });
+        } catch (err) {
+          console.warn('[Google Auth] Falló requestAccessToken:', err);
+          showErrorMessage('No se pudo abrir la autenticación con Google. Revisa los permisos del navegador.');
+        }
+      } else {
+        showErrorMessage('Iniciando servicios de Google, por favor reintenta en un momento.');
+      }
+    });
+  }
 
   if (guestBtn) {
     guestBtn.addEventListener('click', (e) => {
@@ -243,9 +272,7 @@ function initLogin(router) {
 
 
 
-  appleBtn?.addEventListener('click', () => {
-    window.location.href = 'https://appleid.apple.com/';
-  });
+
 
   if (form) {
     form.addEventListener('submit', async (e) => {

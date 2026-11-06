@@ -225,33 +225,40 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
             detail="Token de Google requerido.",
         )
 
-    # 1. Validar el token contra los servidores de Google
+    # 1. Validar el token contra los servidores de Google (soporta ID Token y Access Token)
+    token_data = None
     try:
         async with httpx.AsyncClient() as client:
+            # Opción A: Intentar como ID Token (JWT emitido por Google Identity Services)
             resp = await client.get(
                 f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}",
                 timeout=12.0,
             )
+            if resp.status_code == 200:
+                data = resp.json()
+                aud = data.get("aud")
+                if aud == GOOGLE_CLIENT_ID:
+                    token_data = data
+            
+            # Opción B: Si no es ID Token, intentar como Access Token de Google OAuth
+            if not token_data:
+                resp_user = await client.get(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    headers={"Authorization": f"Bearer {credential}"},
+                    timeout=12.0,
+                )
+                if resp_user.status_code == 200:
+                    token_data = resp_user.json()
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"No se pudo conectar con los servidores de autenticación de Google: {str(e)}",
         )
 
-    if resp.status_code != 200:
+    if not token_data:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de Google inválido o sesión expirada.",
-        )
-
-    token_data = resp.json()
-
-    # Validar que el token corresponda a este proyecto de Google Cloud
-    aud = token_data.get("aud")
-    if aud != GOOGLE_CLIENT_ID:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="El token no corresponde a la aplicación autorizada.",
         )
 
     email = (token_data.get("email") or "").strip().lower()
