@@ -6,6 +6,7 @@
 
 import { navigateTo } from "../../app/router.js";
 import { API_BASE_URL } from "../../services/api-client.js";
+import { authService } from "../../services/auth-service.js";
 
 const ICON_EYE_PATH = '/src/assets/icons/eye-open.svg';
 const ICON_EYE_OFF_PATH = '/src/assets/icons/eye-off.svg';
