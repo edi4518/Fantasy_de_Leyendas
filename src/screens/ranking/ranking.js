@@ -89,7 +89,7 @@ async function ensureListAndManagerIntegrity() {
     ...MOCK_RANKING.map(m => ({ name: m.name, points: m.points, trend: m.trend, isDbUser: false })),
     ...dbLeaderboard.map(u => ({
       name: `${u.manager_name} (${u.team_name})`,
-      points: Number(u.elo_rating || 1000),
+      points: Number(u.elo_rating ?? 1000),
       trend: 'up',
       isDbUser: true,
       userId: u.user_id,

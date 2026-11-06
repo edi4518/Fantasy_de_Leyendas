@@ -30,7 +30,7 @@ def get_leaderboard(db: Session = Depends(get_db)):
             "user_id": u.id,
             "manager_name": f"{u.nombre} {u.apellido}".strip(),
             "team_name": u.team_name,
-            "elo_rating": u.elo_rating or 1000,
+            "elo_rating": u.elo_rating if u.elo_rating is not None else 1000,
             "partidos_jugados": u.partidos_jugados or 0,
             "victorias": u.victorias or 0,
             "empates": u.empates or 0,

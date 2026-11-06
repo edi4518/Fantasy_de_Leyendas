@@ -255,8 +255,9 @@ def record_finished_match(
             )
         )
 
-    # 5. Actualizar récord competitivo y ELO del mánager en 'users'
-    user.elo_rating = max(0, (user.elo_rating or 1000) + elo_var)
+    # 5. Actualizar récord competitivo y ELO del mánager en 'users' (respetando 0 sin resetear a 1000)
+    current_elo = user.elo_rating if user.elo_rating is not None else 1000
+    user.elo_rating = max(0, current_elo + elo_var)
     user.partidos_jugados = (user.partidos_jugados or 0) + 1
     if res_enum == "local":
         user.victorias = (user.victorias or 0) + 1
