@@ -273,13 +273,44 @@ function initRegister(router) {
       if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          avatarPreview.innerHTML = `
-            <img 
-              src="${e.target.result}" 
-              alt="Foto de perfil" 
-              style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" 
-            />
-          `;
+          const rawDataUrl = e.target.result;
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              const maxDim = 256;
+              let w = img.width || maxDim;
+              let h = img.height || maxDim;
+              if (w > h && w > maxDim) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else if (h >= w && h > maxDim) {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, w, h);
+              const compressedUrl = canvas.toDataURL('image/jpeg', 0.78);
+              avatarPreview.innerHTML = `
+                <img 
+                  src="${compressedUrl}" 
+                  alt="Foto de perfil" 
+                  style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" 
+                />
+              `;
+            } catch (_) {
+              avatarPreview.innerHTML = `
+                <img 
+                  src="${rawDataUrl}" 
+                  alt="Foto de perfil" 
+                  style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" 
+                />
+              `;
+            }
+          };
+          img.src = rawDataUrl;
         };
         reader.readAsDataURL(file);
       }
@@ -411,10 +442,16 @@ function initRegister(router) {
           }
         }
 
-        // Persistencia de sesión y datos de usuario en localStorage
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('access_token', token);
-        localStorage.setItem('hasSeenOnboarding', 'true');
+        // Persistencia de sesión y datos de usuario en localStorage (protegida contra QuotaExceededError en iOS Safari)
+        try {
+          localStorage.removeItem('fantasy_active_squad');
+          localStorage.removeItem('fantasy_match_history');
+          localStorage.removeItem('fantasy_player_stats');
+          localStorage.removeItem('fantasy_user_stats');
+          localStorage.setItem('auth_token', token);
+          localStorage.setItem('access_token', token);
+          localStorage.setItem('hasSeenOnboarding', 'true');
+        } catch (_) {}
 
         const userData = {
           ...(dbUser || {}),
@@ -426,12 +463,18 @@ function initRegister(router) {
           email: dbUser?.email || email,
           birthdate: dbUser?.birthdate || birthdate
         };
-        localStorage.setItem('user', JSON.stringify(userData));
+        try {
+          localStorage.setItem('user', JSON.stringify(userData));
+        } catch (_) {}
 
-        // Guardar avatar preview si fue seleccionado
-        const previewImg = avatarPreview?.querySelector('img');
-        if (previewImg && previewImg.src && !previewImg.src.includes('user-avatar.svg')) {
-          localStorage.setItem('user_avatar', previewImg.src);
+        // Guardar avatar preview comprimido (sin bloquear jamás si el almacenamiento del móvil está lleno)
+        try {
+          const previewImg = avatarPreview?.querySelector('img');
+          if (previewImg && previewImg.src && !previewImg.src.includes('user-avatar.svg')) {
+            localStorage.setItem('user_avatar', previewImg.src);
+          }
+        } catch (quotaErr) {
+          console.warn('[Auth] Omitiendo caché local de avatar por límite de cuota del navegador:', quotaErr.message);
         }
 
         // Redirección SPA inmediata a Ranking / Inicio
