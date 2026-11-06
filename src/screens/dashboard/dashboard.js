@@ -1,7 +1,7 @@
 const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
 import { FORMATIONS_6V6 } from '../../domain/formation-rules.js';
-import { apiClient } from '../../services/api-client.js';
-import { getPlayerRating, getPlayerPrice } from '../lineup/lineup.js';
+import { apiClient } from '../../services/api-client.js?v=50';
+import { getPlayerRating, getPlayerPrice } from '../lineup/lineup.js?v=50';
 
 const DASHBOARD_PLAYER_IMAGE_ALIASES = {
   messi: 'lionel_messi.webp',

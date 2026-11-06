@@ -4,7 +4,7 @@
  * Sigue el sistema de diseño consumiendo las variables de design-tokens.css (#2D6A4F).
  */
 
-@import "../design-tokens.css";
+@import "../../styles/design-tokens.css";
 
 /* ==========================================================================
    1. OVERLAY / BACKDROP SEMI-TRANSPARENTE

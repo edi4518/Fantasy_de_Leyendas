@@ -7,30 +7,28 @@
  * @exports bootstrapApp
  */
 
-import { initRouter } from './router.js?v=46';
-import { renderNavigation } from './navigation.js?v=46';
-import { authService } from '../services/auth-service.js';
+import { initRouter } from './router.js?v=50';
+import { renderNavigation } from './navigation.js?v=50';
+import { authService } from '../services/auth-service.js?v=50';
 
 export async function bootstrapApp() {
   console.info('[App] Inicializando Fantasy de Leyendas PWA...');
 
-  // 1. Limpieza preventiva de cachés anteriores y registro del Service Worker
+  // 1. Limpieza preventiva de cachés anteriores y desregistro de Service Workers antiguos
   if ('caches' in window) {
     caches.keys().then((names) => {
-      names.forEach((name) => {
-        if (name !== 'fantasy-leyendas-v3') caches.delete(name);
-      });
+      names.forEach((name) => caches.delete(name));
     });
   }
 
-  if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+  if ('serviceWorker' in navigator) {
     try {
-      // Registrado con scope global '/' para interceptar rutas de public y src
-      const registration = await navigator.serviceWorker.register('/public/sw.js');
-      registration.update();
-      console.info('[PWA] Service Worker registrado exitosamente con scope:', registration.scope);
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        await reg.unregister();
+      }
     } catch (error) {
-      console.warn('[PWA] Error al registrar Service Worker:', error);
+      console.warn('[PWA] Error al limpiar Service Worker:', error);
     }
   }
 

@@ -61,6 +61,19 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def disable_static_js_cache(request: Request, call_next):
+    """Evita que el navegador guarde en caché versiones antiguas de módulos JS o index.html."""
+    response = await call_next(request)
+    path = request.url.path
+    if path == "/" or path.endswith(".js") or path.endswith(".html") or path in (
+        "/onboarding", "/login", "/register", "/dashboard", "/matchmaking",
+        "/market", "/comparison", "/lineup", "/history", "/ranking", "/profile", "/admin"
+    ):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    return response
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Manejador global de excepciones para garantizar que siempre se devuelva JSON válido con cabeceras CORS."""

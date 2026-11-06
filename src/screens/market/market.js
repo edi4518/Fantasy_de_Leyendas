@@ -7,9 +7,9 @@
  * @exports { renderMarketScreen }
  */
 
-import { playerService } from '../../services/player-service.js';
-import { squadService } from '../../services/squad-service.js';
-import { DEFAULT_HOME_SQUAD, getRatingTierClass } from '../lineup/lineup.js';
+import { playerService } from '../../services/player-service.js?v=50';
+import { squadService } from '../../services/squad-service.js?v=50';
+import { DEFAULT_HOME_SQUAD, getRatingTierClass } from '../lineup/lineup.js?v=50';
 
 const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
 

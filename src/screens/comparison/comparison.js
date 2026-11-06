@@ -7,7 +7,7 @@
  * @exports { renderComparisonScreen }
  */
 
-import { playerService } from '../../services/player-service.js';
+import { playerService } from '../../services/player-service.js?v=50';
 
 const PALETTE = [
   { main: '#2d6a4f', bg: 'rgba(45, 106, 79, 0.2)', cardBg: '#eef7f2', cardBorder: 'rgba(45, 106, 79, 0.28)' },   // Verde

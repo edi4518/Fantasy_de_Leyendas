@@ -11,7 +11,9 @@ BACKEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backend"
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-from app.main import app as backend_app  # noqa: E402
+app = FastAPI(title="Fantasy de Leyendas API")
 
-app: FastAPI = backend_app
+from app.main import app as _backend_app  # noqa: E402
+
+app = _backend_app
 

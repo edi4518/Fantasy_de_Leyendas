@@ -3,7 +3,7 @@
  * @description Servicio para resolver jugadores y retratos de leyendas desde la API FastAPI y Supabase Storage.
  */
 
-import { apiClient, API_BASE_URL } from './api-client.js';
+import { apiClient, API_BASE_URL } from './api-client.js?v=50';
 
 const SUPABASE_STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
 const DEFAULT_AVATAR = '/public/images/default-avatar.png';
