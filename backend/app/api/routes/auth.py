@@ -13,9 +13,13 @@ from app.models.user import User
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-# Carpeta para almacenar los avatares subidos
+# Carpeta para almacenar los avatares subidos (con fallback a /tmp en entornos serverless)
 UPLOAD_DIR = os.path.join("uploads", "avatars")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+try:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+except Exception:
+    UPLOAD_DIR = "/tmp/uploads/avatars"
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 # ============================================================================

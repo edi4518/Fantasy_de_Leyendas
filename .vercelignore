@@ -1,5 +1,0 @@
-backend/
-tests/
-*.db
-.env
-

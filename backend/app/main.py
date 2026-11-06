@@ -10,7 +10,7 @@ from typing import List, Optional
 
 from fastapi import FastAPI, Depends, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -76,10 +76,15 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# 2. Servir estáticos locales para avatares y archivos subidos
+# 2. Servir estáticos locales para avatares y archivos subidos (con fallback a /tmp en entornos serverless)
 UPLOAD_DIR = os.path.join("uploads", "avatars")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+try:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+except Exception:
+    UPLOAD_DIR = "/tmp/uploads/avatars"
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory="/tmp/uploads"), name="uploads")
 
 # 3. Registrar routers modulares
 app.include_router(auth_router)
@@ -292,3 +297,51 @@ def health_check(db: Session = Depends(get_db)):
             "eventos_partido": db.query(EventoPartido).count(),
         },
     }
+
+
+# 5. Servir Frontend estático (src/, public/ e index.html) cuando se despliega en Vercel o se accede a la raíz
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+FRONTEND_SRC_DIR = os.path.join(PROJECT_ROOT, "src")
+FRONTEND_PUBLIC_DIR = os.path.join(PROJECT_ROOT, "public")
+FRONTEND_INDEX_HTML = os.path.join(FRONTEND_PUBLIC_DIR, "index.html")
+
+if os.path.isdir(FRONTEND_SRC_DIR):
+    app.mount("/src", StaticFiles(directory=FRONTEND_SRC_DIR), name="frontend_src")
+
+if os.path.isdir(FRONTEND_PUBLIC_DIR):
+    app.mount("/public", StaticFiles(directory=FRONTEND_PUBLIC_DIR), name="frontend_public")
+    icons_dir = os.path.join(FRONTEND_PUBLIC_DIR, "icons")
+    if os.path.isdir(icons_dir):
+        app.mount("/icons", StaticFiles(directory=icons_dir), name="frontend_icons")
+
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def serve_manifest():
+    manifest_path = os.path.join(FRONTEND_PUBLIC_DIR, "manifest.webmanifest")
+    if os.path.isfile(manifest_path):
+        return FileResponse(manifest_path, media_type="application/manifest+json")
+    return JSONResponse(status_code=404, content={"detail": "Not found"})
+
+
+@app.get("/", include_in_schema=False)
+@app.get("/onboarding", include_in_schema=False)
+@app.get("/login", include_in_schema=False)
+@app.get("/register", include_in_schema=False)
+@app.get("/dashboard", include_in_schema=False)
+@app.get("/matchmaking", include_in_schema=False)
+@app.get("/market", include_in_schema=False)
+@app.get("/comparison", include_in_schema=False)
+@app.get("/lineup", include_in_schema=False)
+@app.get("/history", include_in_schema=False)
+@app.get("/ranking", include_in_schema=False)
+@app.get("/profile", include_in_schema=False)
+@app.get("/match/{subpath:path}", include_in_schema=False)
+def serve_spa_index():
+    """Sirve el index.html de la PWA en la raíz y en todas las rutas del router SPA."""
+    if os.path.isfile(FRONTEND_INDEX_HTML):
+        return FileResponse(FRONTEND_INDEX_HTML, media_type="text/html")
+    root_index = os.path.join(PROJECT_ROOT, "index.html")
+    if os.path.isfile(root_index):
+        return FileResponse(root_index, media_type="text/html")
+    return JSONResponse(status_code=200, content={"status": "Fantasy de Leyendas API Online"})
+

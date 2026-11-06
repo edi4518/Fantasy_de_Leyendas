@@ -60,6 +60,8 @@ def create_db_engine():
         sqlite_file = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..", "..", "fantasy_leyendas.db")
         )
+        if not os.access(os.path.dirname(sqlite_file), os.W_OK):
+            sqlite_file = "/tmp/fantasy_leyendas.db"
         sqlite_url = f"sqlite:///{sqlite_file}"
         eng = create_engine(sqlite_url, connect_args={"check_same_thread": False})
         return eng
