@@ -168,35 +168,16 @@ function initLogin(router) {
           cancel_on_tap_outside: true,
         });
 
-        // Crear contenedor auxiliar invisible para renderizar el botón nativo de Google y activarlo en click
-        let hiddenContainer = document.getElementById('google-hidden-btn-container');
-        if (!hiddenContainer) {
-          hiddenContainer = document.createElement('div');
-          hiddenContainer.id = 'google-hidden-btn-container';
-          hiddenContainer.style.position = 'absolute';
-          hiddenContainer.style.opacity = '0';
-          hiddenContainer.style.pointerEvents = 'none';
-          hiddenContainer.style.height = '0';
-          hiddenContainer.style.width = '0';
-          hiddenContainer.style.overflow = 'hidden';
-          document.body.appendChild(hiddenContainer);
-        }
-
-        window.google.accounts.id.renderButton(hiddenContainer, {
-          type: 'standard',
-          theme: 'outline',
-          size: 'large',
-        });
-
-        if (googleBtn) {
-          googleBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            const nativeBtn = hiddenContainer.querySelector('div[role="button"]');
-            if (nativeBtn) {
-              nativeBtn.click();
-            } else {
-              window.google.accounts.id.prompt();
-            }
+        const gContainer = document.getElementById('google-login-container');
+        if (gContainer) {
+          window.google.accounts.id.renderButton(gContainer, {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            text: 'continue_with',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            width: 320,
           });
         }
       } catch (gErr) {
@@ -260,17 +241,7 @@ function initLogin(router) {
     }
   });
 
-  // Redirección OAuth de Google con tus credenciales
 
-  googleBtn?.addEventListener('click', () => {
-    const CLIENT_ID = '367906456287-h602ut2oho5r8c0q9cpa0epevsil3juo.apps.googleusercontent.com';
-    const REDIRECT_URI = encodeURIComponent('http://127.0.0.1:8000/api/auth/google/callback');
-    const SCOPE = encodeURIComponent('openid email profile');
-
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=${SCOPE}&access_type=offline&prompt=consent`;
-
-    window.location.href = authUrl;
-  });
 
   appleBtn?.addEventListener('click', () => {
     window.location.href = 'https://appleid.apple.com/';
