@@ -321,11 +321,14 @@ FRONTEND_SRC_DIR = (
     if os.path.isdir(os.path.join(PROJECT_ROOT, "src"))
     else os.path.join(BACKEND_ROOT, "src")
 )
-FRONTEND_PUBLIC_DIR = (
-    os.path.join(PROJECT_ROOT, "public")
-    if os.path.isdir(os.path.join(PROJECT_ROOT, "public"))
-    else os.path.join(BACKEND_ROOT, "public")
-)
+
+if os.path.isdir(os.path.join(PROJECT_ROOT, "public")):
+    FRONTEND_PUBLIC_DIR = os.path.join(PROJECT_ROOT, "public")
+elif os.path.isdir(os.path.join(BACKEND_ROOT, "static_public")):
+    FRONTEND_PUBLIC_DIR = os.path.join(BACKEND_ROOT, "static_public")
+else:
+    FRONTEND_PUBLIC_DIR = os.path.join(BACKEND_ROOT, "public")
+
 FRONTEND_INDEX_HTML = os.path.join(FRONTEND_PUBLIC_DIR, "index.html")
 
 if os.path.isdir(FRONTEND_SRC_DIR):
@@ -336,6 +339,9 @@ if os.path.isdir(FRONTEND_PUBLIC_DIR):
     icons_dir = os.path.join(FRONTEND_PUBLIC_DIR, "icons")
     if os.path.isdir(icons_dir):
         app.mount("/icons", StaticFiles(directory=icons_dir), name="frontend_icons")
+    images_dir = os.path.join(FRONTEND_PUBLIC_DIR, "images")
+    if os.path.isdir(images_dir):
+        app.mount("/images", StaticFiles(directory=images_dir), name="frontend_images")
 
 
 @app.get("/manifest.webmanifest", include_in_schema=False)

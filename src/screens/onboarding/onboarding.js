@@ -7,8 +7,8 @@
 const ONBOARDING_STEPS = [
   {
     step: 1,
-    title: "Presupuesto de 130 millones",
-    description: "Tienes un límite salarial estricto de 130 millones de créditos para fichar exactamente a 10 leyendas históricas del fútbol (6 titulares y 4 suplentes). Gasta con inteligencia para equilibrar a tus estrellas con talentos ocultos.",
+    title: "Presupuesto de 150 millones",
+    description: "Tienes un límite salarial estricto de 150 millones de créditos para fichar exactamente a 10 leyendas históricas del fútbol (6 titulares y 4 suplentes). Gasta con inteligencia para equilibrar a tus estrellas con talentos ocultos.",
     image: "/public/images/pantalla_regla1.webp",
     buttonText: "PRÓXIMO",
     isFinal: false,
@@ -61,6 +61,11 @@ export function initOnboarding(router) {
     if (titleEl) titleEl.textContent = data.title;
     if (descEl) descEl.textContent = data.description;
     if (imgEl) {
+      imgEl.onerror = () => {
+        if (imgEl.src.includes("/public/images/")) {
+          imgEl.src = data.image.replace("/public/images/", "/images/");
+        }
+      };
       imgEl.src = data.image;
       imgEl.alt = data.title;
     }

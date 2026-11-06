@@ -13,6 +13,7 @@
     <section class="onboarding-hero" data-purpose="hero-illustration" aria-label="Ilustración de la regla">
       <div class="onboarding-visual">
         <img id="onboarding-img" src="/public/images/pantalla_regla1.webp"
+          onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/public/images/','/images/');}"
           alt="Cartas físicas de leyendas de fútbol dispuestas tácticamente junto a un documento de acuerdo de traspaso"
           class="visual-img" />
       </div>
@@ -27,12 +28,12 @@
 
       <!-- Primary Headline -->
       <h1 class="main-title" id="onboarding-title">
-        Presupuesto de 130 millones
+        Presupuesto de 150 millones
       </h1>
 
       <!-- Explanatory Paragraph -->
       <p class="description" id="onboarding-desc">
-        Tienes un límite salarial estricto de 130 millones de créditos para fichar exactamente a 10 leyendas históricas
+        Tienes un límite salarial estricto de 150 millones de créditos para fichar exactamente a 10 leyendas históricas
         del fútbol (6 titulares y 4 suplentes). Gasta con inteligencia para equilibrar a tus estrellas con talentos
         ocultos.
       </p>
