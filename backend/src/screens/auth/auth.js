@@ -42,6 +42,173 @@ function initLogin(router) {
   const appleBtn = document.getElementById('apple-login-btn');
   const guestBtn = document.getElementById('guest-login-btn');
 
+  // Integración de Google Identity Services (OAuth 2.0)
+  const GOOGLE_CLIENT_ID = '367906456287-h602ut2oho5r8c0q9cpa0epevsil3juo.apps.googleusercontent.com';
+  let pendingGoogleCredential = null;
+  const teamModal = document.getElementById('google-team-modal');
+  const teamInput = document.getElementById('google-team-name-input');
+  const teamSubmitBtn = document.getElementById('google-team-submit-btn');
+  const teamModalError = document.getElementById('google-modal-error');
+  const welcomeTitle = document.getElementById('google-welcome-title');
+  const avatarImg = document.getElementById('google-modal-avatar');
+  const avatarFallback = document.getElementById('google-modal-avatar-fallback');
+
+  async function handleGoogleResponse(response) {
+    if (!response || !response.credential) return;
+    try {
+      setLoadingState(true);
+      clearErrorState();
+      const res = await authService.loginWithGoogle(response.credential);
+
+      if (res.is_new_user) {
+        // Usuario nuevo: mostrar modal para elegir nombre de club
+        pendingGoogleCredential = response.credential;
+        if (welcomeTitle && res.first_name) {
+          welcomeTitle.textContent = `¡Bienvenido, ${res.first_name}!`;
+        }
+        if (avatarImg && res.photo_url) {
+          avatarImg.src = res.photo_url;
+          avatarImg.style.display = 'block';
+          if (avatarFallback) avatarFallback.style.display = 'none';
+        }
+        if (teamModal) {
+          teamModal.style.display = 'flex';
+          teamModal.classList.remove('hidden');
+          setTimeout(() => teamInput?.focus(), 150);
+        }
+      } else if (res.access_token) {
+        // Usuario existente: login directo al dashboard
+        localStorage.setItem('hasSeenOnboarding', 'true');
+        if (res.user) {
+          localStorage.setItem('user', JSON.stringify(res.user));
+          if (res.user.team_name) {
+            localStorage.setItem('team_name', res.user.team_name);
+          }
+        }
+        if (router && typeof router.navigate === 'function') {
+          router.navigate('/dashboard');
+        } else {
+          window.location.pathname = '/dashboard';
+        }
+      }
+    } catch (err) {
+      showErrorMessage(err.message || 'Error al autenticar con Google. Por favor, reintenta.');
+    } finally {
+      setLoadingState(false);
+    }
+  }
+
+  // Confirmar nombre de club en el modal de nuevo mánager
+  if (teamSubmitBtn && teamInput) {
+    teamSubmitBtn.addEventListener('click', async () => {
+      const teamName = teamInput.value.trim();
+      if (!teamName) {
+        if (teamModalError) {
+          teamModalError.textContent = 'Por favor, ingresa un nombre para tu equipo.';
+          teamModalError.style.display = 'block';
+        }
+        teamInput.focus();
+        return;
+      }
+      if (teamName.length < 3) {
+        if (teamModalError) {
+          teamModalError.textContent = 'El nombre debe tener al menos 3 caracteres.';
+          teamModalError.style.display = 'block';
+        }
+        teamInput.focus();
+        return;
+      }
+
+      try {
+        teamSubmitBtn.disabled = true;
+        teamSubmitBtn.textContent = 'CREANDO CLUB...';
+        if (teamModalError) teamModalError.style.display = 'none';
+
+        const res = await authService.loginWithGoogle(pendingGoogleCredential, teamName);
+        if (res.access_token) {
+          localStorage.setItem('hasSeenOnboarding', 'true');
+          if (res.user) {
+            localStorage.setItem('user', JSON.stringify(res.user));
+            localStorage.setItem('team_name', res.user.team_name || teamName);
+          }
+          if (teamModal) teamModal.style.display = 'none';
+          if (router && typeof router.navigate === 'function') {
+            router.navigate('/dashboard');
+          } else {
+            window.location.pathname = '/dashboard';
+          }
+        }
+      } catch (err) {
+        if (teamModalError) {
+          teamModalError.textContent = err.message || 'No se pudo crear el club.';
+          teamModalError.style.display = 'block';
+        }
+      } finally {
+        teamSubmitBtn.disabled = false;
+        teamSubmitBtn.textContent = '¡CREAR CLUB Y EMPEZAR!';
+      }
+    });
+
+    teamInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        teamSubmitBtn.click();
+      }
+    });
+  }
+
+  // Inicializar Google Identity Services SDK
+  function initGoogleGSI() {
+    if (typeof window !== 'undefined' && window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleGoogleResponse,
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+
+        // Crear contenedor auxiliar invisible para renderizar el botón nativo de Google y activarlo en click
+        let hiddenContainer = document.getElementById('google-hidden-btn-container');
+        if (!hiddenContainer) {
+          hiddenContainer = document.createElement('div');
+          hiddenContainer.id = 'google-hidden-btn-container';
+          hiddenContainer.style.position = 'absolute';
+          hiddenContainer.style.opacity = '0';
+          hiddenContainer.style.pointerEvents = 'none';
+          hiddenContainer.style.height = '0';
+          hiddenContainer.style.width = '0';
+          hiddenContainer.style.overflow = 'hidden';
+          document.body.appendChild(hiddenContainer);
+        }
+
+        window.google.accounts.id.renderButton(hiddenContainer, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+        });
+
+        if (googleBtn) {
+          googleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const nativeBtn = hiddenContainer.querySelector('div[role="button"]');
+            if (nativeBtn) {
+              nativeBtn.click();
+            } else {
+              window.google.accounts.id.prompt();
+            }
+          });
+        }
+      } catch (gErr) {
+        console.warn('[Google Auth] Aviso al inicializar SDK:', gErr);
+      }
+    } else {
+      setTimeout(initGoogleGSI, 300);
+    }
+  }
+
+  initGoogleGSI();
+
   if (guestBtn) {
     guestBtn.addEventListener('click', (e) => {
       e.preventDefault();

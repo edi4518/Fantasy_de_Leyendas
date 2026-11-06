@@ -18,6 +18,19 @@ export const authService = {
     const data = await apiClient.post('/auth/login', { email, password });
     if (data.access_token) {
       localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('auth_token', data.access_token);
+    }
+    return data;
+  },
+
+  async loginWithGoogle(credential, teamName = null) {
+    const data = await apiClient.post('/auth/google', {
+      credential,
+      team_name: teamName
+    });
+    if (data.access_token) {
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('auth_token', data.access_token);
     }
     return data;
   },

@@ -7,11 +7,15 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import bcrypt
+import httpx
 
 from app.core.database import get_db
 from app.models.user import User
+from app.models.squad import Plantilla
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+GOOGLE_CLIENT_ID = "367906456287-h602ut2oho5r8c0q9cpa0epevsil3juo.apps.googleusercontent.com"
 
 # Carpeta para almacenar los avatares subidos (con fallback a /tmp en entornos serverless)
 UPLOAD_DIR = os.path.join("uploads", "avatars")
@@ -28,6 +32,11 @@ except Exception:
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+class GoogleAuthRequest(BaseModel):
+    credential: str
+    team_name: Optional[str] = None
 
 
 # ============================================================================
@@ -204,7 +213,131 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 
 
 # ============================================================================
-# 3. Endpoint: Listar usuarios registrados (Verificación de Base de Datos)
+# 3. Endpoint: Autenticación con Google OAuth (Login y Registro con Selección de Club)
+# ============================================================================
+@router.post("/google", status_code=status.HTTP_200_OK)
+async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
+    """Valida el token JWT de Google con Google TokenInfo y autentica o solicita creación de club."""
+    credential = payload.credential.strip()
+    if not credential:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token de Google requerido.",
+        )
+
+    # 1. Validar el token contra los servidores de Google
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}",
+                timeout=12.0,
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"No se pudo conectar con los servidores de autenticación de Google: {str(e)}",
+        )
+
+    if resp.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de Google inválido o sesión expirada.",
+        )
+
+    token_data = resp.json()
+
+    # Validar que el token corresponda a este proyecto de Google Cloud
+    aud = token_data.get("aud")
+    if aud != GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El token no corresponde a la aplicación autorizada.",
+        )
+
+    email = (token_data.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se pudo obtener el correo de la cuenta de Google.",
+        )
+
+    first_name = (token_data.get("given_name") or token_data.get("name") or "Mánager").strip()
+    last_name = (token_data.get("family_name") or "").strip()
+    full_name = f"{first_name} {last_name}".strip()
+    photo_url = token_data.get("picture")
+
+    # 2. Verificar si el usuario ya existe en la base de datos
+    user = db.query(User).filter(User.email == email).first()
+
+    if user:
+        # Actualizar foto de perfil si no tenía y Google la proporciona
+        if photo_url and not user.photo_url:
+            user.photo_url = photo_url
+            db.commit()
+            db.refresh(user)
+
+        return {
+            "message": "Inicio de sesión con Google exitoso",
+            "access_token": f"token_user_{user.id}",
+            "token_type": "bearer",
+            "is_new_user": False,
+            "user": serialize_user(user),
+        }
+
+    # 3. Usuario NUEVO: Si aún no eligió nombre de equipo, se lo pedimos al frontend mediante el pop-up
+    if not payload.team_name or not payload.team_name.strip():
+        return {
+            "is_new_user": True,
+            "email": email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "name": full_name,
+            "photo_url": photo_url,
+        }
+
+    # 4. Usuario NUEVO con nombre de equipo elegido: Dar de alta en TiDB
+    team_name_clean = payload.team_name.strip()
+    sub_id = token_data.get("sub", email)
+    placeholder_pwd = hash_password(f"google_oauth_{sub_id}_{email}")
+
+    new_user = User(
+        username=full_name,
+        email=email,
+        hashed_password=placeholder_pwd,
+        nombre=first_name,
+        apellido=last_name or first_name,
+        team_name=team_name_clean,
+        rol="manager",
+        photo_url=photo_url,
+        presupuesto=150.00,
+        elo_rating=1000,
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    # Crear la plantilla inicial del usuario
+    plantilla = Plantilla(
+        user_id=new_user.id,
+        nombre=team_name_clean,
+        formacion="1-2-2-1",
+        costo_total=0.00,
+        es_activa=True,
+    )
+    db.add(plantilla)
+    db.commit()
+
+    return {
+        "message": "Registro con Google exitoso",
+        "access_token": f"token_user_{new_user.id}",
+        "token_type": "bearer",
+        "is_new_user": False,
+        "user": serialize_user(new_user),
+    }
+
+
+# ============================================================================
+# 4. Endpoint: Listar usuarios registrados (Verificación de Base de Datos)
 # ============================================================================
 @router.get("/users", status_code=status.HTTP_200_OK)
 def list_registered_users(db: Session = Depends(get_db)):
