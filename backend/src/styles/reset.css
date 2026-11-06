@@ -1,0 +1,103 @@
+/**
+ * @file reset.css
+ * @description Reseteo moderno, accesible y estandarizado para Fantasy de Leyendas PWA.
+ * Normaliza comportamientos de renderizado entre navegadores, elimina márgenes/rellenos
+ * no deseados y proporciona soporte nativo para 'prefers-reduced-motion'.
+ * Cumple estrictamente con el consumo de tokens CSS para espaciados y bordes.
+ */
+
+/* 1. Box-sizing universal para cálculo dimensional predecible */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: var(--space-0);
+  padding: var(--space-0);
+}
+
+/* 2. Altura completa y prevención de scroll horizontal accidental */
+html,
+body {
+  min-height: 100%;
+}
+
+/* 3. Limpieza de listas desordenadas y ordenadas */
+ul,
+ol {
+  list-style: none;
+  margin: var(--space-0);
+  padding: var(--space-0);
+}
+
+/* 4. Reseteo de títulos, párrafos y elementos de contenido */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: var(--space-0);
+  padding: var(--space-0);
+}
+
+/* 5. Medios responsivos por defecto */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* 6. Normalización tipográfica en elementos de formulario */
+input,
+button,
+textarea,
+select,
+optgroup {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  margin: var(--space-0);
+  border: var(--border-width-none);
+}
+
+/* 7. Reseteo accesible de botones */
+button {
+  background-color: transparent;
+  cursor: pointer;
+  padding: var(--space-0);
+  touch-action: manipulation;
+}
+
+/* 8. Reseteo de hipervínculos */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 9. Tablas estructuradas */
+table {
+  border-collapse: collapse;
+  border-spacing: var(--space-0);
+  width: 100%;
+}
+
+/* 10. Accesibilidad: Reducción de animaciones si el usuario lo solicita en el SO */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

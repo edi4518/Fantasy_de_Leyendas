@@ -314,8 +314,18 @@ def health_check(db: Session = Depends(get_db)):
 
 # 5. Servir Frontend estático (src/, public/ e index.html) cuando se despliega en Vercel o se accede a la raíz
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-FRONTEND_SRC_DIR = os.path.join(PROJECT_ROOT, "src")
-FRONTEND_PUBLIC_DIR = os.path.join(PROJECT_ROOT, "public")
+BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+FRONTEND_SRC_DIR = (
+    os.path.join(PROJECT_ROOT, "src")
+    if os.path.isdir(os.path.join(PROJECT_ROOT, "src"))
+    else os.path.join(BACKEND_ROOT, "src")
+)
+FRONTEND_PUBLIC_DIR = (
+    os.path.join(PROJECT_ROOT, "public")
+    if os.path.isdir(os.path.join(PROJECT_ROOT, "public"))
+    else os.path.join(BACKEND_ROOT, "public")
+)
 FRONTEND_INDEX_HTML = os.path.join(FRONTEND_PUBLIC_DIR, "index.html")
 
 if os.path.isdir(FRONTEND_SRC_DIR):

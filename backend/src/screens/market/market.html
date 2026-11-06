@@ -1,0 +1,140 @@
+<link rel="stylesheet" href="/src/styles/screens/market.css?v=226">
+<div class="market-screen" data-purpose="market-screen-container">
+  <!-- BEGIN: MainHeader -->
+  <header class="market-header" data-purpose="market-header">
+    <div class="market-header-inner">
+      <div class="market-title-wrap">
+        <h1 class="market-title">
+          Mercado de Fichajes
+        </h1>
+      </div>
+      <div class="market-budget-overview" data-purpose="budget-overview">
+        <span class="budget-label">
+          Presupuesto Disponible
+        </span>
+        <span id="market-budget-available" class="budget-value">
+          150.0M
+        </span>
+        <span class="squad-count-text">
+          Plantilla: <strong id="market-squad-count" class="squad-count-num">0 / 10</strong>
+        </span>
+      </div>
+    </div>
+  </header>
+  <!-- END: MainHeader -->
+
+  <!-- BEGIN: MainContent -->
+  <main class="market-content" data-purpose="market-content">
+    <!-- Search Bar -->
+    <div class="market-search-box" data-purpose="search-box">
+      <div class="search-icon-wrap">
+        <svg class="search-icon-svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" x2="16.65" y1="21" y2="16.65"></line>
+        </svg>
+      </div>
+      <input id="market-search-input" class="market-search-input" placeholder="Buscar futbolistas..." type="text">
+    </div>
+
+    <!-- Position Filter Pills -->
+    <nav aria-label="Filtros de posición" class="market-position-filters" data-purpose="position-filters">
+      <button class="filter-pill active" type="button" data-position="ALL">
+        Todos
+      </button>
+      <button class="filter-pill" type="button" data-position="POR">
+        POR
+      </button>
+      <button class="filter-pill" type="button" data-position="DEF">
+        DEF
+      </button>
+      <button class="filter-pill" type="button" data-position="MC">
+        MC
+      </button>
+      <button class="filter-pill" type="button" data-position="DEL">
+        DEL
+      </button>
+    </nav>
+
+    <!-- Tray de Seleccionados con (+) -->
+    <section id="selected-players-tray" class="selected-players-tray" data-purpose="selected-players-tray" hidden>
+      <div class="tray-header">
+        <div class="tray-title-group">
+          <span class="tray-dot-pulse"></span>
+          <h3 class="tray-title">Seleccionados con (+)</h3>
+          <span id="tray-count-badge" class="tray-count-badge">0 jugadores</span>
+        </div>
+        <span class="tray-total-text">Total: <span id="tray-total-price" class="tray-total-price">0M</span></span>
+      </div>
+      <div id="tray-chips-container" class="tray-chips-container">
+      </div>
+    </section>
+
+    <!-- My Squad Section -->
+    <section id="my-squad-section" class="market-section market-section--squad" data-purpose="my-squad-section">
+      <div id="squad-section-header" class="market-section-header market-section-header--collapsible">
+        <div class="section-title-group">
+          <h2 class="section-title">
+            Mi Plantilla / Fichados
+          </h2>
+          <span id="squad-section-count-badge" class="section-badge">
+            0 / 10
+          </span>
+        </div>
+        <div class="section-header-right">
+          <span class="squad-total-value">
+            Valor: <span id="squad-total-value-num" class="squad-total-num">0M</span>
+          </span>
+          <button id="btn-toggle-squad" class="btn-toggle-squad" type="button" aria-expanded="true" aria-controls="my-squad-player-list" aria-label="Mostrar u ocultar Mi Plantilla" title="Mostrar u ocultar Mi Plantilla">
+            <span id="toggle-squad-label" class="btn-toggle-squad__label">Ocultar</span>
+            <svg class="toggle-squad-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <!-- Squad Players List -->
+      <div id="my-squad-player-list" class="market-player-list">
+      </div>
+    </section>
+
+    <!-- Jugadores Disponibles Section -->
+    <section class="market-section market-section--available" data-purpose="players-list-section">
+      <div class="market-section-header">
+        <h2 class="section-title">
+          Jugadores Disponibles
+        </h2>
+        <button id="btn-sort-market" aria-label="Ordenar jugadores" title="Ordenar por precio" class="btn-sort-market" type="button">
+          <svg class="sort-svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M7 15l5 5 5-5"></path>
+            <path d="M7 9l5-5 5 5"></path>
+          </svg>
+        </button>
+      </div>
+      <!-- Players List Cards -->
+      <div id="market-player-list" class="market-player-list">
+      </div>
+    </section>
+  </main>
+  <!-- END: MainContent -->
+
+  <!-- BEGIN: BottomDock -->
+  <aside id="market-bottom-dock" class="market-bottom-dock" data-purpose="bottom-action-dock" hidden>
+    <button id="btn-go-to-compare" type="button" class="dock-btn dock-btn--compare" disabled>
+      <svg class="dock-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+        <polyline points="16 3 21 3 21 8"></polyline>
+        <line x1="4" x2="21" y1="20" y2="3"></line>
+        <polyline points="21 16 21 21 16 21"></polyline>
+        <line x1="15" x2="21" y1="15" y2="21"></line>
+        <line x1="4" x2="9" y1="4" y2="9"></line>
+      </svg>
+      Comparar (<span id="compare-count">0</span>)
+    </button>
+    <button id="btn-buy-selected" type="button" class="dock-btn dock-btn--buy">
+      <svg class="dock-icon" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14"></path>
+      </svg>
+      Fichar Jugadores (<span id="buy-total-price">0M</span>)
+    </button>
+  </aside>
+  <!-- END: BottomDock -->
+</div>

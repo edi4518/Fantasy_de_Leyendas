@@ -1,0 +1,371 @@
+<!-- Vista modular: Simulación de partido en directo (screens/match) -->
+<link rel="stylesheet" href="/src/styles/screens/match.css?v=21">
+<section class="match-detail-container" id="match-view">
+  <!-- Overlay animado de celebración de GOL (gool.json Lottie) -->
+  <aside class="goal-celebration-overlay" id="goal-celebration-overlay" aria-hidden="true" hidden>
+    <div class="goal-celebration-content" id="goal-celebration-content">
+      <div class="goal-lottie-container" id="goal-lottie-container"></div>
+      <div class="goal-celebration-badge" id="goal-celebration-badge">
+        <span class="goal-celebration-title" id="goal-celebration-title">¡GOOOOOOOOL!</span>
+        <span class="goal-celebration-author" id="goal-celebration-author"></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 1. Header con acciones en vivo y rápida -->
+  <header class="match-header" role="banner">
+    <div class="match-header__left">
+      <a href="/dashboard" data-link class="match-header__back-btn" id="btn-back" aria-label="Volver">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </a>
+      <h1 class="match-header__title">Partido en Directo</h1>
+    </div>
+
+    <div class="match-header__actions">
+      <button type="button" class="btn btn--primary btn-quick-sim" id="btn-quick-sim" aria-label="Simulación rápida">
+        SIMULACIÓN RÁPIDA
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. Marcador -->
+  <section class="match-scoreboard" aria-label="Marcador del partido">
+    <div class="team-side team-side--home">
+      <span class="team-side__name" id="home-team-name">Tu Equipo</span>
+    </div>
+
+    <div class="scoreboard-center">
+      <div class="scoreboard-score" id="scoreboard-score-container">
+        <span class="score-number" id="home-score">2</span>
+        <span class="score-divider">–</span>
+        <span class="score-number" id="away-score">1</span>
+      </div>
+
+      <div class="match-status-badge" id="match-status-badge" role="button" tabindex="0">
+        <span class="status-indicator-dot" id="status-dot"></span>
+        <span class="status-text" id="match-status-text">FINAL</span>
+      </div>
+    </div>
+
+    <div class="team-side team-side--away">
+      <span class="team-side__name" id="away-team-name">Equipo Rival</span>
+    </div>
+  </section>
+
+  <!-- 3. Cancha Táctica -->
+  <section class="match-pitch-section">
+    <div class="tactical-pitch">
+      <div class="pitch-marking pitch-marking--boundary"></div>
+      <div class="pitch-marking pitch-marking--halfway"></div>
+      <div class="pitch-marking pitch-marking--center-circle"></div>
+      <div class="pitch-marking pitch-marking--center-spot"></div>
+      <div class="pitch-marking pitch-marking--penalty-box-top"></div>
+      <div class="pitch-marking pitch-marking--goal-box-top"></div>
+      <div class="pitch-marking pitch-marking--penalty-box-bottom"></div>
+      <div class="pitch-marking pitch-marking--goal-box-bottom"></div>
+
+      <div class="pitch-action-overlay" id="pitch-action-overlay">
+        <span class="pitch-action-team" id="pitch-action-team">
+          <span class="pitch-action-dot"></span>
+          <span id="pitch-action-team-text">Tu Equipo</span>
+        </span>
+        <span class="pitch-action-status" id="pitch-action-status">ATAQUE PELIGROSO</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Pestañas -->
+  <nav class="match-tabs" role="tablist">
+    <button type="button" class="match-tab is-active" id="tab-cronologia" data-target="panel-cronologia">Cronología</button>
+    <button type="button" class="match-tab" id="tab-estadisticas" data-target="panel-estadisticas">Estadísticas</button>
+    <button type="button" class="match-tab" id="tab-alineaciones" data-target="panel-alineaciones">Alineaciones</button>
+  </nav>
+
+  <!-- 5. Paneles -->
+  <main class="match-tab-panels">
+    <section class="tab-panel is-active" id="panel-cronologia">
+      <div class="timeline-container" id="timeline-events-list"></div>
+    </section>
+
+    <section class="tab-panel" id="panel-estadisticas" hidden>
+      <div class="stats-container" id="match-stats-list" data-purpose="match-statistics-container">
+        <!-- 1. Filtros de Categoría -->
+        <div class="stats-filter-pills" id="stats-filter-pills" role="tablist" aria-label="Filtrar estadísticas por categoría">
+          <button type="button" class="stats-filter-pill is-active" data-stat-filter="general">General</button>
+          <button type="button" class="stats-filter-pill" data-stat-filter="ataque">Ataque</button>
+          <button type="button" class="stats-filter-pill" data-stat-filter="pases">Pases</button>
+          <button type="button" class="stats-filter-pill" data-stat-filter="defensa">Defensa</button>
+        </div>
+
+        <!-- 2. Tarjeta de Jugador del Partido (En Vivo) -->
+        <div class="stats-mvp-card stats-mvp-card--home" id="stats-mvp-card" data-purpose="mvp-player-card">
+          <div class="stats-mvp-card__left">
+            <div class="stats-mvp-avatar" id="stats-mvp-avatar">
+              <img src="https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/lionel_messi.webp" alt="L. Messi" class="stats-mvp-avatar__img" />
+            </div>
+            <div class="stats-mvp-info">
+              <div class="stats-mvp-overline-row">
+                <span class="stats-mvp-overline" id="stats-mvp-overline">Jugador del Partido</span>
+                <span class="stats-mvp-live-badge" id="stats-mvp-badge">En Vivo</span>
+              </div>
+              <div class="stats-mvp-name-row">
+                <div class="stats-mvp-name" id="stats-mvp-name">L. Messi</div>
+                <span class="stats-mvp-team-badge stats-mvp-team-badge--home" id="stats-mvp-team-badge">Tu Equipo</span>
+              </div>
+              <div class="stats-mvp-summary" id="stats-mvp-summary">1 Gol • 4 Regates exitosos</div>
+            </div>
+          </div>
+          <div class="stats-mvp-card__right">
+            <div class="stats-mvp-rating" id="stats-mvp-rating">8.9</div>
+            <span class="stats-mvp-rating-label">Nota Sofa</span>
+          </div>
+        </div>
+
+        <!-- 3. Sección: Ataque y Ocasiones -->
+        <div class="stats-section-group" data-stat-group="ataque">
+          <div class="stats-section-header">
+            <span class="stats-section-title">Ataque y Ocasiones</span>
+            <div class="stats-section-teams">
+              <span class="stats-section-team stats-section-team--home" id="stats-header-home-name">Tu Equipo</span>
+              <span class="stats-section-team stats-section-team--away" id="stats-header-away-name">Rival</span>
+            </div>
+          </div>
+
+          <!-- Goles Esperados (xG) -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-xg-home">1.84</span>
+              <span class="stat-label">Goles Esperados (xG)</span>
+              <span class="stat-value stat-value--away" id="stat-xg-away">0.92</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-xg-home"></div>
+            </div>
+          </article>
+
+          <!-- Tiros Totales -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-total-shots-home">14</span>
+              <span class="stat-label">Tiros Totales</span>
+              <span class="stat-value stat-value--away" id="stat-total-shots-away">9</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-total-shots-home"></div>
+            </div>
+            <div class="stat-row__subtext">
+              <span id="stat-shots-breakdown-home">7 a puerta • 5 fuera • 2 bloq.</span>
+              <span id="stat-shots-breakdown-away">4 a puerta • 3 fuera • 2 bloq.</span>
+            </div>
+          </article>
+
+          <!-- Tiros a Puerta -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-shots-target-home">7</span>
+              <span class="stat-label">Tiros a Puerta</span>
+              <span class="stat-value stat-value--away" id="stat-shots-target-away">4</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-shots-target-home"></div>
+            </div>
+          </article>
+
+          <!-- Ocasiones Claras -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-big-chances-home">3</span>
+              <span class="stat-label">Ocasiones Claras</span>
+              <span class="stat-value stat-value--away" id="stat-big-chances-away">1</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-big-chances-home"></div>
+            </div>
+          </article>
+
+          <!-- Córners -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-corners-home">6</span>
+              <span class="stat-label">Córners</span>
+              <span class="stat-value stat-value--away" id="stat-corners-away">3</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-corners-home"></div>
+            </div>
+          </article>
+        </div>
+
+        <!-- 4. Sección: Posesión y Pases -->
+        <div class="stats-section-group" data-stat-group="pases">
+          <div class="stats-section-header">
+            <span class="stats-section-title">Posesión y Pases</span>
+          </div>
+
+          <!-- Posesión de Balón -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-possession-home">55%</span>
+              <span class="stat-label">Posesión de Balón</span>
+              <span class="stat-value stat-value--away" id="stat-possession-away">45%</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-possession-home"></div>
+            </div>
+          </article>
+
+          <!-- Pases Totales -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-passes-home">468</span>
+              <span class="stat-label">Pases Totales</span>
+              <span class="stat-value stat-value--away" id="stat-passes-away">382</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-passes-home"></div>
+            </div>
+          </article>
+
+          <!-- Precisión de Pases -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home stat-value--wide" id="stat-pass-acc-home">88% <span class="stat-value__sub">(412)</span></span>
+              <span class="stat-label">Precisión de Pases</span>
+              <span class="stat-value stat-value--away stat-value--wide" id="stat-pass-acc-away"><span class="stat-value__sub">(302)</span> 79%</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-pass-acc-home"></div>
+            </div>
+          </article>
+
+          <!-- Pases en Último Tercio -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-final-third-home">64%</span>
+              <span class="stat-label">Pases en Último Tercio</span>
+              <span class="stat-value stat-value--away" id="stat-final-third-away">48%</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-final-third-home"></div>
+            </div>
+          </article>
+        </div>
+
+        <!-- 5. Sección: Defensa e Intensidad -->
+        <div class="stats-section-group" data-stat-group="defensa">
+          <div class="stats-section-header">
+            <span class="stats-section-title">Defensa e Intensidad</span>
+          </div>
+
+          <!-- Duelos Ganados -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-duels-home">58%</span>
+              <span class="stat-label">Duelos Ganados</span>
+              <span class="stat-value stat-value--away" id="stat-duels-away">42%</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-duels-home"></div>
+            </div>
+          </article>
+
+          <!-- Recuperaciones -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-recoveries-home">44</span>
+              <span class="stat-label">Recuperaciones</span>
+              <span class="stat-value stat-value--away" id="stat-recoveries-away">38</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-recoveries-home"></div>
+            </div>
+          </article>
+
+          <!-- Paradas del Portero -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-saves-home">3</span>
+              <span class="stat-label">Paradas del Portero</span>
+              <span class="stat-value stat-value--away" id="stat-saves-away">5</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-saves-home"></div>
+            </div>
+          </article>
+        </div>
+
+        <!-- 6. Sección: Disciplina -->
+        <div class="stats-section-group" data-stat-group="defensa">
+          <div class="stats-section-header">
+            <span class="stats-section-title">Disciplina</span>
+          </div>
+
+          <!-- Faltas -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-fouls-home">12</span>
+              <span class="stat-label">Faltas</span>
+              <span class="stat-value stat-value--away" id="stat-fouls-away">8</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-fouls-home"></div>
+            </div>
+          </article>
+
+          <!-- Tarjetas (Amarillas / Rojas) -->
+          <article class="stats-cards-summary">
+            <div class="stats-cards-side stats-cards-side--home">
+              <span class="stats-card-item">
+                <span class="stats-card-rect stats-card-rect--yellow" aria-hidden="true"></span>
+                <span id="stat-yellow-home">1</span>
+              </span>
+              <span class="stats-card-item">
+                <span class="stats-card-rect stats-card-rect--red" aria-hidden="true"></span>
+                <span id="stat-red-home">0</span>
+              </span>
+            </div>
+            <span class="stats-cards-label">Tarjetas (Amarillas / Rojas)</span>
+            <div class="stats-cards-side stats-cards-side--away">
+              <span class="stats-card-item">
+                <span class="stats-card-rect stats-card-rect--yellow" aria-hidden="true"></span>
+                <span id="stat-yellow-away">2</span>
+              </span>
+              <span class="stats-card-item">
+                <span class="stats-card-rect stats-card-rect--red" aria-hidden="true"></span>
+                <span id="stat-red-away">0</span>
+              </span>
+            </div>
+          </article>
+
+          <!-- Fueras de Juego -->
+          <article class="stat-row">
+            <div class="stat-row__header">
+              <span class="stat-value stat-value--home" id="stat-offsides-home">2</span>
+              <span class="stat-label">Fueras de Juego</span>
+              <span class="stat-value stat-value--away" id="stat-offsides-away">3</span>
+            </div>
+            <div class="comparative-bar-track">
+              <div class="comparative-bar-fill--home" id="bar-offsides-home"></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="panel-alineaciones" hidden>
+      <div class="lineups-container" id="lineups-display">
+        <div class="lineup-column lineup-column--home">
+          <h3 class="lineup-title" id="lineup-home-title">Tu Equipo</h3>
+          <ul class="lineup-players-list" id="lineup-home-players"></ul>
+        </div>
+        <div class="lineup-column lineup-column--away">
+          <h3 class="lineup-title" id="lineup-away-title">Equipo Rival</h3>
+          <ul class="lineup-players-list" id="lineup-away-players"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+</section>

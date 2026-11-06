@@ -1,0 +1,256 @@
+/*
+  @file onboarding.css
+  @description Estilos de la pantalla de Onboarding / Reglas de Juego.
+  Diseño Mobile First fiel al diseño de referencia sin dependencias de Tailwind CSS.
+*/
+
+:root {
+  --onboarding-max-width: 430px;
+}
+
+/* --- CONTENEDOR PRINCIPAL MOBILE DEVICE FRAME (SIN BORDE) --- */
+.onboarding-screen {
+  width: 100%;
+  max-width: var(--onboarding-max-width, 430px);
+  height: 100%;
+  height: 100dvh;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  position: relative;
+  margin: 0 auto;
+  box-sizing: border-box;
+  border: none !important;
+  outline: none !important;
+  padding-top: max(env(safe-area-inset-top, 0px), 16px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);
+  font-family: 'Plus Jakarta Sans', Inter, system-ui, -apple-system, sans-serif;
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (min-width: 480px) {
+  .onboarding-screen {
+    height: 880px;
+    max-height: 92vh;
+    border-radius: 40px;
+    box-shadow: 0 25px 50px -12px rgba(226, 232, 240, 0.6);
+    border: none !important;
+    outline: none !important;
+    margin: auto;
+  }
+}
+
+/* --- TOP NAVIGATION BAR --- */
+.onboarding-header {
+  padding: 16px 28px 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.btn-skip {
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+  outline: none;
+}
+
+.btn-skip:hover {
+  color: #0f172a;
+}
+
+.btn-skip:focus-visible {
+  outline: 2px solid #cbd5e1;
+}
+
+/* --- MAIN CONTENT AREA --- */
+.onboarding-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 28px;
+  min-height: 0;
+}
+
+/* --- GRAPHIC / HERO VISUAL CONTAINER --- */
+.onboarding-hero {
+  display: flex;
+  justify-content: center;
+  margin-bottom: clamp(24px, 4vh, 40px);
+}
+
+.onboarding-visual {
+  max-width: 320px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 28px;
+  background: linear-gradient(180deg, #f8fafc 0%, rgba(248, 250, 252, 0.7) 50%, rgba(236, 253, 245, 0.3) 100%);
+  border: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.visual-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 28px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+  display: block;
+}
+
+.visual-img:hover {
+  transform: scale(1.05);
+}
+
+/* --- TEXT GROUP --- */
+.onboarding-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Category Tag */
+.badge-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* Primary Headline */
+.main-title {
+  font-size: clamp(23px, 3.2vh, 27px);
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+/* Explanatory Paragraph */
+.description {
+  font-size: clamp(14px, 1.8vh, 14.5px);
+  line-height: 1.625;
+  color: #64748b;
+  font-weight: 400;
+  margin: 0;
+}
+
+/* --- CAROUSEL PAGINATION INDICATOR --- */
+.carousel-indicators {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding-top: clamp(24px, 3.8vh, 40px);
+}
+
+/* Inactive Dot */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  border: 1px solid #94a3b8;
+  background-color: transparent;
+  display: inline-block;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+/* Active Dot */
+.dot.active {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background-color: #0f172a;
+  border: none;
+  transform: none;
+}
+
+/* --- BOTTOM PRIMARY ACTION SECTION --- */
+.onboarding-footer {
+  padding: 16px 28px 8px;
+  flex-shrink: 0;
+}
+
+.btn-action {
+  width: 100%;
+  height: 52px;
+  border-radius: 12px;
+  border: 1.5px solid var(--color-primary, #2D6A4F);
+  background-color: transparent;
+  color: var(--color-primary, #2D6A4F);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.btn-action:hover {
+  background-color: var(--color-primary, #2D6A4F);
+  color: #ffffff;
+  border-color: var(--color-primary, #2D6A4F);
+}
+
+.btn-action:active {
+  transform: scale(0.99);
+}
+
+.btn-action:focus-visible {
+  outline: 2px solid var(--color-primary, #2D6A4F);
+  outline-offset: 2px;
+}
+
+/* Estilo para botón final (IR AL LOGIN) */
+.btn-action.btn-action--final {
+  background-color: var(--color-primary, #2D6A4F);
+  border: 1.5px solid var(--color-primary, #2D6A4F);
+  color: #ffffff;
+}
+
+.btn-action.btn-action--final:hover {
+  background-color: var(--color-primary-hover, #245640);
+  border-color: var(--color-primary-hover, #245640);
+}
+
+.icon-arrow {
+  width: 16px;
+  height: 16px;
+  transform: translateY(-0.5px);
+  transition: transform 0.15s ease;
+}
+
+.btn-action:hover .icon-arrow {
+  transform: translate(2px, -0.5px);
+}

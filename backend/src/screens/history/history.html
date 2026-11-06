@@ -1,0 +1,165 @@
+<link rel="stylesheet" href="/src/styles/screens/history.css?v=16">
+<section class="history-screen history-app-container" id="history-view">
+  <!-- 1. ENCABEZADO DE LA VISTA -->
+  <header class="history-header" role="banner">
+    <span class="history-header__overline">REGISTRO DE TEMPORADA</span>
+    <h1 class="history-header__title">Historial de Partidos</h1>
+    <p class="history-header__subtitle" id="history-subtitle">Mostrando los últimos 10 resultados</p>
+  </header>
+
+  <!-- 2. LISTADO DE TARJETAS DE PARTIDOS -->
+  <main class="history-main" role="main">
+    <div class="history-cards-list" id="history-cards-container" role="feed" aria-label="Historial de enfrentamientos disputados">
+
+      <!-- Tarjeta 1: Victoria vs Real Galácticos -->
+      <article class="card history-match-card" data-match-id="1">
+        <div class="history-card__header">
+          <h2 class="history-card__opponent">Real Galácticos</h2>
+          <span class="history-card__date">Hoy</span>
+        </div>
+
+        <div class="history-card__scoreboard">
+          <span class="team-name team-name--home">Tu Equipo</span>
+          <div class="score-display">
+            <span class="score-num">2</span>
+            <span class="score-divider">–</span>
+            <span class="score-num">1</span>
+          </div>
+          <span class="team-name team-name--away" title="Real Galácticos">Real Galáctic...</span>
+        </div>
+
+        <div class="history-card__footer">
+          <span class="points-wrapper">
+            Puntos obtenidos: <strong class="points-badge points-badge--win">+25</strong>
+          </span>
+          <a role="button" tabindex="0" class="match-details-link" data-id="1" aria-label="Ver detalles del partido contra Real Galácticos">
+            Ver Detalles
+            <svg class="match-details-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+            </svg>
+          </a>
+        </div>
+      </article>
+
+      <!-- Tarjeta 2: Empate vs Milan Vintage -->
+      <article class="card history-match-card" data-match-id="2">
+        <div class="history-card__header">
+          <h2 class="history-card__opponent">Milan Vintage</h2>
+          <span class="history-card__date">Hace 2 días</span>
+        </div>
+
+        <div class="history-card__scoreboard">
+          <span class="team-name team-name--home">Tu Equipo</span>
+          <div class="score-display">
+            <span class="score-num">1</span>
+            <span class="score-divider">–</span>
+            <span class="score-num">1</span>
+          </div>
+          <span class="team-name team-name--away" title="Milan Vintage">Milan Vintage</span>
+        </div>
+
+        <div class="history-card__footer">
+          <span class="points-wrapper">
+            Puntos obtenidos: <strong class="points-badge points-badge--draw">+5</strong>
+          </span>
+          <a role="button" tabindex="0" class="match-details-link" data-id="2" aria-label="Ver detalles del partido contra Milan Vintage">
+            Ver Detalles
+            <svg class="match-details-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+            </svg>
+          </a>
+        </div>
+      </article>
+
+      <!-- Tarjeta 3: Derrota vs Santos Eterno -->
+      <article class="card history-match-card" data-match-id="3">
+        <div class="history-card__header">
+          <h2 class="history-card__opponent">Santos Eterno</h2>
+          <span class="history-card__date">Hace 3 días</span>
+        </div>
+
+        <div class="history-card__scoreboard">
+          <span class="team-name team-name--home">Tu Equipo</span>
+          <div class="score-display">
+            <span class="score-num">0</span>
+            <span class="score-divider">–</span>
+            <span class="score-num">3</span>
+          </div>
+          <span class="team-name team-name--away" title="Santos Eterno">Santos Eterno</span>
+        </div>
+
+        <div class="history-card__footer">
+          <span class="points-wrapper">
+            Puntos obtenidos: <strong class="points-badge points-badge--loss">-15</strong>
+          </span>
+          <a role="button" tabindex="0" class="match-details-link" data-id="3" aria-label="Ver detalles del partido contra Santos Eterno">
+            Ver Detalles
+            <svg class="match-details-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+            </svg>
+          </a>
+        </div>
+      </article>
+
+    </div>
+  </main>
+
+  <!-- 3. POPUP / MODAL DE DETALLES DEL PARTIDO -->
+  <div class="history-modal-backdrop" id="history-details-modal" role="dialog" aria-modal="true" aria-labelledby="history-modal-title" hidden aria-hidden="true">
+    <div class="history-modal-dialog">
+      <!-- Encabezado del Modal -->
+      <header class="history-modal-header">
+        <h2 class="history-modal-title" id="history-modal-title">Detalles del Partido</h2>
+        <button type="button" class="history-modal-close" id="btn-close-history-modal" aria-label="Cerrar ventana">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </header>
+
+      <!-- Cuerpo del Modal -->
+      <div class="history-modal-body">
+        <!-- Marcador Central -->
+        <div class="history-modal-scoreboard" data-purpose="scoreboard">
+          <div class="history-modal-team history-modal-team--home">
+            <span class="history-modal-team-name" id="history-modal-home-name">Tu Equipo</span>
+          </div>
+          <div class="history-modal-score">
+            <span class="history-modal-score-num" id="history-modal-home-score">2</span>
+            <span class="history-modal-score-sep">-</span>
+            <span class="history-modal-score-num" id="history-modal-away-score">1</span>
+          </div>
+          <div class="history-modal-team history-modal-team--away">
+            <span class="history-modal-team-name" id="history-modal-away-name">Real Galácticos</span>
+          </div>
+        </div>
+
+        <!-- Cronología del Partido -->
+        <div class="history-modal-events" data-purpose="match-events-list">
+          <div class="history-modal-events-header">
+            <h3 class="history-modal-events-title">Cronología del Partido</h3>
+            <div class="history-modal-legend">
+              <span class="history-modal-legend-item">
+                <span class="history-modal-legend-dot history-modal-legend-dot--home"></span>
+                <span id="history-modal-legend-home">Tu Equipo</span>
+              </span>
+              <span class="history-modal-legend-item">
+                <span class="history-modal-legend-dot history-modal-legend-dot--away"></span>
+                <span>Rival</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="history-modal-timeline" id="history-modal-timeline">
+            <!-- Renderizado dinámico desde history.js -->
+          </div>
+        </div>
+
+        <!-- Puntos Obtenidos -->
+        <div class="history-modal-points-card" data-purpose="points-earned-card">
+          <span class="history-modal-points-label">Puntos Obtenidos</span>
+          <span class="history-modal-points-value history-modal-points-value--win" id="history-modal-points">+25 Puntos</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<script type="module" src="/src/screens/history/history.js?v=16"></script>

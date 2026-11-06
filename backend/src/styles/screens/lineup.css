@@ -1,0 +1,1544 @@
+/**
+ * @file lineup.css
+ * @description Estilos para la pantalla de Alineación Táctica (Pizarra de 6 titulares + 3 suplentes).
+ * Basado en tokens oficiales de diseño sin estilos en línea.
+ */
+
+.lineup-container {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem 6.5rem;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+/* =============================================================================
+   1. CABECERA Y SELECTOR DE FORMACIÓN
+   ============================================================================= */
+
+.lineup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.65rem;
+  position: relative;
+  z-index: 40;
+}
+
+.lineup-header__subtitle {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 0.15rem;
+}
+
+.lineup-header__title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.lineup-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+/* Dropdown de Formación */
+.formation-dropdown-wrapper {
+  position: relative;
+}
+
+.formation-selector-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.formation-selector-btn:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-focus);
+}
+
+.formation-selector-btn__label strong {
+  color: var(--color-primary);
+  font-weight: 800;
+}
+
+.formation-selector-btn__icon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.formation-selector-btn[aria-expanded="true"] .formation-selector-btn__icon {
+  transform: rotate(180deg);
+}
+
+.formation-dropdown-wrapper {
+  position: relative;
+  z-index: 50;
+}
+
+.formation-dropdown-wrapper.is-open {
+  z-index: 1000;
+}
+
+.formation-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 200px;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.18), 0 4px 10px -2px rgba(15, 23, 42, 0.08);
+  padding: 0.35rem 0;
+  z-index: 1000;
+  display: none;
+}
+
+.formation-dropdown.is-open {
+  display: block !important;
+  animation: lineupDropdownFade 0.15s ease-out;
+}
+
+.formation-dropdown[hidden] {
+  display: none !important;
+}
+
+@keyframes lineupDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.formation-dropdown__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.formation-dropdown__li {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.formation-dropdown__li:last-child {
+  border-bottom: none;
+}
+
+.formation-dropdown__item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.9rem;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text, #1e293b);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.formation-dropdown__item:hover {
+  background: #f8fafc;
+}
+
+.formation-dropdown__item.is-active {
+  background: rgba(45, 106, 79, 0.08);
+  color: var(--color-primary, #2D6A4F);
+  font-weight: 800;
+}
+
+.formation-dropdown__check {
+  width: 15px;
+  height: 15px;
+  color: var(--color-primary, #2D6A4F);
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
+.formation-dropdown__tag {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-muted, #94a3b8);
+}
+
+.formation-dropdown__item.is-active .formation-dropdown__tag {
+  color: var(--color-primary, #2D6A4F);
+  font-weight: 700;
+}
+
+/* Botón de Ayuda / Info Táctica */
+.lineup-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.lineup-icon-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-surface-hover);
+}
+
+.lineup-icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* =============================================================================
+   2. PIZARRA TÁCTICA (CAMPO DE CÉSPED Y LÍNEAS SVG)
+   ============================================================================= */
+
+.pitch-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 20px;
+  overflow: hidden;
+  margin: 0.5rem 0 1rem;
+  background: linear-gradient(180deg, #1E4D38 0%, #1A4431 50%, #173D2C 100%);
+  border: 1.5px solid rgba(45, 106, 79, 0.4);
+  box-shadow: 0 10px 24px -6px rgba(30, 77, 56, 0.32);
+}
+
+.pitch-card__markings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: rgba(255, 255, 255, 0.30);
+  stroke-width: 1.6;
+  fill: none;
+  pointer-events: none;
+}
+
+.pitch-card__dot {
+  fill: rgba(255, 255, 255, 0.45);
+  stroke: none;
+}
+
+/* Capa de Jugadores en Cancha */
+.pitch-card__players {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  padding: 3rem 0.85rem 0.75rem; /* Posicionamiento calibrado: baja el delantero al borde del área rival y distribuye armónicamente mc, def y por */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.pitch-line-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.pitch-line-row.row-del {
+  margin-top: 0.2rem;
+}
+
+.pitch-line-row.row-mc {
+  margin-top: 0.15rem;
+}
+
+.pitch-line-row.row-def {
+  margin-top: 0.15rem;
+}
+
+.pitch-line-row.row-por {
+  margin-bottom: 0.2rem;
+}
+
+/* =============================================================================
+   3. TOKENS Y FICHAS DE JUGADORES (TITULARES Y SUPLENTES)
+   ============================================================================= */
+
+.pitch-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease;
+}
+
+.pitch-slot:hover {
+  transform: translateY(-2px);
+}
+
+.pitch-slot.is-selected .pitch-slot__token {
+  box-shadow: 0 0 0 3px #F59E0B, 0 6px 14px rgba(245, 158, 11, 0.5);
+  transform: scale(1.08);
+  animation: slotPulse 1.2s infinite alternate;
+}
+
+@keyframes slotPulse {
+  from {
+    transform: scale(1.05);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+.pitch-slot__token {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 50% !important;
+  background: #ffffff;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #1b4130;
+  transition: all var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.lineup-token-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-top: 3px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.lineup-token-img {
+  width: 38px !important;
+  height: 38px !important;
+  max-width: 38px !important;
+  max-height: 38px !important;
+  object-fit: contain !important;
+  object-position: center bottom !important;
+  display: block !important;
+  margin: 0 auto !important;
+  transform: translateY(2.5px);
+  pointer-events: none;
+}
+
+.empty-slot-reserve-item__avatar .lineup-token-img {
+  width: 24px !important;
+  height: 24px !important;
+  max-width: 24px !important;
+  max-height: 24px !important;
+  transform: translateY(1.5px);
+}
+
+.lineup-token-initial {
+  font-weight: 800;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+/* Resaltado en ROJO fuerte del borde cuando el jugador estÃ¡ fuera de posiciÃ³n */
+.pitch-slot.is-penalized .pitch-slot__token {
+  border: 2.5px solid #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.5), 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+/* Lugar vacÃ­o: circular, punteado y semi-transparente con un '+' al centro */
+.pitch-slot.is-empty .pitch-slot__token {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border: 2px dashed rgba(255, 255, 255, 0.7) !important;
+  box-shadow: none !important;
+  color: #ffffff;
+}
+
+.pitch-slot__empty-plus {
+  font-size: 1.4rem;
+  font-weight: 300;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.pitch-slot__name-empty {
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  text-align: center;
+  line-height: 1.1;
+}
+
+/* BotÃ³n discreto 'X' para quitar al jugador y mandarlo al banquillo */
+.pitch-slot__remove-btn {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  z-index: 15;
+  padding: 0;
+}
+
+.pitch-slot__remove-btn:hover {
+  transform: scale(1.18);
+  background: #dc2626;
+}
+
+.pitch-slot__rating-pill {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  padding: 1px 4.5px;
+  border-radius: 9999px;
+  background: #F59E0B;
+  color: #1E293B;
+  font-size: 0.625rem;
+  font-weight: 800;
+  line-height: 1.1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.pitch-slot__penalty-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 1.5px solid #FFFFFF;
+}
+
+.pitch-slot__name {
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  max-width: 65px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.pitch-slot__role-badge {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+/* =============================================================================
+   4. MÉTRICAS DEL EQUIPO (EQUILIBRIO, QUÍMICA Y MEDIA)
+   ============================================================================= */
+
+.lineup-metrics {
+  margin-top: 0.85rem;
+  padding: 0 0.25rem;
+}
+
+.lineup-metrics__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lineup-metrics__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.lineup-metrics__value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-primary);
+}
+
+.lineup-metrics__progress-bg {
+  width: 100%;
+  height: 8px;
+  background: var(--color-border, #e2e8f0);
+  border-radius: 9999px !important;
+  margin-top: 0.5rem;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+#lineup-balance-bar,
+.lineup-metrics__progress-bar {
+  height: 100%;
+  width: 100%;
+  background: var(--color-primary, #1e4d38);
+  border-radius: 9999px !important;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+}
+
+.lineup-metrics__details {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.lineup-metrics__rating strong {
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.lineup-divider {
+  border: none;
+  height: 1px;
+  background: var(--color-border-subtle);
+  margin: 1rem 0;
+}
+
+/* =============================================================================
+   5. SECCIÓN DE RESERVAS (3 SUPLENTES)
+   ============================================================================= */
+
+.reserves-section {
+  padding: 0 0.25rem;
+}
+
+.reserves-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.reserves-section__title {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.reserves-section__count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.reserves-section__slots {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.reserve-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.reserve-slot:hover {
+  transform: translateY(-2px);
+}
+
+.reserve-slot.is-selected .reserve-slot__circle {
+  box-shadow: 0 0 0 3px #F59E0B, 0 6px 14px rgba(245, 158, 11, 0.4);
+  transform: scale(1.08);
+}
+
+.reserve-slot__circle {
+  width: 46px;
+  height: 46px;
+  border-radius: 50% !important;
+  border: 2px dashed var(--color-border, #cbd5e1);
+  background: var(--color-surface-hover, #f8fafc);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all var(--transition-fast);
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.85rem;
+  font-weight: 800;
+  box-sizing: border-box;
+}
+
+.reserve-slot:hover .reserve-slot__circle {
+  border-color: var(--color-primary, #2D6A4F);
+  background: rgba(45, 106, 79, 0.08);
+  color: var(--color-primary, #2D6A4F);
+}
+
+.reserve-slot.has-player .reserve-slot__circle {
+  border: 2.5px solid var(--color-primary, #2D6A4F) !important;
+  background: #ffffff;
+  color: #1b4130;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.reserve-slot__rating-pill {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  padding: 1px 4.5px;
+  border-radius: 9999px;
+  background: #F59E0B;
+  color: #1E293B;
+  font-size: 0.625rem;
+  font-weight: 800;
+  line-height: 1.1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.reserve-slot__label {
+  margin-top: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text);
+  max-width: 65px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.reserve-slot__role {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+/* =============================================================================
+   6. CONSEJO TÁCTICO Y BOTÓN DE CONFIRMACIÓN
+   ============================================================================= */
+
+.tactical-advice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  color: var(--color-text-muted);
+  padding: 0 0.25rem;
+}
+
+.tactical-advice__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--color-primary);
+  margin-top: 1px;
+}
+
+.tactical-advice__text {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+  margin: 0;
+  transition: opacity 0.2s ease;
+}
+
+.tactical-advice__text strong {
+  color: var(--color-text, #0f172a);
+  font-weight: 700;
+}
+
+.lineup-cta-dock {
+  margin-top: 1.25rem;
+  padding: 0 0.25rem;
+}
+
+.lineup-cta-btn {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-lg);
+  border: none;
+  background: var(--color-primary);
+  color: #FFFFFF;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.28);
+}
+
+.lineup-cta-btn:hover {
+  background: var(--color-primary-hover);
+  box-shadow: 0 6px 16px rgba(45, 106, 79, 0.36);
+  transform: translateY(-1px);
+}
+
+.lineup-cta-btn:active {
+  transform: translateY(0);
+}
+
+/* Modal o Toast de confirmación */
+.lineup-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1E293B;
+  color: #FFFFFF;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 1000;
+  opacity: 0;
+  transition: all 0.25s ease-out;
+  pointer-events: none;
+}
+
+.lineup-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.lineup-header__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.lineup-metrics__synergy {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.reserve-slot__plus {
+  font-size: 1.15rem;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+
+/* =============================================================================
+   7. BOTÓN TÁCTICO REDONDEADO Y MODAL BOTTOM-SHEET CON ANIMACIÓN
+   ============================================================================= */
+
+/* Botón de Ayuda / Info Táctica con bordes redondeados */
+.lineup-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.lineup-icon-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-surface-hover);
+  transform: translateY(-1px);
+}
+
+.lineup-icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Backdrop difuminado */
+.tactical-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+  pointer-events: none;
+}
+
+.tactical-modal-backdrop[hidden],
+.tactical-modal-sheet[hidden],
+.player-action-sheet[hidden] {
+  display: none !important;
+}
+
+.tactical-modal-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Ventana Bottom-Sheet con animación de abajo hacia arriba */
+.tactical-modal-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  width: 100%;
+  max-width: 440px;
+  max-height: 85vh;
+  max-height: 85dvh;
+  background: #ffffff;
+  border-radius: 28px 28px 0 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
+  box-sizing: border-box;
+}
+
+.tactical-modal-sheet.is-open {
+  transform: translateX(-50%) translateY(0);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.tactical-modal__handle-wrapper {
+  width: 100%;
+  padding-top: 0.75rem;
+  padding-bottom: 0.25rem;
+  display: flex;
+  justify-content: center;
+}
+
+.tactical-modal__handle {
+  width: 40px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: rgba(148, 163, 184, 0.6);
+}
+
+.tactical-modal__header {
+  padding: 0.85rem 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+}
+
+.tactical-modal__title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text, #0f172a);
+  margin: 0;
+}
+
+.tactical-modal__close-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted, #94a3b8);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tactical-modal__close-btn:hover {
+  background: var(--color-surface-hover, #f1f5f9);
+  color: var(--color-text, #0f172a);
+}
+
+.tactical-modal__close-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Contenido scrolleable con scrollbar a la derecha */
+.tactical-modal__body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.75rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-height: calc(85vh - 120px);
+  max-height: calc(85dvh - 120px);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar personalizada visible a la derecha */
+.tactical-modal__body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tactical-modal__body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+  margin: 4px 0;
+}
+
+.tactical-modal__body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.tactical-modal__body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.tactical-modal__body {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Tarjetas individuales de cada formación */
+.formation-card {
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--color-border-subtle, #f1f5f9);
+  background: #ffffff;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  text-align: left;
+}
+
+.formation-card:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.formation-card.is-active {
+  background: rgba(45, 106, 79, 0.07);
+  border: 1.5px solid rgba(45, 106, 79, 0.35);
+}
+
+.formation-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.formation-card__title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.formation-card__title {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: #144430;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.formation-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 800;
+  background: var(--color-primary, #2D6A4F);
+  color: #ffffff;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.formation-card__check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-primary, #2D6A4F);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.formation-card__check svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.5;
+}
+
+.formation-card__desc {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #64748b;
+  margin: 0;
+}
+
+.formation-card.is-active .formation-card__desc {
+  color: #164e33;
+  font-weight: 500;
+}
+
+.tactical-modal__safe-bottom {
+  height: 1.25rem;
+  width: 100%;
+}
+
+/* =============================================================================
+   8. MODAL DE GESTIÓN DE JUGADOR (VENDER / INTERCAMBIAR / MERCADO)
+   ============================================================================= */
+
+.player-action-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 28px 28px 0 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  z-index: 1002;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
+  box-sizing: border-box;
+}
+
+.player-action-sheet.is-open {
+  transform: translateX(-50%) translateY(0);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.player-action-sheet__header {
+  padding: 0.85rem 1.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+}
+
+.player-action-sheet__token-preview {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #2D6A4F;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 2px solid #2D6A4F;
+  box-sizing: border-box;
+}
+
+.player-action-sheet__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.player-action-sheet__name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-text, #0f172a);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.player-action-sheet__role {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 0.15rem;
+}
+
+/* Estadísticas reales de la leyenda en el modal de acción */
+.player-action-sheet__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--color-border-subtle, #f1f5f9);
+}
+
+.action-stat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.45rem 0.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.action-stat-pill .action-stat-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.action-stat-pill .action-stat-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-text, #0f172a);
+  line-height: 1;
+}
+
+.action-stat-pill--rating .action-stat-val {
+  color: #2D6A4F;
+}
+
+.action-stat-pill--mvp .action-stat-val {
+  color: #d97706;
+}
+
+.player-action-sheet__body {
+  padding: 1rem 1.25rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.player-action-sheet__btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 0.825rem;
+  font-weight: 700;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.player-action-sheet__btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.player-action-sheet__btn:hover {
+  transform: translateY(-1px);
+}
+
+.player-action-sheet__btn.btn-bench:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.player-action-sheet__btn.btn-swap {
+  color: #1d4ed8;
+  border-color: rgba(29, 78, 216, 0.25);
+  background: rgba(29, 78, 216, 0.04);
+}
+
+.player-action-sheet__btn.btn-swap:hover {
+  background: rgba(29, 78, 216, 0.08);
+  border-color: #1d4ed8;
+}
+
+.player-action-sheet__btn.btn-sell {
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.25);
+  background: rgba(185, 28, 28, 0.04);
+}
+
+.player-action-sheet__btn.btn-sell:hover {
+  background: rgba(185, 28, 28, 0.09);
+  border-color: #b91c1c;
+}
+
+.player-action-sheet__btn.btn-market {
+  color: #ffffff;
+  background: #2D6A4F;
+  border-color: #2D6A4F;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.28);
+}
+
+.player-action-sheet__btn.btn-market:hover {
+  background: #245640;
+}
+
+/* Lista de suplentes disponibles en el modal de puesto vacío */
+.empty-slot-reserves-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+
+.empty-slot-reserve-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: pointer;
+  font-size: 0.785rem;
+  font-weight: 700;
+  color: #1e293b;
+  transition: all 0.15s ease;
+}
+
+.empty-slot-reserve-item__left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.empty-slot-reserve-item__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #2D6A4F;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.empty-slot-reserve-item:hover {
+  background: rgba(45, 106, 79, 0.08);
+  border-color: #2D6A4F;
+  color: #1b4130;
+}
+
+/* Botón de Confirmar deshabilitado si falta algún jugador */
+.lineup-cta-btn.is-disabled {
+  background: #94a3b8 !important;
+  color: #f1f5f9 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Botón de quitar en suplentes también */
+.reserve-slot {
+  position: relative;
+}
+
+.reserve-slot__remove-btn {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 15;
+  padding: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.reserve-slot__remove-btn:hover {
+  transform: scale(1.18);
+  background: #dc2626;
+}
+
+/* =============================================================================
+   NIVELES Y COLORES DE VALORACIÓN (BRONCE, PLATA Y ORO)
+   ============================================================================= */
+
+/* Bronce común (00 - 47) */
+.tier-bronze-common {
+  background: #78350F !important;
+  color: #FEF3C7 !important;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* Bronce especial (48 - 64) */
+.tier-bronze-special {
+  background: linear-gradient(135deg, #B45309 0%, #78350F 100%) !important;
+  color: #FFFFFF !important;
+  border: 1px solid #FDE68A;
+  box-shadow: 0 1px 4px rgba(120, 53, 15, 0.5);
+}
+
+/* Plata común (65 - 74) */
+.tier-silver-common {
+  background: #64748B !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* Plata especial (75 - 85) */
+.tier-silver-special {
+  background: linear-gradient(135deg, #E2E8F0 0%, #94A3B8 100%) !important;
+  color: #0F172A !important;
+  border: 1px solid #FFFFFF;
+  box-shadow: 0 1px 4px rgba(71, 85, 105, 0.4);
+}
+
+/* Oro común (86 - 94) */
+.tier-gold-common {
+  background: #EAB308 !important;
+  color: #1E293B !important;
+  border: 1px solid #FEF08A;
+  box-shadow: 0 1px 4px rgba(234, 179, 8, 0.45);
+}
+
+/* Oro especial (95 - 99) */
+.tier-gold-special {
+  background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 50%, #D97706 100%) !important;
+  color: #0F172A !important;
+  border: 1px solid #FFFFFF;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.7), 0 1px 3px rgba(0, 0, 0, 0.35);
+  font-weight: 900 !important;
+}
+
+/* =============================================================================
+   BARRA DE STAMINA / ENERGÍA DEL JUGADOR EN CANCHA (.pitch-slot)
+   ============================================================================= */
+.pitch-slot__stamina-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 48px;
+  margin-top: 3px;
+  pointer-events: none;
+}
+
+.pitch-slot__stamina-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 9999px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+}
+
+.pitch-slot__stamina-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.pitch-slot__stamina-fill.stamina-high {
+  background: linear-gradient(90deg, #10B981, #34D399);
+  box-shadow: 0 0 4px rgba(16, 185, 129, 0.6);
+}
+
+.pitch-slot__stamina-fill.stamina-mid {
+  background: linear-gradient(90deg, #F59E0B, #FBBF24);
+  box-shadow: 0 0 4px rgba(245, 158, 11, 0.6);
+}
+
+.pitch-slot__stamina-fill.stamina-low {
+  background: linear-gradient(90deg, #EF4444, #F87171);
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.7);
+}
+
+.pitch-slot__stamina-text {
+  font-size: 0.5625rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  line-height: 1;
+}
+
+/* =============================================================================
+   PÍLDORA DE STAMINA / ENERGÍA (.stamina-pill) - CANCHA Y BANQUILLO
+   ============================================================================= */
+.stamina-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 7px;
+  background: rgba(10, 25, 18, 0.85);
+  border-radius: 9999px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 3px;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+/* Icono de Rayo */
+.stamina-pill__bolt {
+  flex-shrink: 0;
+  display: block;
+}
+
+.stamina-pill__bolt.stamina-high {
+  color: #10B981;
+  filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.8));
+}
+
+.stamina-pill__bolt.stamina-mid {
+  color: #F59E0B;
+  filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.8));
+}
+
+.stamina-pill__bolt.stamina-low {
+  color: #EF4444;
+  filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.8));
+}
+
+/* Pista de la barra con bordes redondeados */
+.stamina-pill__track {
+  width: 30px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Relleno dinámico con bordes redondeados */
+.stamina-pill__fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.stamina-pill__fill.stamina-high {
+  background: #10B981;
+  box-shadow: 0 0 4px rgba(16, 185, 129, 0.6);
+}
+
+.stamina-pill__fill.stamina-mid {
+  background: #F59E0B;
+  box-shadow: 0 0 4px rgba(245, 158, 11, 0.6);
+}
+
+.stamina-pill__fill.stamina-low {
+  background: #EF4444;
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
+}
+
+/* Porcentaje en texto blanco en negrita */
+.stamina-pill__text {
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Ajuste fino en la sección de suplentes/reservas */
+/* Variante clara con transparencia para la sección de suplentes/reservas */
+.reserve-slot.has-player .stamina-pill,
+.reserve-slot .stamina-pill {
+  margin-top: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.reserve-slot.has-player .stamina-pill__track,
+.reserve-slot .stamina-pill__track {
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.reserve-slot.has-player .stamina-pill__text,
+.reserve-slot .stamina-pill__text {
+  color: #1F2937;
+  text-shadow: none;
+}

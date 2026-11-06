@@ -1,0 +1,65 @@
+<main class="onboarding-screen" id="onboarding-container" data-purpose="onboarding-container">
+  <!-- BEGIN: Top Navigation Bar -->
+  <header class="onboarding-header" data-purpose="top-navigation">
+    <button type="button" class="btn-skip" id="btn-skip" data-purpose="skip-button" aria-label="Saltar introducción">
+      Saltar
+    </button>
+  </header>
+  <!-- END: Top Navigation Bar -->
+
+  <!-- BEGIN: Main Content Area -->
+  <div class="onboarding-body" data-purpose="body-content">
+    <!-- Graphic / Hero Visual Container -->
+    <section class="onboarding-hero" data-purpose="hero-illustration" aria-label="Ilustración de la regla">
+      <div class="onboarding-visual">
+        <img id="onboarding-img" src="/public/images/pantalla_regla1.webp"
+          alt="Cartas físicas de leyendas de fútbol dispuestas tácticamente junto a un documento de acuerdo de traspaso"
+          class="visual-img" />
+      </div>
+    </section>
+
+    <!-- Text Group -->
+    <section class="onboarding-content" data-purpose="text-descriptions">
+      <!-- Category Tag -->
+      <p class="badge-subtitle">
+        CÓMO JUGAR
+      </p>
+
+      <!-- Primary Headline -->
+      <h1 class="main-title" id="onboarding-title">
+        Presupuesto de 130 millones
+      </h1>
+
+      <!-- Explanatory Paragraph -->
+      <p class="description" id="onboarding-desc">
+        Tienes un límite salarial estricto de 130 millones de créditos para fichar exactamente a 10 leyendas históricas
+        del fútbol (6 titulares y 4 suplentes). Gasta con inteligencia para equilibrar a tus estrellas con talentos
+        ocultos.
+      </p>
+    </section>
+
+    <!-- Carousel Pagination Indicator -->
+    <nav class="carousel-indicators" role="tablist" aria-label="Indicador de páginas" id="indicators-group"
+      data-purpose="carousel-pagination">
+      <!-- Active Slide Indicator (Slide 1) -->
+      <span class="dot active" data-step="0" aria-current="page" aria-label="Página 1 de 3"></span>
+      <!-- Inactive Indicator (Slide 2) -->
+      <span class="dot" data-step="1" aria-label="Página 2 de 3"></span>
+      <!-- Inactive Indicator (Slide 3) -->
+      <span class="dot" data-step="2" aria-label="Página 3 de 3"></span>
+    </nav>
+  </div>
+  <!-- END: Main Content Area -->
+
+  <!-- BEGIN: Bottom Primary Action Section -->
+  <footer class="onboarding-footer" data-purpose="bottom-actions">
+    <button type="button" class="btn-action" id="btn-next" data-purpose="next-step-button">
+      <span id="btn-text">PRÓXIMO</span>
+      <svg class="icon-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+  </footer>
+  <!-- END: Bottom Primary Action Section -->
+</main>

@@ -1,0 +1,278 @@
+/**
+ * @file layout.css
+ * @description Layout adaptativo profesional (Header de marca con logo en PC, Navegación superior tipo portal deportivo / Móvil app fija).
+ */
+
+/* ==========================================================================
+   1. FONDO GENERAL Y APP BODY
+   ========================================================================== */
+body.app-body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-background, #f8fafc);
+  color: var(--color-text, #1f6415);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* En escritorio (>= 480px): el alto ocupa el 100vh completo y sin bordes redondeados */
+@media screen and (min-width: 480px) {
+  body.app-body {
+    background-color: #cbd5e1;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+  }
+}
+
+/* ==========================================================================
+   2. CONTENEDOR PRINCIPAL: APP SHELL (100vh continuo, sin bordes redondeados)
+   ========================================================================== */
+.app-layout {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-sizing: border-box;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+/* En escritorio (>= 480px): ancho mobile-first centrado, 100vh total y sin bordes redondeados */
+@media screen and (min-width: 480px) {
+  .app-layout {
+    width: 440px;
+    max-width: 440px;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    margin: 0 auto;
+  }
+}
+
+/* ==========================================================================
+   3. CABECERA OPCIONAL DEL APP SHELL
+   ========================================================================== */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 8px 16px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.app-header:empty {
+  display: none !important;
+}
+
+/* ==========================================================================
+   4. ÁREA DE CONTENIDO PRINCIPAL (App Main)
+   ========================================================================== */
+
+.app-main {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  height: auto;
+  padding: 0 !important;
+  margin: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar estilizada y no invasiva dentro del teléfono */
+.app-main::-webkit-scrollbar {
+  width: 5px;
+}
+
+.app-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-main::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+
+.app-main::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+/* Pantallas que gestionan su propio scroll interno sin desplazar el contenedor externo */
+.app-main:has(.screen-dashboard),
+.app-main:has(.home-app-container),
+.app-main:has(#home-view),
+.app-main:has(.match-detail-container),
+.app-main:has(.onboarding-screen),
+.app-main:has(.login-card:not(.register-card)) {
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Pantalla de registro: ocupa la totalidad de app-main sin bordes redondeados ni márgenes */
+.app-main:has(.register-card) {
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: block !important;
+  background-color: #ffffff !important;
+}
+
+/* Pantalla de Matchmaking: Scroll vertical completo garantizado sin recortes */
+.app-main:has(.matchmaking-container),
+#app-content:has(.matchmaking-container) {
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ==========================================================================
+   5. BARRA DE NAVEGACIÓN INFERIOR (App Navigation)
+   ========================================================================== */
+
+/* Ocultar barra de navegación inferior durante la pantalla / simulación de partido */
+.app-layout:has(.match-detail-container) #app-navigation {
+  display: none !important;
+}
+
+.app-navigation {
+  flex: 0 0 60px;
+  height: 60px;
+  min-height: 60px;
+  width: 100%;
+  max-width: 100%;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  z-index: 50;
+  box-sizing: border-box;
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+
+.bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background-color: #ffffff;
+  height: 60px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+  font-family: inherit;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.bottom-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav__svg {
+  width: 20px;
+  height: 20px;
+  stroke: #64748b;
+  transition: stroke 0.15s ease;
+}
+
+.bottom-nav__label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1;
+  color: inherit;
+}
+
+.bottom-nav__item:hover {
+  color: #266046;
+}
+
+.bottom-nav__item:hover .bottom-nav__svg {
+  stroke: #266046;
+}
+
+.bottom-nav__item--active,
+.bottom-nav__item.is-active {
+  color: #266046 !important;
+}
+
+.bottom-nav__item--active .bottom-nav__svg,
+.bottom-nav__item.is-active .bottom-nav__svg {
+  stroke: #266046 !important;
+}
+
+.bottom-nav__item--active .bottom-nav__label,
+.bottom-nav__item.is-active .bottom-nav__label {
+  font-weight: 700 !important;
+  color: #266046 !important;
+}
+
+/* ==========================================================================
+   6. CONTENEDOR GLOBAL DE MODALES
+   ========================================================================== */
+
+#app-modal-container {
+  position: relative;
+  z-index: 100;
+}

@@ -1,0 +1,250 @@
+<link rel="stylesheet" href="/src/styles/screens/lineup.css?v=42">
+<!-- Vista HTML: Pizarra Táctica y Alineación (6 titulares + 3 suplentes) -->
+<div class="lineup-container" data-purpose="tactical-board-screen">
+  <!-- Cabecera de la pantalla -->
+  <header class="lineup-header">
+    <div class="lineup-header__info">
+      <span class="lineup-header__subtitle">Pizarra Táctica</span>
+      <h1 class="lineup-header__title">Mi Alineación</h1>
+    </div>
+
+    <div class="lineup-header__actions">
+      <!-- Selector desplegable de formación -->
+      <div class="formation-dropdown-wrapper">
+        <button id="formation-selector-btn" class="formation-selector-btn" type="button" aria-haspopup="true"
+          aria-expanded="false" title="Cambiar formación táctica">
+          <span class="formation-selector-btn__label">Formación: <strong
+              id="current-formation-text">1-2-2-1</strong></span>
+          <svg class="formation-selector-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+
+        <!-- Menú flotante de formaciones -->
+        <div id="formation-dropdown" class="formation-dropdown" hidden>
+          <ul id="formation-options-list" class="formation-dropdown__list" role="menu">
+            <!-- Renderizado dinámicamente desde FORMATIONS_6V6 -->
+          </ul>
+        </div>
+      </div>
+
+      <!-- Botón para restaurar plantilla equilibrada -->
+      <button id="btn-reset-squad" class="lineup-icon-btn" type="button"
+        title="Restablecer plantilla equilibrada oficial">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+      </button>
+
+      <!-- Botón de información táctica -->
+      <button id="btn-tactical-info" class="lineup-icon-btn" type="button"
+        title="Información sobre formaciones y tácticas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Pizarra táctica / Campo de juego -->
+  <section class="pitch-card" aria-label="Cancha de fútbol táctica">
+    <!-- Capa vectorial de marcas de campo -->
+    <svg class="pitch-card__markings" viewBox="0 0 340 425" preserveAspectRatio="none" aria-hidden="true">
+      <!-- Línea perimetral -->
+      <rect x="14" y="14" width="312" height="397" rx="6"></rect>
+      <!-- Línea de medio campo -->
+      <line x1="14" y1="212.5" x2="326" y2="212.5"></line>
+      <!-- Círculo central y punto -->
+      <circle cx="170" cy="212.5" r="38"></circle>
+      <circle cx="170" cy="212.5" r="3" class="pitch-card__dot"></circle>
+      <!-- Área rival (Arriba) -->
+      <rect x="75" y="14" width="190" height="74"></rect>
+      <rect x="115" y="14" width="110" height="26"></rect>
+      <path d="M 135 88 A 36 36 0 0 0 205 88"></path>
+      <!-- Área propia (Abajo) -->
+      <rect x="75" y="337" width="190" height="74"></rect>
+      <rect x="115" y="385" width="110" height="26"></rect>
+      <path d="M 135 337 A 36 36 0 0 1 205 337"></path>
+    </svg>
+
+    <!-- Capa interactiva de los 6 jugadores titulares distribuidos por líneas -->
+    <div id="pitch-players-layer" class="pitch-card__players" role="region"
+      aria-label="Jugadores titulares en el campo">
+      <!-- Renderizado reactivo desde lineup.js según la formación activa -->
+    </div>
+  </section>
+
+  <!-- Métricas del equipo (Equilibrio y Media) -->
+  <section class="lineup-metrics" aria-label="Métricas del equipo">
+    <div class="lineup-metrics__header">
+      <span class="lineup-metrics__title">Equilibrio del Equipo</span>
+      <span id="lineup-balance-value" class="lineup-metrics__value">100%</span>
+    </div>
+    <div class="lineup-metrics__progress-bg">
+      <div id="lineup-balance-bar" class="lineup-metrics__progress-bar"></div>
+    </div>
+    <div class="lineup-metrics__details">
+      <span id="lineup-synergy-text" class="lineup-metrics__synergy">Química óptima: todos los jugadores en su rol
+        natural</span>
+      <span id="lineup-avg-rating" class="lineup-metrics__rating">Media: <strong>91</strong></span>
+    </div>
+  </section>
+
+  <hr class="lineup-divider" />
+
+  <!-- Sección de Reservas (4 suplentes) -->
+  <section class="reserves-section" aria-label="Banquillo de suplentes">
+    <div class="reserves-section__header">
+      <h2 class="reserves-section__title">Reservas</h2>
+      <span id="reserves-count-label" class="reserves-section__count">4 / 4 jugadores</span>
+    </div>
+
+    <div id="reserves-slots-container" class="reserves-section__slots">
+      <!-- Renderizado reactivo desde lineup.js: 4 slots de suplentes -->
+    </div>
+  </section>
+
+  <hr class="lineup-divider" />
+
+  <!-- Consejo y nota táctica -->
+  <footer class="tactical-advice">
+    <div class="tactical-advice__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+    </div>
+    <p id="tactical-advice-text" class="tactical-advice__text">
+      Formación equilibrada con zaga sólida y control de las transiciones en el medio.
+    </p>
+  </footer>
+
+  <!-- Botón de Confirmación / Guardar Alineación -->
+  <div class="lineup-cta-dock">
+    <button id="btn-save-lineup" class="lineup-cta-btn" type="button">
+      Confirmar Alineación
+    </button>
+  </div>
+
+  <!-- Modal Bottom Sheet: Información de Formaciones Tácticas -->
+  <div id="tactical-modal-backdrop" class="tactical-modal-backdrop" hidden></div>
+  <section id="tactical-modal-sheet" class="tactical-modal-sheet" aria-labelledby="modal-formations-title"
+    aria-modal="true" role="dialog" hidden>
+    <!-- iOS Drag Indicator Bar -->
+    <div class="tactical-modal__handle-wrapper">
+      <span class="tactical-modal__handle"></span>
+    </div>
+
+    <!-- Cabecera del Modal -->
+    <header class="tactical-modal__header">
+      <h2 id="modal-formations-title" class="tactical-modal__title">Formaciones Tácticas</h2>
+      <button id="btn-close-tactical-modal" class="tactical-modal__close-btn" type="button"
+        aria-label="Cerrar ventana táctica">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Lista scrolleable con barra de desplazamiento a la derecha -->
+    <div id="tactical-modal-list" class="tactical-modal__body">
+      <!-- Generado dinámicamente desde lineup.js -->
+    </div>
+
+    <!-- Espacio seguro inferior -->
+    <div class="tactical-modal__safe-bottom"></div>
+  </section>
+
+
+  <!-- Modal de Gestión de Jugador (Vender / Mover al banquillo / Intercambiar) -->
+  <div id="player-action-backdrop" class="tactical-modal-backdrop" hidden></div>
+
+  <div id="player-action-sheet" class="player-action-sheet" hidden role="dialog" aria-modal="true">
+    <div class="tactical-modal__handle-wrapper">
+      <span class="tactical-modal__handle"></span>
+    </div>
+    <div class="player-action-sheet__header">
+      <div id="action-player-token" class="player-action-sheet__token-preview">M</div>
+      <div class="player-action-sheet__info">
+        <h3 id="action-player-name" class="player-action-sheet__name">Jugador</h3>
+        <span id="action-player-role" class="player-action-sheet__role">Posición · Rating 90</span>
+      </div>
+      <button id="btn-close-action-modal" class="tactical-modal__close-btn" type="button" aria-label="Cerrar">✕</button>
+    </div>
+    <div id="player-action-stats-box" class="player-action-sheet__stats"></div>
+    <div class="player-action-sheet__body">
+      <button id="btn-action-bench" class="player-action-sheet__btn btn-bench" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        <span>Mover al Banquillo de Suplentes</span>
+      </button>
+
+      <button id="btn-action-swap" class="player-action-sheet__btn btn-swap" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+        </svg>
+        <span>Intercambiar por un Suplente</span>
+      </button>
+
+      <button id="btn-action-sell" class="player-action-sheet__btn btn-sell" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <span>Vender / Liberar al Mercado</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal para Puesto Vacío (+) -->
+  <div id="empty-slot-sheet" class="player-action-sheet" hidden role="dialog" aria-modal="true">
+    <div class="tactical-modal__handle-wrapper">
+      <span class="tactical-modal__handle"></span>
+    </div>
+    <div class="player-action-sheet__header">
+      <div class="player-action-sheet__info">
+        <h3 id="empty-slot-title" class="player-action-sheet__name">Puesto Vacío</h3>
+        <span id="empty-slot-subtitle" class="player-action-sheet__role">Selecciona un suplente o busca en el
+          mercado</span>
+      </div>
+      <button id="btn-close-empty-modal" class="tactical-modal__close-btn" type="button" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="player-action-sheet__body">
+      <div id="empty-slot-reserves-container" class="empty-slot-reserves-box">
+        <!-- Lista de suplentes que pueden entrar aquí -->
+      </div>
+
+      <button id="btn-empty-restore-default" class="player-action-sheet__btn btn-bench" type="button" style="display: none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Restaurar Leyenda Equilibrada en este Puesto</span>
+      </button>
+
+      <button id="btn-empty-goto-market" class="player-action-sheet__btn btn-market" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path
+            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        <span>Ir al Mercado a Fichar una Leyenda</span>
+      </button>
+    </div>
+  </div>
+
+</div>

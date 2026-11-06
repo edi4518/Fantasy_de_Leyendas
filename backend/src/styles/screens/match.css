@@ -1,0 +1,1378 @@
+/**
+ * @file match-detail.css
+ * @description Estilos modulares para la pantalla de Detalles de Partido (Partido en Directo) de Fantasy de Leyendas.
+ * Consume estrictamente los tokens canónicos (#2D6A4F, tipografía Plus Jakarta Sans, bordes y sombras).
+ */
+
+@import "../design-tokens.css";
+
+/* ==========================================================================
+   1. CONTENEDOR RAÍZ Y ESTRUCTURA GENERAL (Mobile-First)
+   ========================================================================== */
+
+
+
+.match-detail-container {
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-surface, #FFFFFF);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 0 !important;
+  border: none !important;
+  padding: 0;
+}
+
+/* ==========================================================================
+   2. HEADER SUPERIOR Y ACCIONES
+   ========================================================================== */
+
+.match-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: calc(var(--space-4, 16px) + env(safe-area-inset-top, 0px));
+  padding-bottom: var(--space-3, 12px);
+  padding-left: var(--space-4, 16px);
+  padding-right: var(--space-4, 16px);
+  border-bottom: var(--border-width-thin, 1px) solid var(--color-border-subtle, #E9ECEF);
+  background-color: var(--color-surface, #FFFFFF);
+}
+
+.match-header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.match-header__back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill, 999px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text, #212529);
+  text-decoration: none;
+  transition: background-color var(--transition-fast, 150ms ease);
+}
+
+.match-header__back-btn:hover {
+  background-color: var(--color-surface-hover, #F1F3F5);
+}
+
+.match-header__back-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.match-header__title {
+  font-size: var(--font-size-title-sm, 1.125rem);
+  font-weight: var(--font-weight-extrabold, 800);
+  color: #1E293B;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.match-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Botón Ver en Vivo */
+.btn-live-sim {
+  background-color: #F1F5F9;
+  color: var(--color-primary, #2D6A4F);
+  border: 1px solid #CBD5E1;
+  border-radius: var(--radius-md, 10px);
+  padding: 8px 12px;
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition-fast, 150ms ease);
+  white-space: nowrap;
+}
+
+.btn-live-sim:hover {
+  background-color: #E2E8F0;
+  border-color: #94A3B8;
+}
+
+.btn-live-sim.is-running {
+  background-color: #DCFCE7;
+  color: #166534;
+  border-color: #86EFAC;
+}
+
+/* Botón Simulación Rápida */
+.btn-quick-sim {
+  background-color: var(--color-primary, #2D6A4F);
+  color: var(--color-text-inverse, #FFFFFF);
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  padding: 8px 14px;
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-extrabold, 800);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(45, 106, 79, 0.25);
+  transition: background-color var(--transition-fast, 150ms ease),
+              transform var(--transition-fast, 150ms ease);
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn-quick-sim:hover {
+  background-color: var(--color-primary-hover, #245640);
+}
+
+.btn-quick-sim:active {
+  background-color: var(--color-primary-dark, #1B4130);
+  transform: translateY(1px);
+}
+
+/* Estado de acción cuando el partido finaliza: Buscar Otro Rival */
+.btn-quick-sim.btn-search-rival-header {
+  background-color: var(--color-primary, #2D6A4F);
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(45, 106, 79, 0.35);
+  animation: btnPulseHeaderRival 2.2s infinite ease-in-out;
+}
+
+.btn-quick-sim.btn-search-rival-header:hover {
+  background-color: var(--color-primary-hover, #245640);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(45, 106, 79, 0.45);
+}
+
+@keyframes btnPulseHeaderRival {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(45, 106, 79, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.15);
+  }
+}
+
+/* ==========================================================================
+   3. MARCADOR PRINCIPAL (Scoreboard Limpio)
+   ========================================================================== */
+
+.match-scoreboard {
+  flex-shrink: 0;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background-color: var(--color-surface, #FFFFFF);
+}
+
+.team-side {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.team-side--home {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.team-side--away {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.team-side__name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1E293B;
+  letter-spacing: -0.01em;
+}
+
+.scoreboard-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.scoreboard-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #1E293B;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 6px;
+  transition: transform 200ms ease;
+}
+
+.score-number {
+  transition: transform 250ms cubic-bezier(0.175, 0.885, 0.32, 1.275), color 250ms ease;
+}
+
+.score-number.is-bumped {
+  transform: scale(1.35);
+  color: #10B981;
+}
+
+.score-divider {
+  color: #94A3B8;
+  font-weight: 400;
+}
+
+/* Badge del Estado del Partido (FINAL / EN VIVO) */
+.match-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  min-width: 96px;
+  justify-content: center;
+  border-radius: var(--radius-pill, 999px);
+  background-color: #F1F5F9;
+  border: 1px solid var(--color-border-subtle, #E9ECEF);
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition-fast, 150ms ease), border-color 150ms ease;
+}
+
+.match-status-badge:hover {
+  background-color: #E2E8F0;
+}
+
+.status-indicator-dot,
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill, 999px);
+  background-color: #94A3B8;
+  transition: background-color 150ms ease;
+}
+
+/* Animación de pulso cuando el partido está en vivo */
+@keyframes pulseLive {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1.2); box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.status-indicator-dot.is-live,
+.status-dot.is-live {
+  background-color: #10B981;
+  animation: pulseLive 1.2s infinite;
+}
+
+/* ==========================================================================
+   4. CANCHA TÁCTICA Y BANNER DE JUGADA EN DIRECTO
+   ========================================================================== */
+
+.match-pitch-section {
+  flex-shrink: 0;
+  padding: 0 16px;
+  margin-bottom: 8px;
+}
+
+.tactical-pitch {
+  width: 100%;
+  height: 175px;
+  background: linear-gradient(180deg, #1E513A 0%, #2D6A4F 100%);
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* Marcas Tácticas de la Cancha */
+.pitch-marking {
+  position: absolute;
+  pointer-events: none;
+  border-color: rgba(255, 255, 255, 0.4);
+  border-style: solid;
+}
+
+.pitch-marking--boundary {
+  inset: 10px;
+  border-width: 1.5px;
+}
+
+.pitch-marking--halfway {
+  top: 50%;
+  left: 10px;
+  right: 10px;
+  height: 1.5px;
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.pitch-marking--center-circle {
+  top: 50%;
+  left: 50%;
+  width: 54px;
+  height: 54px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border-width: 1.5px;
+}
+
+.pitch-marking--center-spot {
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.65);
+}
+
+.pitch-marking--penalty-box-top {
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 104px;
+  height: 38px;
+  border-width: 0 1.5px 1.5px 1.5px;
+}
+
+.pitch-marking--goal-box-top {
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 54px;
+  height: 16px;
+  border-width: 0 1.5px 1.5px 1.5px;
+}
+
+.pitch-marking--penalty-box-bottom {
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 104px;
+  height: 38px;
+  border-width: 1.5px 1.5px 0 1.5px;
+}
+
+.pitch-marking--goal-box-bottom {
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 54px;
+  height: 16px;
+  border-width: 1.5px 1.5px 0 1.5px;
+}
+
+/* Banner Inferior de Jugada Táctica */
+.pitch-action-overlay {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  background-color: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(4px);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  z-index: 10;
+  transition: all 250ms ease;
+}
+
+.pitch-action-overlay.is-goal-alert {
+  background-color: rgba(22, 101, 52, 0.95);
+  border-color: #86EFAC;
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.4);
+}
+
+.pitch-action-team {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pitch-action-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10B981;
+  display: inline-block;
+}
+
+.pitch-action-status {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #FACC15;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: all 200ms ease;
+}
+
+@keyframes goalGlow {
+  0% { transform: scale(1); color: #FACC15; }
+  50% { transform: scale(1.12); color: #86EFAC; text-shadow: 0 0 8px rgba(134, 239, 172, 0.8); }
+  100% { transform: scale(1); color: #FACC15; }
+}
+
+.pitch-action-status.is-goal {
+  animation: goalGlow 0.5s 3 ease-in-out;
+}
+
+/* ==========================================================================
+   5. PESTAÑAS INTERNAS
+   ========================================================================== */
+
+.match-tabs {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #E5E7EB;
+  background-color: var(--color-surface, #FFFFFF);
+  padding: 0 16px;
+}
+
+.match-tab {
+  flex: 1 1 0;
+  padding: 12px 6px;
+  background: transparent;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748B;
+  cursor: pointer;
+  text-align: center;
+  transition: color var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.match-tab:hover {
+  color: #1E293B;
+}
+
+.match-tab.is-active {
+  color: var(--color-primary, #2D6A4F);
+  font-weight: 700;
+  border-bottom-color: var(--color-primary, #2D6A4F);
+}
+
+/* ==========================================================================
+   6. CONTENEDOR DE PANELES
+   ========================================================================== */
+
+.match-tab-panels {
+  flex: 1 1 auto;
+  min-height: 0; /* Clave flex para permitir que el hijo haga scroll interior */
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-panel {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+.tab-panel.is-active {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto; /* Scroll vertical a la derecha cuando el contenido desborda */
+  overflow-x: hidden;
+  padding: 8px 16px 20px 16px;
+  -webkit-overflow-scrolling: touch;
+  animation: fadeIn 200ms ease;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+}
+
+/* Barra de desplazamiento elegante a la derecha */
+.tab-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tab-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tab-panel::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+}
+
+.tab-panel::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.75);
+}
+
+#panel-cronologia {
+  padding: 4px 6px 40px 6px;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   7. PESTAÑA A: CRONOLOGÍA DE EVENTOS (Timeline Central)
+   ========================================================================== */
+
+.timeline-container {
+  position: relative;
+  max-width: 420px;
+  width: 100%;
+  margin: 4px auto 16px auto;
+  padding: 8px 6px 32px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+  min-height: auto;
+}
+
+.timeline-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1.5px;
+  background-color: #E2E8F0;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.timeline-empty-notice {
+  text-align: center;
+  color: #94A3B8;
+  font-size: 0.8125rem;
+  font-style: italic;
+  padding: 24px 0;
+  z-index: 2;
+}
+
+.timeline-entry {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+  min-height: 38px;
+  box-sizing: border-box;
+  animation: eventPopIn 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes eventPopIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.timeline-entry--home {
+  justify-content: flex-end;
+  padding-right: calc(50% + 20px);
+  padding-left: 4px;
+}
+
+.timeline-entry--home .timeline-entry__content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 0;
+  text-align: right;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+
+.timeline-entry--away {
+  justify-content: flex-start;
+  padding-left: calc(50% + 20px);
+  padding-right: 4px;
+}
+
+.timeline-entry--away .timeline-entry__content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 0;
+  text-align: left;
+  justify-content: flex-start;
+  max-width: 100%;
+}
+
+.timeline-entry__minute {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 999px;
+  padding: 1.5px 7px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #475569;
+  z-index: 3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.event-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.timeline-svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.12));
+  transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.timeline-entry:hover .timeline-svg {
+  transform: scale(1.18);
+}
+
+.event-player {
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  max-width: 135px;
+}
+
+.timeline-entry--home .event-player {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.timeline-entry--away .event-player {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.event-player strong {
+  font-weight: 700;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+
+.event-detail {
+  font-size: 0.6875rem;
+  color: #64748B;
+  font-weight: 500;
+  white-space: normal;
+  line-height: 1.15;
+  margin-top: 1px;
+  display: block;
+}
+
+.timeline-period-break {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  margin: 8px 0;
+  animation: eventPopIn 300ms ease;
+}
+
+.period-pill {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-pill, 999px);
+  padding: 4px 18px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #1E293B;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.period-minute {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94A3B8;
+  margin-top: 3px;
+}
+
+/* ==========================================================================
+   8. PESTAÑA B: DESGLOSE ESTADÍSTICO (Barras Bicolor)
+   ========================================================================== */
+
+.stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 12px 2px 32px 2px;
+}
+
+/* 8.1 Filtros de Categoría */
+.stats-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.stats-filter-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.stats-filter-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: none;
+  background-color: #F1F5F9;
+  color: #475569;
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.stats-filter-pill:hover {
+  background-color: #E2E8F0;
+  color: #1E293B;
+}
+
+.stats-filter-pill.is-active {
+  background-color: var(--color-primary, #2D6A4F);
+  color: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+/* 8.2 Tarjeta de Jugador del Partido (En Vivo) */
+.stats-mvp-card {
+  padding: 14px;
+  border-radius: 12px;
+  background-color: #F8FAFC;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-left: 4px solid var(--color-primary, #2D6A4F);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: background-color 200ms ease, border-color 200ms ease;
+}
+
+.stats-mvp-card--home {
+  background-color: #F4FBF7;
+  border-color: #BBF7D0;
+  border-left: 4px solid var(--color-primary, #2D6A4F);
+}
+
+.stats-mvp-card--away {
+  background-color: #FFFBEB;
+  border-color: #FDE68A;
+  border-left: 4px solid #D97706;
+}
+
+.stats-mvp-card__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.stats-mvp-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  border: 1.5px solid rgba(45, 106, 79, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary, #2D6A4F);
+  font-size: 0.875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.stats-mvp-card--away .stats-mvp-avatar {
+  border-color: rgba(217, 119, 6, 0.45);
+  color: #B45309;
+  background-color: #FFFFFF;
+}
+
+.stats-mvp-avatar img,
+.stats-mvp-avatar__img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  display: block;
+}
+
+.stats-mvp-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stats-mvp-overline-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stats-mvp-overline {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stats-mvp-card--away .stats-mvp-overline {
+  color: #92400E;
+}
+
+.stats-mvp-live-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: #D1FAE5;
+  color: var(--color-primary, #2D6A4F);
+  font-size: 0.5625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stats-mvp-card--away .stats-mvp-live-badge {
+  background-color: #FEF3C7;
+  color: #B45309;
+}
+
+.stats-mvp-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+
+.stats-mvp-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats-mvp-team-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1.5px 6px;
+  border-radius: 5px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.stats-mvp-team-badge--home {
+  background-color: #DCFCE7;
+  color: #166534;
+  border: 1px solid #86EFAC;
+}
+
+.stats-mvp-team-badge--away {
+  background-color: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+}
+
+.stats-mvp-summary {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #64748B;
+  margin-top: 2px;
+}
+
+.stats-mvp-card__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.stats-mvp-rating {
+  padding: 5px 10px;
+  border-radius: 8px;
+  background-color: var(--color-primary, #2D6A4F);
+  color: #FFFFFF;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  font-variant-numeric: tabular-nums;
+  transition: background-color 200ms ease;
+}
+
+.stats-mvp-card--away .stats-mvp-rating {
+  background-color: #D97706;
+}
+
+.stats-mvp-rating-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: #94A3B8;
+  margin-top: 4px;
+}
+
+/* 8.3 Secciones de Estadísticas */
+.stats-section-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.stats-section-group[hidden] {
+  display: none !important;
+}
+
+.stats-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #F1F5F9;
+  padding-bottom: 8px;
+}
+
+.stats-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1E293B;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stats-section-teams {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #94A3B8;
+}
+
+.stats-section-team--home {
+  color: var(--color-primary, #2D6A4F);
+}
+
+.stat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-row__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stat-value {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  width: 56px;
+}
+
+.stat-value--wide {
+  width: 82px;
+}
+
+.stat-value__sub {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #94A3B8;
+}
+
+.stat-value--home {
+  text-align: left;
+  color: var(--color-primary, #2D6A4F);
+}
+
+.stat-value--away {
+  text-align: right;
+  color: #334155;
+  font-weight: 700;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
+  text-align: center;
+  flex: 1 1 auto;
+  letter-spacing: 0.01em;
+}
+
+.comparative-bar-track {
+  width: 100%;
+  height: 8px;
+  background-color: #DEE2E6;
+  border-radius: var(--radius-pill, 999px);
+  overflow: hidden;
+  position: relative;
+}
+
+.comparative-bar-fill--home {
+  height: 100%;
+  background-color: var(--color-primary, #2D6A4F);
+  border-radius: 999px 0 0 999px;
+  transition: width 350ms ease;
+}
+
+.stat-row__subtext {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.6875rem;
+  color: #94A3B8;
+  padding: 2px 2px 0 2px;
+}
+
+/* 8.4 Tarjetas (Amarillas / Rojas) */
+.stats-cards-summary {
+  padding: 12px;
+  border-radius: 10px;
+  background-color: #F8FAFC;
+  border: 1px solid #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.stats-cards-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stats-card-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #334155;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-card-rect {
+  width: 10px;
+  height: 14px;
+  border-radius: 2px;
+  display: inline-block;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.stats-card-rect--yellow {
+  background-color: #FBBF24;
+}
+
+.stats-card-rect--red {
+  background-color: #EF4444;
+}
+
+.stats-cards-label {
+  color: #64748B;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ==========================================================================
+   9. PESTAÑA C: ALINEACIONES (Formato 6v6 Limpio)
+   ========================================================================== */
+
+.lineups-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 8px 0;
+}
+
+.lineup-column--home {
+  border-right: 1px solid #E2E8F0;
+  padding-right: 16px;
+}
+
+.lineup-column--away {
+  padding-left: 16px;
+}
+
+.lineup-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 10px 0;
+  padding-bottom: 6px;
+}
+
+.lineup-players-list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.lineup-player-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.player-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.player-role {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748B;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   10. RESPONSIVE Y ACCESIBILIDAD
+   ========================================================================== */
+
+@media (max-width: 360px) {
+  .scoreboard-score {
+    font-size: 1.85rem;
+  }
+  .tactical-pitch {
+    height: 155px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comparative-bar-fill--home,
+  .btn-quick-sim,
+  .btn-live-sim,
+  .match-tab,
+  .timeline-entry {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+.lineup-section-divider {
+  display: flex;
+  align-items: center;
+  padding: 12px 0 6px 0;
+  border-bottom: none;
+}
+
+.lineup-section-subtitle {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.lineup-section-subtitle::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: #E2E8F0;
+}
+
+.lineup-player-item--bench .player-name {
+  color: #64748B;
+  font-weight: 500;
+}
+
+.lineup-player-item--bench .player-role {
+  color: #94A3B8;
+}
+
+
+/* ==========================================================================
+   11. OVERLAY ANIMADO DE CELEBRACIÓN DE GOL (Lottie gool.json)
+   ========================================================================== */
+
+.goal-celebration-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(15, 35, 25, 0.88) 0%, rgba(5, 15, 10, 0.94) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1), visibility 350ms ease;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.goal-celebration-overlay.is-active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.goal-celebration-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 92%;
+  max-width: 600px;
+  transform: scale(0.9);
+  transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.goal-celebration-overlay.is-active .goal-celebration-content {
+  transform: scale(1);
+}
+
+.goal-lottie-container {
+  width: 100%;
+  max-width: 560px;
+  height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.goal-lottie-container svg {
+  width: 100% !important;
+  height: 100% !important;
+  filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.6));
+}
+
+.goal-celebration-badge {
+  margin-top: 18px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 28px;
+  background: linear-gradient(135deg, rgba(45, 106, 79, 0.95), rgba(27, 67, 50, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-pill, 999px);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.45), 0 0 25px rgba(82, 183, 136, 0.35);
+  animation: goalBadgePulse 1.8s ease-in-out infinite alternate;
+}
+
+.goal-celebration-title {
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #FFFFFF;
+  text-transform: uppercase;
+}
+
+.goal-celebration-author {
+  font-family: var(--font-family-base, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #D8F3DC;
+}
+
+@keyframes goalBadgePulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.04); }
+}
+
+@media (max-width: 480px) {
+  .goal-lottie-container {
+    max-width: 95vw;
+    height: 140px;
+  }
+
+  .goal-celebration-badge {
+    padding: 8px 20px;
+  }
+
+  .goal-celebration-title {
+    font-size: 1rem;
+  }
+
+  .goal-celebration-author {
+    font-size: 0.85rem;
+  }
+}

@@ -1,0 +1,95 @@
+<section class="screen-admin fade-in">
+  <header class="admin-header">
+    <div>
+      <h1 class="admin-title">Administración de Leyendas</h1>
+      <p class="admin-subtitle">Gestión del catálogo oficial y calibración de ratings</p>
+    </div>
+    <button id="btn-open-create-modal" class="btn-primary">+ Nueva Leyenda</button>
+  </header>
+
+  <!-- Tabla de ABM -->
+  <div class="table-responsive-container">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Posición</th>
+          <th>Nacionalidad</th>
+          <th>Ratings (A/C/D/F)</th>
+          <th>Precio</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="admin-table-body">
+        <!-- Filas inyectadas dinámicamente -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Modal ABM Alta/Modificación -->
+  <div id="admin-player-modal" class="modal-backdrop hidden">
+    <div class="modal-window">
+      <header class="modal-header">
+        <h2 id="modal-title">Gestión de Futbolista</h2>
+        <button id="btn-close-modal" class="btn-close">✕</button>
+      </header>
+      <form id="admin-player-form" class="modal-body-form">
+        <input type="hidden" id="form-player-id" />
+        
+        <div class="form-group">
+          <label for="form-nombre">Nombre Completo</label>
+          <input type="text" id="form-nombre" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="form-posicion">Posición</label>
+            <select id="form-posicion" required>
+              <option value="Arquero">Arquero</option>
+              <option value="Defensor">Defensor</option>
+              <option value="Mediocampista">Mediocampista</option>
+              <option value="Delantero">Delantero</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="form-nacionalidad">Nacionalidad</label>
+            <input type="text" id="form-nacionalidad" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="form-ataque">Ataque (1-99)</label>
+            <input type="number" id="form-ataque" min="1" max="99" required />
+          </div>
+          <div class="form-group">
+            <label for="form-creacion">Creación (1-99)</label>
+            <input type="number" id="form-creacion" min="1" max="99" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="form-defensa">Defensa (1-99)</label>
+            <input type="number" id="form-defensa" min="1" max="99" required />
+          </div>
+          <div class="form-group">
+            <label for="form-fisico">Físico (1-99)</label>
+            <input type="number" id="form-fisico" min="1" max="99" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="form-precio">Precio de Mercado (M €)</label>
+          <input type="number" step="0.1" id="form-precio" required />
+        </div>
+
+        <footer class="modal-footer">
+          <button type="button" id="btn-cancel-modal" class="btn-secondary">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar Cambios</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+</section>

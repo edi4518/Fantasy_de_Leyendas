@@ -1,0 +1,78 @@
+<!-- Componente Modal: Resultado del Partido -->
+<div class="match-result-overlay" id="match-result-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-result-title">
+  <div class="match-result-modal" id="match-result-modal">
+
+    <!-- 1. HEADER DEL MODAL CON BOTÓN DE CIERRE -->
+    <header class="modal-header">
+      <h2 class="modal-header__title" id="modal-result-title">Resultado del Partido</h2>
+      <button type="button" class="modal-close-btn" id="modal-result-close" aria-label="Cerrar resultado">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <!-- 2. MARCADOR PRINCIPAL Y BADGE DE ESTADO -->
+      <section class="modal-scoreboard" aria-label="Marcador final">
+        <div class="modal-scoreboard__teams">
+          <span class="modal-team-name modal-team-name--home" id="modal-home-team">Tu Equipo</span>
+          <div class="modal-score-display" id="modal-score-display">
+            <span id="modal-home-score">3</span>
+            <span class="score-dash">–</span>
+            <span id="modal-away-score">1</span>
+          </div>
+          <span class="modal-team-name modal-team-name--away" id="modal-away-team">Equipo Rival</span>
+        </div>
+
+        <div class="modal-result-badge modal-result-badge--win" id="modal-result-badge">
+          VICTORIA
+        </div>
+      </section>
+
+      <!-- 3. SUB-CARD: JUGADOR DEL PARTIDO (MVP) -->
+      <article class="modal-subcard mvp-subcard" aria-labelledby="mvp-subcard-title">
+        <span class="subcard-micro-label" id="mvp-subcard-title">JUGADOR DEL PARTIDO</span>
+        <div class="mvp-subcard__content">
+          <div class="mvp-subcard__player">
+            <div class="mvp-avatar-circle" id="modal-mvp-avatar" aria-label="Iniciales del jugador">
+              LM
+            </div>
+            <div class="mvp-info">
+              <h3 class="mvp-name" id="modal-mvp-name">L. Messi</h3>
+              <span class="mvp-stats" id="modal-mvp-stats">2 Goles, 1 Asistencia</span>
+            </div>
+          </div>
+
+          <div class="mvp-rating-box">
+            <span class="rating-label">Valoración</span>
+            <strong class="rating-value" id="modal-mvp-rating">9.8</strong>
+          </div>
+        </div>
+      </article>
+
+      <!-- 4. SUB-CARD: ACTUALIZACIÓN DE CLASIFICACIÓN -->
+      <article class="modal-subcard ranking-subcard" aria-labelledby="ranking-subcard-title">
+        <h3 class="ranking-subcard__title" id="ranking-subcard-title">Actualización de Clasificación</h3>
+        <div class="ranking-subcard__content">
+          <strong class="points-gained" id="modal-points-gained">+15 Puntos</strong>
+          <span class="current-rank-label">
+            Puesto Actual: <strong class="current-rank-value" id="modal-current-rank">#430</strong>
+          </span>
+        </div>
+      </article>
+
+      <!-- 5. ACCIONES PRINCIPALES Y SECUNDARIAS -->
+      <div class="modal-actions">
+        <button type="button" class="btn btn--primary btn-modal-primary" id="modal-btn-next-match">
+          BUSCAR SIGUIENTE PARTIDO
+        </button>
+        <button type="button" class="btn btn--secondary btn-modal-secondary" id="modal-btn-home">
+          VOLVER AL INICIO
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
