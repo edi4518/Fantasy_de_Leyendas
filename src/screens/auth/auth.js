@@ -174,10 +174,10 @@ function initLogin(router) {
           },
           error_callback: (err) => {
             console.warn('[Google OAuth Error]', err);
-            if (err && err.type === 'popup_blocked') {
-              showErrorMessage('El navegador bloqueó la ventana emergente de Google. Por favor, haz clic en el icono de ventana bloqueada en tu barra de direcciones para permitirla.');
+            if (err && (err.type === 'popup_failed_to_open' || err.type === 'popup_blocked')) {
+              showErrorMessage('Tu navegador bloqueó la ventana de Google. Haz clic en el icono de ventana bloqueada (🚫) a la derecha de la barra de direcciones de Chrome y elige "Permitir siempre".');
             } else if (err && err.type !== 'popup_closed') {
-              showErrorMessage('No se pudo abrir la autenticación con Google. Por favor, reintenta.');
+              showErrorMessage('No se pudo abrir la autenticación con Google. Por favor, revisa que tu navegador permita ventanas emergentes.');
             }
           },
         });
