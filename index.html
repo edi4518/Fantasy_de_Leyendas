@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="description"
+    content="Fantasy de Leyendas - Gestiona tu alineación histórica de leyendas del fútbol con presupuesto de 150M y simulación en tiempo real." />
+  <meta name="theme-color" content="#2D6A4F" />
+  <title>Fantasy de Leyendas</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="/public/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/public/icons/icon-192.png" />
+
+  <!-- Capas de estilos por arquitectura -->
+  <link rel="stylesheet" href="/src/styles/design-tokens.css?v=15" />
+  <link rel="stylesheet" href="/src/styles/reset.css?v=15" />
+  <link rel="stylesheet" href="/src/styles/global.css?v=15" />
+  <link rel="stylesheet" href="/src/styles/layout.css?v=29" />
+  <link rel="stylesheet" href="/src/styles/components.css?v=26" />
+
+  <!-- Estilos por componente y por pantalla -->
+  <link rel="stylesheet" href="/src/components/modal/modal.css?v=19" />
+  <link rel="stylesheet" href="/src/styles/screens/onboarding.css?v=27" />
+  <link rel="stylesheet" href="/src/styles/screens/auth.css?v=25" />
+  <link rel="stylesheet" href="/src/styles/screens/dashboard.css?v=27" />
+  <link rel="stylesheet" href="/src/styles/screens/ranking.css?v=14" />
+  <link rel="stylesheet" href="/src/styles/screens/history.css?v=16" />
+  <link rel="stylesheet" href="/src/styles/screens/profile.css?v=14" />
+  <link rel="stylesheet" href="/src/styles/screens/match.css?v=21" />
+  <link rel="stylesheet" href="/src/styles/screens/lineup.css?v=42" />
+  <link rel="stylesheet" href="/src/styles/screens/market.css?v=226" />
+  <link rel="stylesheet" href="/src/styles/screens/comparison.css?v=28" />
+  <link rel="stylesheet" href="/src/styles/screens/admin.css?v=15" />
+  <link rel="stylesheet" href="/src/styles/screens/matchmaking.css?v=36" />
+</head>
+
+<body class="app-body">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        for (var i = 0; i < regs.length; i++) {
+          regs[i].unregister();
+        }
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(function (keys) {
+        for (var i = 0; i < keys.length; i++) {
+          caches.delete(keys[i]);
+        }
+      });
+    }
+  </script>
+
+  <!-- Contenedor principal de la Single Page Application -->
+  <div id="app-root" class="app-layout">
+    <header id="app-header" class="app-header" role="banner"></header>
+
+    <!-- Aquí es donde router.js inyecta el HTML de cada pantalla -->
+    <main id="app-content" class="app-main" role="main" tabindex="-1"></main>
+
+    <nav id="app-navigation" class="app-navigation" role="navigation"></nav>
+  </div>
+
+  <!-- Modal global para alertas y confirmaciones -->
+  <div id="app-modal-container"></div>
+
+  <!-- Librería Lottie para animaciones vectoriales de alto rendimiento -->
+  <script src="/src/assets/libs/lottie.min.js"></script>
+
+  <!-- Script principal de inicio (Vanilla ES Modules) -->
+  <script type="module" src="/src/app/main.js?v=46"></script>
+</body>
+
+</html>
+
