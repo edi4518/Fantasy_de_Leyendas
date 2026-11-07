@@ -1,6 +1,7 @@
 const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
 import { FORMATIONS_6V6 } from '../../domain/formation-rules.js';
 import { apiClient } from '../../services/api-client.js?v=50';
+import { squadService } from '../../services/squad-service.js?v=50';
 import { getPlayerRating, getPlayerPrice } from '../lineup/lineup.js?v=50';
 
 const DASHBOARD_PLAYER_IMAGE_ALIASES = {
@@ -473,20 +474,25 @@ export async function fetchHomeData() {
 
   // Si en localStorage no hay jugadores o queremos sincronizar estadísticas desde MySQL:
   try {
-    const remoteSquad = await apiClient.get('/squads/my-squad');
-    if (remoteSquad && Array.isArray(remoteSquad.players)) {
-      const remoteHasPlayers = remoteSquad.players.some(Boolean);
-      const localHasPlayers = Array.isArray(activeSquad?.players) && activeSquad.players.some(Boolean);
-      if (remoteHasPlayers && !localHasPlayers) {
+    const remoteRes = await squadService.getMySquad();
+    const remotePlayers = Array.isArray(remoteRes?.players) ? remoteRes.players : [];
+    const remoteHasPlayers = remotePlayers.some(Boolean);
+    const localHasPlayers = Array.isArray(activeSquad?.players) && activeSquad.players.some(Boolean);
+
+    if (remoteHasPlayers || !localHasPlayers) {
+      if (remoteHasPlayers) {
         activeSquad = {
-          name: remoteSquad.name || managerData?.team_name || 'Tu Equipo',
-          formation: remoteSquad.formation || '1-2-2-1',
-          players: remoteSquad.players
+          name: remoteRes.name || managerData?.team_name || 'Tu Equipo',
+          formation: remoteRes.formation || '1-2-2-1',
+          players: remotePlayers
         };
         localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
       }
-      // Sincronizar estadísticas del club desde user_players de MySQL
-      remoteSquad.players.forEach((rp) => {
+    }
+
+    // Sincronizar estadísticas del club desde user_players de MySQL
+    if (Array.isArray(remotePlayers)) {
+      remotePlayers.forEach((rp) => {
         if (rp && (rp.nombre || rp.name) && (rp.partidos_club > 0 || rp.goles_club > 0 || rp.mvps_club > 0)) {
           const pKey = rp.nombre || rp.name;
           if (!playerStats[pKey] || (rp.partidos_club || 0) >= (playerStats[pKey].matchesPlayed || 0)) {

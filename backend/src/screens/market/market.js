@@ -868,6 +868,14 @@ function persistActiveSquad(squad) {
       const userObj = JSON.parse(localStorage.getItem('user') || '{}');
       if (userObj && userObj.id) currentUserId = Number(userObj.id);
     } catch (_) {}
+
+    // Salvaguarda: NUNCA enviar al backend una plantilla vacía para evitar destruir inventario en BD
+    const hasAnyRealPlayer = Array.isArray(squad.players) && squad.players.some(Boolean);
+    if (!hasAnyRealPlayer) {
+      console.debug('[Market] Sincronización con backend omitida (plantilla sin futbolistas).');
+      return;
+    }
+
     squadService.saveSquad({
       formation: squad.formation || '1-2-2-1',
       players: squad.players || [],

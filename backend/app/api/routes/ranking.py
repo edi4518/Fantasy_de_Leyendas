@@ -14,20 +14,22 @@ router = APIRouter()
 @router.get("/leaderboard")
 def get_leaderboard(db: Session = Depends(get_db)):
     """Retorna la tabla general de posiciones de los mánagers registrados ordenados por ELO y diferencia de gol."""
-    users = (
-        db.query(User)
-        .order_by(
-            User.elo_rating.desc(),
-            (User.goles_favor - User.goles_contra).desc(),
-            User.victorias.desc(),
-            User.id.asc(),
-        )
-        .all()
+    users = db.query(User).all()
+    # Ordenar en Python para evitar errores de MySQL/TiDB (1690 BIGINT UNSIGNED out of range en resta)
+    users.sort(
+        key=lambda u: (
+            u.elo_rating if u.elo_rating is not None else 1000,
+            (u.goles_favor or 0) - (u.goles_contra or 0),
+            u.victorias or 0,
+            -(u.id or 0),
+        ),
+        reverse=True,
     )
     leaderboard = [
         {
             "position": idx + 1,
             "user_id": u.id,
+            "email": u.email,
             "manager_name": f"{u.nombre} {u.apellido}".strip(),
             "team_name": u.team_name,
             "elo_rating": u.elo_rating if u.elo_rating is not None else 1000,

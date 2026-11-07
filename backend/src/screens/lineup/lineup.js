@@ -144,6 +144,14 @@ export function persistActiveSquad() {
       const userObj = JSON.parse(localStorage.getItem('user') || '{}');
       if (userObj && userObj.id) currentUserId = Number(userObj.id);
     } catch (_) {}
+
+    // Salvaguarda: NUNCA enviar al backend una plantilla vacía para evitar destruir inventario en BD
+    const hasAnyRealPlayer = Array.isArray(activeSquad.players) && activeSquad.players.some(Boolean);
+    if (!hasAnyRealPlayer) {
+      console.debug('[Lineup] Sincronización con backend omitida (plantilla sin jugadores).');
+      return;
+    }
+
     squadService.saveSquad({
       formation: activeSquad.formation || '1-2-2-1',
       players: activeSquad.players || [],

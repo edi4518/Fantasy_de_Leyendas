@@ -7,6 +7,20 @@
 import { navigateTo } from "../../app/router.js";
 import { API_BASE_URL } from "../../services/api-client.js";
 import { authService } from "../../services/auth-service.js";
+import { squadService } from "../../services/squad-service.js";
+
+async function hydrateUserSquad() {
+  try {
+    const squadData = await squadService.getMySquad();
+    if (squadData && Array.isArray(squadData.players) && squadData.players.some(Boolean)) {
+      localStorage.setItem('fantasy_active_squad', JSON.stringify({
+        name: squadData.name || 'Tu Equipo',
+        formation: squadData.formation || '1-2-2-1',
+        players: squadData.players
+      }));
+    }
+  } catch (_) {}
+}
 
 const ICON_EYE_PATH = '/src/assets/icons/eye-open.svg';
 const ICON_EYE_OFF_PATH = '/src/assets/icons/eye-off.svg';
@@ -101,6 +115,7 @@ function initLogin(router) {
             localStorage.setItem('team_name', res.user.team_name);
           }
         }
+        await hydrateUserSquad();
         if (router && typeof router.navigate === 'function') {
           router.navigate('/dashboard');
         } else {
@@ -175,6 +190,7 @@ function initLogin(router) {
             localStorage.setItem('team_name', res.user.team_name || teamName);
           }
           if (teamModal) teamModal.style.display = 'none';
+          await hydrateUserSquad();
           if (router && typeof router.navigate === 'function') {
             router.navigate('/dashboard');
           } else {
@@ -411,6 +427,8 @@ function initLogin(router) {
           if (userData) {
             localStorage.setItem('user', JSON.stringify(userData));
           }
+
+          await hydrateUserSquad();
 
           if (router && typeof router.navigate === 'function') {
             router.navigate('/dashboard');

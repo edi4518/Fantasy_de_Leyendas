@@ -230,7 +230,7 @@ def get_my_squad(
     _ensure_squad_columns(db)
     user = _resolve_user(request, db, user_id)
     if not user:
-        return {"squad": None}
+        return {"squad": None, "players": []}
 
     plantilla = (
         db.query(Plantilla)
@@ -240,9 +240,19 @@ def get_my_squad(
     )
 
     if not plantilla:
-        return {"squad": None, "user_id": user.id, "team_name": user.team_name}
+        return {"squad": None, "players": [], "user_id": user.id, "team_name": user.team_name}
 
-    return {"squad": _build_squad_response(plantilla, user, db)}
+    squad_data = _build_squad_response(plantilla, user, db)
+    return {
+        "squad": squad_data,
+        "players": squad_data.get("players", []),
+        "formation": squad_data.get("formation", "1-2-2-1"),
+        "name": squad_data.get("name", user.team_name),
+        "costo_total": squad_data.get("costo_total", 0.0),
+        "presupuesto_disponible": squad_data.get("presupuesto_disponible", 150.0),
+        "user_id": user.id,
+        "team_name": user.team_name,
+    }
 
 
 @router.post("/save", status_code=status.HTTP_200_OK)
@@ -324,8 +334,19 @@ def save_squad(
         db.flush()
 
     # 2. Sincronizar el inventario del club ('user_players'):
-    # Eliminar jugadores vendidos que ya no pertenecen a la plantilla del usuario
     existing_user_players = db.query(UserPlayer).filter(UserPlayer.user_id == user.id).all()
+    # Salvaguarda: Si el cliente envía una plantilla vacía (0 jugadores válidos) pero el usuario ya tiene
+    # futbolistas comprados en la base de datos, NO destruir el inventario del usuario.
+    # Esto previene que un cliente nuevo desincronizado borre accidentalmente el club.
+    if not valid_entries and existing_user_players:
+        return {
+            "status": "ignored",
+            "message": "Se preservó la plantilla existente en la base de datos (se ignoró payload vacío accidental).",
+            "max_budget": MAX_SALARY_CAP,
+            "squad": _build_squad_response(plantilla, user, db),
+        }
+
+    # Eliminar jugadores vendidos que ya no pertenecen a la plantilla del usuario
     existing_by_pid = {up.player_id: up for up in existing_user_players}
 
     for pid, up in list(existing_by_pid.items()):
