@@ -15,18 +15,32 @@ export function getPlayerAvatarUrl(player) {
 }
 
 /**
- * Genera el HTML del avatar circular del jugador con fallback a su inicial
+ * Normaliza y obtiene el nivel de energía física actual del jugador (0 a 100)
+ */
+export function getPlayerEnergy(player) {
+  if (!player) return 100;
+  const raw = player.energia ?? player.stamina;
+  if (raw === undefined || raw === null || raw === '') return 100;
+  const num = Number(raw);
+  if (isNaN(num)) return 100;
+  return Math.max(0, Math.min(100, Math.round(num)));
+}
+
+/**
+ * Genera el HTML del avatar circular del jugador con fallback a su inicial y alt text con nivel de energía
  */
 function getPlayerAvatarHtml(player, imgClass = 'lineup-token-img') {
   const playerName = player?.name || player?.nombre || 'Jugador';
   const initial = getPlayerInitial(playerName);
   const avatarUrl = getPlayerAvatarUrl(player);
+  const energy = getPlayerEnergy(player);
+  const altText = `${playerName} - Energía: ${energy}%`;
   if (!avatarUrl) {
-    return `<span class="lineup-token-initial">${initial}</span>`;
+    return `<span class="lineup-token-initial" title="${altText}" alt="${altText}" aria-label="${altText}">${initial}</span>`;
   }
   return `
-    <div class="lineup-token-avatar">
-      <img src="${avatarUrl}" alt="${playerName}" class="${imgClass}" onerror="this.parentElement.outerHTML='<span class=\\'lineup-token-initial\\'>${initial}</span>'" />
+    <div class="lineup-token-avatar" title="${altText}">
+      <img src="${avatarUrl}" alt="${altText}" title="${altText}" class="${imgClass}" onerror="this.parentElement.outerHTML='<span class=\\'lineup-token-initial\\' title=\\'${altText}\\' alt=\\'${altText}\\'>${initial}</span>'" />
     </div>
   `;
 }
@@ -188,12 +202,12 @@ export async function syncSquadWithDatabase() {
       loadActiveSquad();
     }
 
-    // Si en localStorage no hay jugadores cargados, recuperar la plantilla guardada en MySQL (/api/squads/my-squad)
+    // Sincronizar o recuperar plantilla remota de MySQL (/api/squads/my-squad)
     const hasLocalPlayers = Array.isArray(activeSquad?.players) && activeSquad.players.some(Boolean);
-    if (!hasLocalPlayers) {
-      try {
-        const remoteSquad = await squadService.getMySquad();
-        if (remoteSquad && Array.isArray(remoteSquad.players) && remoteSquad.players.some(Boolean)) {
+    try {
+      const remoteSquad = await squadService.getMySquad();
+      if (remoteSquad && Array.isArray(remoteSquad.players) && remoteSquad.players.some(Boolean)) {
+        if (!hasLocalPlayers) {
           activeSquad = {
             name: remoteSquad.name || activeSquad.name || 'Tu Equipo',
             formation: remoteSquad.formation || activeSquad.formation || '1-2-2-1',
@@ -204,10 +218,29 @@ export async function syncSquadWithDatabase() {
           }
           localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
           renderScreen();
+        } else {
+          // Si ya existen jugadores locales, sincronizar los niveles reales de energía actualizados por partidos en backend
+          let energySyncUpdated = false;
+          activeSquad.players = activeSquad.players.map((lp) => {
+            if (!lp) return lp;
+            const rp = remoteSquad.players.find(r => r && (r.id === lp.id || (r.name && lp.name && r.name.toLowerCase() === lp.name.toLowerCase())));
+            if (rp && rp.energia !== undefined && rp.energia !== null && !isNaN(Number(rp.energia))) {
+              const remoteEnergy = Math.max(0, Math.min(100, Math.round(Number(rp.energia))));
+              if (lp.energia !== remoteEnergy) {
+                energySyncUpdated = true;
+                return { ...lp, energia: remoteEnergy };
+              }
+            }
+            return lp;
+          });
+          if (energySyncUpdated) {
+            localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
+            renderScreen();
+          }
         }
-      } catch (e) {
-        console.debug('[Lineup] No se pudo recuperar plantilla remota de MySQL:', e.message);
       }
+    } catch (e) {
+      console.debug('[Lineup] No se pudo recuperar o sincronizar plantilla remota de MySQL:', e.message);
     }
 
     const catalog = await playerService.getAllPlayers();
@@ -244,7 +277,7 @@ export async function syncSquadWithDatabase() {
           rating_fisico: catalogPlayer.rating_fisico,
           rating_palmares: catalogPlayer.rating_palmares,
           image_filename: catalogPlayer.image_filename,
-          energia: typeof p.energia === 'number' ? p.energia : 100,
+          energia: getPlayerEnergy(p),
           minutosJugados: typeof p.minutosJugados === 'number' ? p.minutosJugados : 0
         };
       }
@@ -518,20 +551,24 @@ function renderPitchPlayers() {
  * Genera el marcado HTML para la píldora visual de stamina (rayo + barra ancha redondeada + %)
  */
 function getStaminaPillHtml(energia = 100) {
-  const val = Math.max(0, Math.min(100, Math.round(Number(energia) || 100)));
+  const num = Number(energia);
+  const val = (energia !== undefined && energia !== null && !isNaN(num))
+    ? Math.max(0, Math.min(100, Math.round(num)))
+    : 100;
   let tier = 'stamina-high';
   if (val < 60) tier = 'stamina-low';
   else if (val < 80) tier = 'stamina-mid';
 
+  const staminaAlt = `Energía: ${val}%`;
   return `
-    <div class="stamina-pill" title="Energía física: ${val}%">
-      <svg class="stamina-pill__bolt ${tier}" width="9" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <div class="stamina-pill" title="Energía física: ${val}%" alt="${staminaAlt}" aria-label="Energía física: ${val}%">
+      <svg class="stamina-pill__bolt ${tier}" width="9" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" alt="${staminaAlt}">
         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
       </svg>
-      <div class="stamina-pill__track">
+      <div class="stamina-pill__track" role="progressbar" aria-valuenow="${val}" aria-valuemin="0" aria-valuemax="100" title="${staminaAlt}" alt="${staminaAlt}">
         <div class="stamina-pill__fill ${tier}" style="width: ${val}%"></div>
       </div>
-      <span class="stamina-pill__text">${val}%</span>
+      <span class="stamina-pill__text" title="${staminaAlt}" alt="${staminaAlt}">${val}%</span>
     </div>
   `;
 }
@@ -561,10 +598,11 @@ function renderLineRow(slotsInRow, rowClass) {
     const isPenalized = penaltyRate > 0;
     const rating = getPlayerRating(player);
 
-    const stamina = typeof player.energia === 'number' ? player.energia : 100;
+    const stamina = getPlayerEnergy(player);
+    const slotTitle = `${player.name} (${naturalRole}) - Asignado: ${assignedRole} - Energía: ${stamina}%`;
 
     return `
-      <div class="pitch-slot ${isPenalized ? 'is-penalized' : ''} ${isSelected ? 'is-selected' : ''}" data-index="${index}" title="${player.name} (${naturalRole}) - Asignado: ${assignedRole} - Energía: ${Math.round(stamina)}%">
+      <div class="pitch-slot ${isPenalized ? 'is-penalized' : ''} ${isSelected ? 'is-selected' : ''}" data-index="${index}" title="${slotTitle}" alt="${slotTitle}" aria-label="${slotTitle}">
         <div class="pitch-slot__token">
           ${getPlayerAvatarHtml(player)}
           <span class="pitch-slot__rating-pill ${getRatingTierClass(rating)}" title="Valoración del jugador: ${rating}">${rating}</span>
@@ -601,9 +639,13 @@ function renderReserves() {
     const isSelected = selectedSlot && selectedSlot.type === 'reserve' && selectedSlot.index === globalIndex;
     const hasPlayer = Boolean(player);
     const rating = hasPlayer ? getPlayerRating(player) : null;
+    const stamina = hasPlayer ? getPlayerEnergy(player) : null;
+    const reserveTitle = hasPlayer
+      ? `${player.name} (${player.role || 'MC'}) - Energía: ${stamina}%`
+      : 'Banquillo libre';
 
     return `
-      <div class="reserve-slot ${hasPlayer ? 'has-player' : 'is-empty'} ${isSelected ? 'is-selected' : ''}" data-index="${globalIndex}" title="${hasPlayer ? `${player.name} (${player.role || 'MC'})` : 'Banquillo libre'}">
+      <div class="reserve-slot ${hasPlayer ? 'has-player' : 'is-empty'} ${isSelected ? 'is-selected' : ''}" data-index="${globalIndex}" title="${reserveTitle}" alt="${reserveTitle}" aria-label="${reserveTitle}">
         <div class="reserve-slot__circle">
           ${hasPlayer ? `
             <button type="button" class="reserve-slot__remove-btn" data-index="${globalIndex}" title="Gestionar / Vender suplente">✕</button>
@@ -613,7 +655,7 @@ function renderReserves() {
         </div>
         <span class="reserve-slot__label">${hasPlayer ? player.name : `SUP ${subIndex + 1}`}</span>
         <span class="reserve-slot__role">${hasPlayer ? (player.role || 'MC') : 'Libre'}</span>
-        ${hasPlayer ? getStaminaPillHtml(player.energia) : ''}
+        ${hasPlayer ? getStaminaPillHtml(stamina) : ''}
       </div>
     `;
   }).join('');
@@ -665,7 +707,7 @@ function openPlayerActionModal(slotIndex) {
   const benchBtn = document.getElementById('btn-action-bench');
 
   if (nameEl) nameEl.textContent = player.name;
-  if (roleEl) roleEl.textContent = `${player.role || 'MC'} · Rating ${getPlayerRating(player)}`;
+  if (roleEl) roleEl.textContent = `${player.role || 'MC'} · Rating ${getPlayerRating(player)} · Energía: ${getPlayerEnergy(player)}%`;
   if (tokenEl) tokenEl.innerHTML = getPlayerAvatarHtml(player);
 
   // Cargar estadísticas reales acumuladas del jugador
@@ -805,10 +847,10 @@ function openEmptySlotModal(slotIndex, router) {
       reservesBox.innerHTML = `
         <span style="font-size: 0.7rem; font-weight: 700; color: #64748b; margin-bottom: 2px;">SUPLENTES DISPONIBLES EN BANQUILLO:</span>
         ` + availableReserves.map(item => `
-          <button type="button" class="empty-slot-reserve-item" data-reserve-index="${item.index}">
+          <button type="button" class="empty-slot-reserve-item" data-reserve-index="${item.index}" title="${item.player.name} (${item.player.role || 'MC'}) - Energía: ${getPlayerEnergy(item.player)}%" alt="${item.player.name} (${item.player.role || 'MC'}) - Energía: ${getPlayerEnergy(item.player)}%">
             <span class="empty-slot-reserve-item__left">
               <span class="empty-slot-reserve-item__avatar">${getPlayerAvatarHtml(item.player)}</span>
-              <span>${item.player.name} (${item.player.role || 'MC'})</span>
+              <span>${item.player.name} (${item.player.role || 'MC'}) · ${getPlayerEnergy(item.player)}%</span>
             </span>
             <span style="color: #2D6A4F; font-weight: 800;">Media: ${getPlayerRating(item.player)}</span>
           </button>

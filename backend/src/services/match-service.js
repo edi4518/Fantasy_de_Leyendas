@@ -307,16 +307,16 @@ export const matchService = {
       }
 
       const defaultFallback = [
-        { name: 'Casillas', role: 'POR', rating_general: 89 },
-        { name: 'Maldini', role: 'DEF', rating_general: 92 },
-        { name: 'Baresi', role: 'DEF', rating_general: 93 },
-        { name: 'Zidane', role: 'MC', rating_general: 96 },
-        { name: 'Xavi', role: 'MC', rating_general: 97 },
-        { name: 'Messi', role: 'DEL', rating_general: 99 },
-        { name: 'Ronaldo', role: 'DEL', rating_general: 97 },
-        { name: 'Iniesta', role: 'MC', rating_general: 94 },
-        { name: 'Puyol', role: 'DEF', rating_general: 90 },
-        { name: 'Buffon', role: 'POR', rating_general: 90 }
+        { name: 'Casillas', role: 'POR', rating_general: 89, rating_fisico: 89, energia: 100 },
+        { name: 'Maldini', role: 'DEF', rating_general: 92, rating_fisico: 96, energia: 100 },
+        { name: 'Baresi', role: 'DEF', rating_general: 93, rating_fisico: 84, energia: 100 },
+        { name: 'Zidane', role: 'MC', rating_general: 96, rating_fisico: 82, energia: 100 },
+        { name: 'Xavi', role: 'MC', rating_general: 97, rating_fisico: 75, energia: 100 },
+        { name: 'Messi', role: 'DEL', rating_general: 99, rating_fisico: 80, energia: 100 },
+        { name: 'Ronaldo', role: 'DEL', rating_general: 97, rating_fisico: 88, energia: 100 },
+        { name: 'Iniesta', role: 'MC', rating_general: 94, rating_fisico: 74, energia: 100 },
+        { name: 'Puyol', role: 'DEF', rating_general: 90, rating_fisico: 90, energia: 100 },
+        { name: 'Buffon', role: 'POR', rating_general: 90, rating_fisico: 84, energia: 100 }
       ];
 
       // Completar plantilla completa (10 posiciones)
@@ -377,7 +377,26 @@ export const matchService = {
             players: []
           };
         }
-        squadToSave.players = updatedSquadStamina;
+        if (squadToSave && Array.isArray(squadToSave.players) && squadToSave.players.length > 0) {
+          squadToSave.players = squadToSave.players.map((origP) => {
+            if (!origP) return origP;
+            const updated = updatedSquadStamina.find(u => u && (u.id === origP.id || this.isSamePlayer(u.name, origP.name)));
+            if (updated) {
+              return {
+                ...origP,
+                energia: updated.energia,
+                cambioNetoStamina: updated.cambioNetoStamina,
+                recuperacionCalculada: updated.recuperacionCalculada,
+                desgasteCalculado: updated.desgasteCalculado,
+                minutosJugados: updated.minutosJugados,
+                minutosDescansados: updated.minutosDescansados
+              };
+            }
+            return origP;
+          });
+        } else {
+          squadToSave.players = updatedSquadStamina;
+        }
         localStorage.setItem('fantasy_active_squad', JSON.stringify(squadToSave));
         if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
           window.dispatchEvent(new CustomEvent('fantasy:squad-updated', { detail: squadToSave }));
