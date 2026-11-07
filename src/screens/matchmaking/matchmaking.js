@@ -9,6 +9,7 @@
 
 import { getRandomCpuTeam } from '../../domain/cpu-teams.js';
 import { isTacticalCounter, FORMATIONS_6V6 } from '../../domain/formation-rules.js';
+import { matchService } from '../../services/match-service.js';
 
 
 let matchmakingTimer = null;
@@ -18,7 +19,7 @@ let navigationExecuted = false;
  * Inicializador principal llamado por el Router SPA
  * @param {Object} router - Instancia del router
  */
-export function initMatchmaking(router) {
+export async function initMatchmaking(router) {
   navigationExecuted = false;
   clearExistingTimers();
 
@@ -34,13 +35,44 @@ export function initMatchmaking(router) {
     return;
   }
 
-  // 2. Obtener un rival aleatorio de los 20 rivales del sistema
-  const rival = getRandomCpuTeam();
-  const awaySquad = rival || {
-    name: 'Milan Clásico',
-    formation: '1-2-1-2',
-    players: DEFAULT_HOME_SQUAD.players.map(p => ({ ...p }))
-  };
+  // 2. Obtener un rival real de los usuarios registrados en el backend
+  let awaySquad = null;
+  try {
+    const userRaw = localStorage.getItem('fantasy_logged_user');
+    const userObj = userRaw ? JSON.parse(userRaw) : null;
+    const realOpponents = await matchService.getCpuOpponents();
+    if (Array.isArray(realOpponents) && realOpponents.length > 0) {
+      const others = realOpponents.filter(op => !userObj || op.user_id !== userObj.id);
+      const pool = others.length > 0 ? others : realOpponents;
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      if (picked && Array.isArray(picked.players) && picked.players.length >= 6) {
+        awaySquad = {
+          name: picked.team_name || picked.name || 'Equipo Rival',
+          formation: picked.formation || '1-2-2-1',
+          cost: picked.costo_total || 0,
+          players: picked.players.map(p => ({
+            ...p,
+            name: p.name || p.nombre,
+            role: p.role || p.posicion_base || 'MC',
+            posicion_base: p.posicion_base || p.role || 'MC',
+            rating_general: p.rating_general || p.media_juego || 75
+          }))
+        };
+      }
+    }
+  } catch (err) {
+    console.debug('[Matchmaking] Error obteniendo rival real:', err);
+  }
+
+  // Fallback si aún no hay otros usuarios registrados con alineación completa
+  if (!awaySquad) {
+    const fallbackCpu = getRandomCpuTeam();
+    awaySquad = fallbackCpu || {
+      name: 'Milan Clásico',
+      formation: '1-2-1-2',
+      players: DEFAULT_HOME_SQUAD.players.map(p => ({ ...p }))
+    };
+  }
 
   // Guardar en sessionStorage para que el Live Match dispute el encuentro exactamente con este rival
   sessionStorage.setItem('fantasy_selected_rival', JSON.stringify(awaySquad));

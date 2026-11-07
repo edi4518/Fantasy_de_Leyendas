@@ -372,10 +372,82 @@ def simulate_match(
     return sim_result
 
 
+@router.get("/opponents")
+def get_real_opponents(
+    request: Request,
+    user_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Retorna las plantillas activas de otros usuarios reales registrados en MySQL para Matchmaking P2P."""
+    from app.models.squad import PlantillaJugador
+    user = _resolve_user(request, db, user_id)
+    query = (
+        db.query(Plantilla)
+        .join(User, User.id == Plantilla.user_id)
+        .filter(Plantilla.es_activa == True)
+    )
+    if user:
+        query = query.filter(Plantilla.user_id != user.id)
+
+    plantillas = query.order_by(Plantilla.id.desc()).all()
+    opponents = []
+    for pl in plantillas:
+        u = db.query(User).filter(User.id == pl.user_id).first()
+        rows = (
+            db.query(PlantillaJugador, Player)
+            .join(Player, PlantillaJugador.player_id == Player.id)
+            .filter(PlantillaJugador.plantilla_id == pl.id)
+            .order_by(PlantillaJugador.orden.asc())
+            .all()
+        )
+        players_list = []
+        for pj, p in rows:
+            players_list.append({
+                "id": p.id,
+                "name": p.nombre,
+                "nombre": p.nombre,
+                "role": p.posicion_base,
+                "posicion_base": p.posicion_base,
+                "rating_general": p.media_juego or p.rating_general or 75,
+                "media_juego": p.media_juego or p.rating_general or 75,
+                "rating_ataque": p.rating_ataque or 70,
+                "rating_defensa": p.rating_defensa or 70,
+                "rating_creacion": p.rating_creacion or 70,
+                "rating_tecnica": p.rating_tecnica or 70,
+                "rating_fisico": p.rating_fisico or 75,
+                "rating_palmares": p.rating_palmares or 70,
+                "es_titular": pj.es_titular,
+                "posicion_cancha": pj.posicion_cancha,
+                "precio": float(p.precio or 0.0),
+                "image_filename": p.image_filename,
+            })
+
+        if len(players_list) >= 6:
+            team_label = (u.team_name if u and u.team_name else pl.nombre) or "Equipo Rival"
+            opponents.append({
+                "id": pl.id,
+                "user_id": u.id if u else None,
+                "team_name": team_label,
+                "name": team_label,
+                "nombre_equipo": team_label,
+                "formation": pl.formacion or "1-2-2-1",
+                "costo_total": float(pl.costo_total or 0.0),
+                "players": players_list,
+                "jugadores": players_list,
+            })
+
+    return {"count": len(opponents), "opponents": opponents, "teams": opponents}
+
+
 @router.get("/cpu-opponents")
-def get_cpu_opponents():
-    """Retorna los 20 planteles de la CPU disponibles para competir."""
-    return {"count": len(CPU_TEAMS), "teams": CPU_TEAMS}
+def get_cpu_opponents(
+    request: Request,
+    user_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    """Retorna los rivales reales registrados en MySQL para Matchmaking P2P."""
+    res = get_real_opponents(request, user_id, db)
+    return {"count": res["count"], "teams": res["opponents"]}
 
 
 @router.get("/history")
