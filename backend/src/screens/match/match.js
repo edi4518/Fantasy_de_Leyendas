@@ -1815,6 +1815,12 @@ export async function initMatchDetailView() {
   const appNav = document.getElementById('app-navigation');
   if (appNav) appNav.style.display = 'none';
 
+  const appContent = document.getElementById('app-content');
+  if (appContent) {
+    appContent.scrollTop = 0;
+  }
+  window.scrollTo(0, 0);
+
   activeStatFilter = 'general';
   setupMatchTabs();
   setupStatsCategoryFilters();

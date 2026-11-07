@@ -689,8 +689,10 @@ body.app-body {
   z-index: 100;
 }
 
-/* Reserva crítica Anti-CLS para Dashboard (section#home-view) y Bottom Navigation (nav.bottom-nav) */
-.app-main:has(#home-view) {
+/* Reserva crítica Anti-CLS para Dashboard (section#home-view), Partido en Directo (.match-detail-container / #match-view) y Bottom Navigation (nav.bottom-nav) */
+.app-main:has(#home-view),
+.app-main:has(.match-detail-container),
+.app-main:has(#match-view) {
   padding: 0 !important;
   height: 100% !important;
   min-height: 0 !important;

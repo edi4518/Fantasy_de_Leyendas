@@ -233,6 +233,9 @@ async function handleLocation() {
   const appContent = document.getElementById("app-content");
   if (!appContent) return;
 
+  appContent.scrollTop = 0;
+  window.scrollTo(0, 0);
+
   const isFirstPaint = !appContent.innerHTML.trim();
   if (!isFirstPaint) {
     appContent.style.opacity = "0";
@@ -257,11 +260,13 @@ async function handleLocation() {
 
     if (isFirstPaint) {
       appContent.innerHTML = html;
+      appContent.scrollTop = 0;
       appContent.style.opacity = "1";
       await loadScreenController(route);
     } else {
       setTimeout(async () => {
         appContent.innerHTML = html;
+        appContent.scrollTop = 0;
         appContent.style.opacity = "1";
         await loadScreenController(route);
       }, 100);
