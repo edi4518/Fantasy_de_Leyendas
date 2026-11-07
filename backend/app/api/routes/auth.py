@@ -44,20 +44,8 @@ class GoogleAuthRequest(BaseModel):
 
 
 def _ensure_user_plantilla(db: Session, target_user: User) -> Optional[Plantilla]:
-    """Crea la plantilla inicial del usuario asegurando que las columnas existan en TiDB."""
-    # 1. Asegurar que las columnas requeridas existan en plantillas antes de consultar con SQLAlchemy
-    for col_name, col_def in [
-        ("es_activa", "BOOLEAN DEFAULT TRUE"),
-        ("created_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
-        ("updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
-    ]:
-        try:
-            db.execute(text(f"ALTER TABLE plantillas ADD COLUMN {col_name} {col_def}"))
-            db.commit()
-        except Exception:
-            db.rollback()
-
-    # 2. Consultar plantilla existente con SELECT id seguro
+    """Crea la plantilla inicial del usuario si aún no posee una activa."""
+    # Consultar plantilla existente con SELECT id seguro
     try:
         row = db.execute(
             text("SELECT id FROM plantillas WHERE user_id = :uid LIMIT 1"),

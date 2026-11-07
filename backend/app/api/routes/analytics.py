@@ -15,10 +15,15 @@ from app.models.squad import UserPlayer
 from app.models.user import User
 
 import logging
+import time
 
 logger = logging.getLogger("fantasy_analytics")
 
 router = APIRouter()
+
+# Caché en memoria para /summary (30s de TTL por usuario)
+_ANALYTICS_SUMMARY_CACHE = {}
+_ANALYTICS_TTL = 30.0
 
 
 def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int] = None) -> Optional[User]:
@@ -85,6 +90,11 @@ def get_summary(
     """Retorna resumen analítico de rendimiento, MVP del club y racha real de partidos desde MySQL."""
     try:
         user = _resolve_user(request, db, user_id)
+        now = time.time()
+        cache_key = user.id if user else "anon"
+        cached = _ANALYTICS_SUMMARY_CACHE.get(cache_key)
+        if cached and (now - cached["timestamp"] < _ANALYTICS_TTL):
+            return cached["data"]
 
         recent_results = []
         last_match_data = None
@@ -148,7 +158,7 @@ def get_summary(
                     "image_filename": best_p.image_filename,
                 }
 
-        return {
+        summary_result = {
             "has_matches": len(recent_results) > 0,
             "streak": {
                 "recentResults": recent_results,
@@ -158,6 +168,8 @@ def get_summary(
             "most_picked_legends": [],
             "winrates_by_formation": {},
         }
+        _ANALYTICS_SUMMARY_CACHE[cache_key] = {"data": summary_result, "timestamp": now}
+        return summary_result
     except Exception as e:
         logger.error(f"Aviso en /analytics/summary: {e}", exc_info=True)
         return {

@@ -528,6 +528,239 @@ export function invalidateDashboardCache() {
 }
 
 /**
+ * Helper sincrónico puro que fusiona el estado (local o remoto) en la estructura
+ * canónica estándar DEFAULT_HOME_DATA para renderizar instantáneamente el Dashboard.
+ */
+export function buildConsolidatedHomeData({
+  managerData = null,
+  savedUser = null,
+  activeSquad = null,
+  playerStats = {},
+  analyticsData = null,
+  localStats = null,
+  localLastMatch = null,
+  userRankingPosition = '-'
+} = {}) {
+  const currentSquad = activeSquad && Array.isArray(activeSquad.players)
+    ? { ...activeSquad, players: [...activeSquad.players] }
+    : { name: 'Tu Equipo', formation: '1-2-2-1', players: new Array(10).fill(null) };
+
+  while (currentSquad.players.length < 10) {
+    currentSquad.players.push(null);
+  }
+
+  const starters = currentSquad.players.slice(0, 6).filter(Boolean);
+  const reserves = currentSquad.players.slice(6).filter(Boolean);
+  const allSquadPlayers = currentSquad.players.filter(Boolean);
+
+  const totalSpent = allSquadPlayers.reduce((acc, p) => acc + getPlayerPrice(p), 0);
+  const spentRounded = Math.round(totalSpent * 10) / 10;
+  const availableRounded = Math.max(0, Math.round((150.0 - spentRounded) * 10) / 10);
+  const budgetPercentage = Math.min(100, Math.round((spentRounded / 150.0) * 100));
+
+  const startersTotalRating = starters.reduce((acc, p) => acc + getPlayerRating(p), 0);
+  const calculatedValGlobal = starters.length > 0 ? Math.round(startersTotalRating / 6) : 0;
+
+  function isSameName(a, b) {
+    if (!a || !b) return false;
+    const cleanA = a.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
+    const cleanB = b.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
+    return cleanA === cleanB || cleanA.includes(cleanB) || cleanB.includes(cleanA);
+  }
+
+  function getPlayerStatRecord(playerName) {
+    if (!playerName) return null;
+    return playerStats[playerName] || Object.values(playerStats).find(v => isSameName(v.name, playerName)) || null;
+  }
+
+  const playersWithMatches = allSquadPlayers.filter(p => {
+    const s = getPlayerStatRecord(p.name);
+    return (s?.matchesPlayed || 0) > 0;
+  });
+
+  let topPlayer;
+  let topStats;
+
+  if (playersWithMatches.length > 0) {
+    topPlayer = [...playersWithMatches].sort((a, b) => {
+      const sA = getPlayerStatRecord(a.name) || {};
+      const sB = getPlayerStatRecord(b.name) || {};
+      const scoreA = (sA.mvpAwards || 0) * 15 + (sA.goals || 0) * 5 + (Number(sA.avgRating) || 0) * 2;
+      const scoreB = (sB.mvpAwards || 0) * 15 + (sB.goals || 0) * 5 + (Number(sB.avgRating) || 0) * 2;
+      return scoreB - scoreA;
+    })[0];
+    topStats = getPlayerStatRecord(topPlayer.name);
+  } else {
+    topPlayer = allSquadPlayers.find(p => p.role === 'DEL') || starters[0] || allSquadPlayers[0];
+    topStats = { matchesPlayed: 0, goals: 0, avgRating: null };
+  }
+
+  const managerDisplayName = savedUser?.name || (savedUser?.first_name ? `${savedUser.first_name} ${savedUser.last_name || ''}`.trim() : null) || managerData?.username || managerData?.name || DEFAULT_HOME_DATA.manager.name;
+
+  const hasDbMatches = Boolean(analyticsData?.has_matches && Array.isArray(analyticsData?.streak?.recentResults) && analyticsData.streak.recentResults.length > 0);
+  const hasLocalMatches = Boolean(
+    (Array.isArray(localStats?.streak) && localStats.streak.length > 0) ||
+    (localStats?.matchesPlayed && localStats.matchesPlayed > 0) ||
+    Boolean(localLastMatch)
+  );
+
+  let recentResults = [];
+  if (hasDbMatches) {
+    recentResults = analyticsData.streak.recentResults.slice(0, 5);
+  } else if (hasLocalMatches && Array.isArray(localStats?.streak)) {
+    recentResults = localStats.streak.slice(0, 5);
+  }
+
+  let lastMatch = null;
+  if (analyticsData?.streak?.lastMatch && analyticsData.streak.lastMatch.result && analyticsData.streak.lastMatch.result !== '-') {
+    lastMatch = analyticsData.streak.lastMatch;
+  } else if (localLastMatch) {
+    const resLetter = localLastMatch.resultado === 'VICTORIA' ? 'V' : (localLastMatch.resultado === 'EMPATE' ? 'E' : 'D');
+    lastMatch = {
+      result: resLetter,
+      score: localLastMatch.score || '0 – 0',
+      scoreText: `${resLetter} ${localLastMatch.score || '0 – 0'}`,
+      opponent: localLastMatch.rival ? (localLastMatch.rival.startsWith('vs ') ? localLastMatch.rival : `vs ${localLastMatch.rival}`) : 'vs Rival'
+    };
+  }
+
+  return {
+    ...DEFAULT_HOME_DATA,
+    manager: {
+      ...DEFAULT_HOME_DATA.manager,
+      name: managerDisplayName,
+      season: managerData?.season || DEFAULT_HOME_DATA.manager.season,
+      ranking: userRankingPosition,
+      avatarUrl: resolveManagerAvatarUrl(managerData || savedUser)
+    },
+    budget: {
+      total: 150.0,
+      spent: spentRounded,
+      available: availableRounded,
+      percentage: budgetPercentage
+    },
+    valGlobal: calculatedValGlobal,
+    formation: currentSquad.formation || '1-2-2-1',
+    startersCount: starters.length,
+    reservesCount: reserves.length,
+    totalPlayers: allSquadPlayers.length,
+    team: {
+      count: starters.length,
+      max: 6,
+      slots: [0, 1, 2, 3, 4, 5].map((slotIdx) => {
+        const formationSlots = FORMATIONS_6V6[currentSquad.formation]?.slots || ['POR', 'DEF', 'DEF', 'MC', 'MC', 'DEL'];
+        const assignedRole = formationSlots[slotIdx] || 'JUG';
+        const p = currentSquad.players[slotIdx];
+        if (!p) {
+          return { slotIndex: slotIdx, assignedRole, player: null, avatarUrl: null };
+        }
+        const rawImg = p.image_filename || p.photo_url || p.avatarUrl;
+        const avatarUrl = rawImg
+          ? (rawImg.startsWith('http://') || rawImg.startsWith('https://') ? rawImg : `${STORAGE_URL}${rawImg}`)
+          : null;
+        return { slotIndex: slotIdx, assignedRole, player: p, avatarUrl };
+      }),
+      players: starters.map((p, idx) => ({
+        id: p.id || idx + 1,
+        name: p.nombre || p.name,
+        role: p.role || p.posicion_base,
+        rating: getPlayerRating(p),
+        avatarUrl: p.image_filename ? (p.image_filename.startsWith('http') ? p.image_filename : `${STORAGE_URL}${p.image_filename}`) : null
+      }))
+    },
+    mvp: topPlayer ? {
+      name: topPlayer.name || topPlayer.nombre,
+      tag: 'MVP',
+      position: (topPlayer.role || topPlayer.posicion_base || 'DEL').toUpperCase(),
+      matches: topStats?.matchesPlayed || 0,
+      goals: topStats?.goals || 0,
+      score: (topStats?.matchesPlayed > 0 && topStats?.avgRating != null)
+        ? Number(topStats.avgRating).toFixed(1)
+        : '-',
+      maxScore: 10,
+      avatarUrl: topPlayer.image_filename
+        ? (topPlayer.image_filename.startsWith('http') ? topPlayer.image_filename : `${STORAGE_URL}${topPlayer.image_filename}`)
+        : (topPlayer.photo_url || topPlayer.avatarUrl || null)
+    } : {
+      name: 'Sin MVP asignado',
+      tag: 'MVP',
+      position: 'Ficha en el mercado',
+      matches: 0,
+      goals: 0,
+      score: '-',
+      maxScore: 10,
+      avatarUrl: null
+    },
+    streak: {
+      recentResults,
+      lastMatch
+    }
+  };
+}
+
+/**
+ * Obtiene de inmediato (0ms de latencia) los datos para pintar el Dashboard
+ * a partir de la memoria, sessionStorage o localStorage (Optimistic UI / Stale-While-Revalidate).
+ * Permite que el FCP y LCP de Lighthouse se resuelvan en < 0.5s sin esperar peticiones de red.
+ */
+export function getOptimisticHomeData() {
+  if (homeDataMemoryCache) {
+    return homeDataMemoryCache;
+  }
+  try {
+    const sessionCached = sessionStorage.getItem('fantasy_dashboard_cache');
+    if (sessionCached) {
+      const parsed = JSON.parse(sessionCached);
+      homeDataMemoryCache = parsed;
+      return parsed;
+    }
+  } catch (_) {}
+
+  let savedUser = null;
+  try {
+    const rawUser = localStorage.getItem('user');
+    if (rawUser) savedUser = JSON.parse(rawUser);
+  } catch (_) {}
+
+  let activeSquad = null;
+  try {
+    const rawSquad = localStorage.getItem('fantasy_active_squad');
+    if (rawSquad) activeSquad = JSON.parse(rawSquad);
+  } catch (_) {}
+
+  let localStats = null;
+  let localLastMatch = null;
+  try {
+    const rawStats = localStorage.getItem('fantasy_user_stats');
+    if (rawStats) localStats = JSON.parse(rawStats);
+    const rawHistory = localStorage.getItem('fantasy_match_history');
+    if (rawHistory) {
+      const historyArr = JSON.parse(rawHistory);
+      if (Array.isArray(historyArr) && historyArr.length > 0) {
+        localLastMatch = historyArr[0];
+      }
+    }
+  } catch (_) {}
+
+  let playerStats = {};
+  try {
+    const rawPlayerStats = localStorage.getItem('fantasy_player_stats');
+    if (rawPlayerStats) playerStats = JSON.parse(rawPlayerStats);
+  } catch (_) {}
+
+  return buildConsolidatedHomeData({
+    savedUser,
+    managerData: savedUser,
+    activeSquad,
+    playerStats,
+    analyticsData: null,
+    localStats,
+    localLastMatch,
+    userRankingPosition: savedUser?.ranking || savedUser?.rank ? `#${savedUser.ranking || savedUser.rank}` : '-'
+  });
+}
+
+/**
  * Consulta los endpoints de backend FastAPI para obtener los datos consolidados.
  * Endpoints configurados (ejecución simultánea paralela vía Promise.allSettled):
  * - GET /api/me: Perfil y club del mánager autenticado.
@@ -591,7 +824,7 @@ export async function fetchHomeData() {
     console.debug('[Dashboard] Error leyendo datos locales de partidos:', e);
   }
 
-    // 3.5 Lectura de estadisticas acumuladas de jugadores
+  // 3.5 Lectura de estadisticas acumuladas de jugadores
   let playerStats = {};
   try {
     const rawPlayerStats = localStorage.getItem('fantasy_player_stats');
@@ -653,98 +886,6 @@ export async function fetchHomeData() {
     console.debug('[Dashboard] Sincronización de plantilla MySQL omitida:', err.message);
   }
 
-  // Garantizar estructura de plantilla de 10 posiciones (0..5 titulares, 6..9 reservas)
-  if (!activeSquad || !Array.isArray(activeSquad.players)) {
-    activeSquad = {
-      name: 'Tu Equipo',
-      formation: '1-2-2-1',
-      players: new Array(10).fill(null)
-    };
-  }
-  while (activeSquad.players.length < 10) {
-    activeSquad.players.push(null);
-  }
-
-  const starters = activeSquad.players.slice(0, 6).filter(Boolean);
-  const reserves = activeSquad.players.slice(6).filter(Boolean);
-  const allSquadPlayers = activeSquad.players.filter(Boolean);
-
-  // Cálculo del presupuesto gastado y disponible (Tope salarial oficial: 150.0M)
-  const totalSpent = allSquadPlayers.reduce((acc, p) => acc + getPlayerPrice(p), 0);
-  const spentRounded = Math.round(totalSpent * 10) / 10;
-  const availableRounded = Math.max(0, Math.round((150.0 - spentRounded) * 10) / 10);
-  const budgetPercentage = Math.min(100, Math.round((spentRounded / 150.0) * 100));
-
-  // Cálculo de Valoración Global (media real de los 6 puestos titulares)
-  const startersTotalRating = starters.reduce((acc, p) => acc + getPlayerRating(p), 0);
-  const calculatedValGlobal = starters.length > 0 ? Math.round(startersTotalRating / 6) : 0;
-
-  // Helper flexible para comparar nombres de jugadores (ej. "L. Messi" y "Messi")
-  function isSameName(a, b) {
-    if (!a || !b) return false;
-    const cleanA = a.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
-    const cleanB = b.toLowerCase().replace(/^[a-z]\.\s*/, '').trim();
-    return cleanA === cleanB || cleanA.includes(cleanB) || cleanB.includes(cleanA);
-  }
-
-  function getPlayerStatRecord(playerName) {
-    if (!playerName) return null;
-    return playerStats[playerName] || Object.values(playerStats).find(v => isSameName(v.name, playerName)) || null;
-  }
-
-  // Jugador destacado / MVP: prioriza a futbolistas con partidos disputados, goles y premios MVP oficiales
-  const playersWithMatches = allSquadPlayers.filter(p => {
-    const s = getPlayerStatRecord(p.name);
-    return (s?.matchesPlayed || 0) > 0;
-  });
-
-  let topPlayer;
-  let topStats;
-
-  if (playersWithMatches.length > 0) {
-    topPlayer = [...playersWithMatches].sort((a, b) => {
-      const sA = getPlayerStatRecord(a.name) || {};
-      const sB = getPlayerStatRecord(b.name) || {};
-      const scoreA = (sA.mvpAwards || 0) * 15 + (sA.goals || 0) * 5 + (Number(sA.avgRating) || 0) * 2;
-      const scoreB = (sB.mvpAwards || 0) * 15 + (sB.goals || 0) * 5 + (Number(sB.avgRating) || 0) * 2;
-      return scoreB - scoreA;
-    })[0];
-    topStats = getPlayerStatRecord(topPlayer.name);
-  } else {
-    topPlayer = allSquadPlayers.find(p => p.role === 'DEL') || starters[0] || allSquadPlayers[0];
-    topStats = { matchesPlayed: 0, goals: 0, avgRating: null };
-  }
-
-  // 5. Mapeo y fusión con el esquema canónico
-  const managerDisplayName = savedUser?.name || (savedUser?.first_name ? `${savedUser.first_name} ${savedUser.last_name || ''}`.trim() : null) || managerData?.username || managerData?.name || DEFAULT_HOME_DATA.manager.name;
-
-  const hasDbMatches = Boolean(analyticsData?.has_matches && Array.isArray(analyticsData?.streak?.recentResults) && analyticsData.streak.recentResults.length > 0);
-  const hasLocalMatches = Boolean(
-    (Array.isArray(localStats?.streak) && localStats.streak.length > 0) ||
-    (localStats?.matchesPlayed && localStats.matchesPlayed > 0) ||
-    Boolean(localLastMatch)
-  );
-
-  let recentResults = [];
-  if (hasDbMatches) {
-    recentResults = analyticsData.streak.recentResults.slice(0, 5);
-  } else if (hasLocalMatches && Array.isArray(localStats?.streak)) {
-    recentResults = localStats.streak.slice(0, 5);
-  }
-
-  let lastMatch = null;
-  if (analyticsData?.streak?.lastMatch && analyticsData.streak.lastMatch.result && analyticsData.streak.lastMatch.result !== '-') {
-    lastMatch = analyticsData.streak.lastMatch;
-  } else if (localLastMatch) {
-    const resLetter = localLastMatch.resultado === 'VICTORIA' ? 'V' : (localLastMatch.resultado === 'EMPATE' ? 'E' : 'D');
-    lastMatch = {
-      result: resLetter,
-      score: localLastMatch.score || '0 – 0',
-      scoreText: `${resLetter} ${localLastMatch.score || '0 – 0'}`,
-      opponent: localLastMatch.rival ? (localLastMatch.rival.startsWith('vs ') ? localLastMatch.rival : `vs ${localLastMatch.rival}`) : 'vs Rival'
-    };
-  }
-
   // Resolver puesto de clasificación de forma 100% sincronizada con Ranking Global
   let userRankingPosition = '-';
   try {
@@ -754,6 +895,12 @@ export async function fetchHomeData() {
       (savedUser?.email && u.email && u.email.toLowerCase() === savedUser.email.toLowerCase()) ||
       (currentTeamName && u.team_name && u.team_name.toLowerCase() === currentTeamName.toLowerCase())
     );
+    const hasDbMatches = Boolean(analyticsData?.has_matches && Array.isArray(analyticsData?.streak?.recentResults) && analyticsData.streak.recentResults.length > 0);
+    const hasLocalMatches = Boolean(
+      (Array.isArray(localStats?.streak) && localStats.streak.length > 0) ||
+      (localStats?.matchesPlayed && localStats.matchesPlayed > 0) ||
+      Boolean(localLastMatch)
+    );
     const hasPlayedMatches = hasDbMatches || hasLocalMatches || Boolean(dbUserMatch?.has_played);
     const rankInfo = getUserRankInfo(unifiedLeaderboard, savedUser, currentTeamName, hasPlayedMatches);
     userRankingPosition = rankInfo.displayRank;
@@ -761,78 +908,16 @@ export async function fetchHomeData() {
     console.debug('[Dashboard] Error al calcular ranking unificado:', err);
   }
 
-  const consolidatedData = {
-    ...DEFAULT_HOME_DATA,
-    manager: {
-      ...DEFAULT_HOME_DATA.manager,
-      name: managerDisplayName,
-      season: managerData?.season || DEFAULT_HOME_DATA.manager.season,
-      ranking: userRankingPosition,
-      avatarUrl: resolveManagerAvatarUrl(managerData)
-    },
-    budget: {
-      total: 150.0,
-      spent: spentRounded,
-      available: availableRounded,
-      percentage: budgetPercentage
-    },
-    valGlobal: calculatedValGlobal,
-    formation: activeSquad.formation || '1-2-2-1',
-    startersCount: starters.length,
-    reservesCount: reserves.length,
-    totalPlayers: allSquadPlayers.length,
-    team: {
-      count: starters.length,
-      max: 6,
-      slots: [0, 1, 2, 3, 4, 5].map((slotIdx) => {
-        const formationSlots = FORMATIONS_6V6[activeSquad.formation]?.slots || ['POR', 'DEF', 'DEF', 'MC', 'MC', 'DEL'];
-        const assignedRole = formationSlots[slotIdx] || 'JUG';
-        const p = activeSquad.players[slotIdx];
-        if (!p) {
-          return { slotIndex: slotIdx, assignedRole, player: null, avatarUrl: null };
-        }
-        const rawImg = p.image_filename || p.photo_url || p.avatarUrl;
-        const avatarUrl = rawImg
-          ? (rawImg.startsWith('http://') || rawImg.startsWith('https://') ? rawImg : `${STORAGE_URL}${rawImg}`)
-          : null;
-        return { slotIndex: slotIdx, assignedRole, player: p, avatarUrl };
-      }),
-      players: starters.map((p, idx) => ({
-        id: p.id || idx + 1,
-        name: p.nombre || p.name,
-        role: p.role || p.posicion_base,
-        rating: getPlayerRating(p),
-        avatarUrl: p.image_filename ? (p.image_filename.startsWith('http') ? p.image_filename : `${STORAGE_URL}${p.image_filename}`) : null
-      }))
-    },
-    mvp: topPlayer ? {
-      name: topPlayer.name || topPlayer.nombre,
-      tag: 'MVP',
-      position: (topPlayer.role || topPlayer.posicion_base || 'DEL').toUpperCase(),
-      matches: topStats?.matchesPlayed || 0,
-      goals: topStats?.goals || 0,
-      score: (topStats?.matchesPlayed > 0 && topStats?.avgRating != null)
-        ? Number(topStats.avgRating).toFixed(1)
-        : '-',
-      maxScore: 10,
-      avatarUrl: topPlayer.image_filename
-        ? (topPlayer.image_filename.startsWith('http') ? topPlayer.image_filename : `${STORAGE_URL}${topPlayer.image_filename}`)
-        : (topPlayer.photo_url || topPlayer.avatarUrl || null)
-    } : {
-      name: 'Sin MVP asignado',
-      tag: 'MVP',
-      position: 'Ficha en el mercado',
-      matches: 0,
-      goals: 0,
-      score: '-',
-      maxScore: 10,
-      avatarUrl: null
-    },
-    streak: {
-      recentResults,
-      lastMatch
-    }
-  };
+  const consolidatedData = buildConsolidatedHomeData({
+    managerData,
+    savedUser,
+    activeSquad,
+    playerStats,
+    analyticsData,
+    localStats,
+    localLastMatch,
+    userRankingPosition
+  });
 
   // Guardar en caché en memoria y sessionStorage (TTL 60s) para navegaciones instantáneas en SPA
   homeDataMemoryCache = consolidatedData;
@@ -1312,13 +1397,22 @@ export async function initDashboard(router) {
   ensureDashboardIntegrity();
   setupHomeEventListeners(router);
 
-  try {
-    const liveData = await fetchHomeData();
-    renderHome(liveData);
-  } catch (error) {
-    console.warn('[Dashboard] Fallo al cargar datos remotos, conservando estado inicial:', error);
-    renderHome(DEFAULT_HOME_DATA);
-  }
+  // 1. RENDERIZADO OPTIMISTA INMEDIATO (0ms de latencia -> FCP y LCP instantáneos < 0.5s):
+  // Renderiza instantáneamente los datos de sesión/locales (usuario, plantilla en cancha, presupuesto y racha)
+  const initialData = getOptimisticHomeData();
+  renderHome(initialData);
+
+  // 2. REVALIDACIÓN ASÍNCRONA EN SEGUNDO PLANO (Stale-While-Revalidate):
+  // Consulta la API sin bloquear la interacción ni la evaluación de Core Web Vitals
+  fetchHomeData()
+    .then((liveData) => {
+      if (liveData) {
+        renderHome(liveData);
+      }
+    })
+    .catch((error) => {
+      console.debug('[Dashboard] Sincronización en segundo plano con backend:', error);
+    });
 }
 
 export const initHomeView = initDashboard;

@@ -2,6 +2,7 @@
 Rutas para el ranking general de directores técnicos y puntos de temporada (ELO y diferencia de gol en MySQL).
 """
 
+import time
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -10,10 +11,18 @@ from app.models.user import User
 
 router = APIRouter()
 
+# Caché en memoria de 30s para evitar consultas pesadas repetidas a TiDB Cloud
+_LEADERBOARD_CACHE = {"data": None, "timestamp": 0.0}
+_LEADERBOARD_TTL = 30.0
+
 
 @router.get("/leaderboard")
 def get_leaderboard(db: Session = Depends(get_db)):
     """Retorna la tabla general de posiciones de los mánagers registrados ordenados por ELO y diferencia de gol."""
+    now = time.time()
+    if _LEADERBOARD_CACHE["data"] and (now - _LEADERBOARD_CACHE["timestamp"] < _LEADERBOARD_TTL):
+        return _LEADERBOARD_CACHE["data"]
+
     users = db.query(User).all()
     # Ordenar en Python para evitar errores de MySQL/TiDB (1690 BIGINT UNSIGNED out of range en resta)
     users.sort(
@@ -47,4 +56,7 @@ def get_leaderboard(db: Session = Depends(get_db)):
         }
         for idx, u in enumerate(users)
     ]
-    return {"count": len(leaderboard), "leaderboard": leaderboard}
+    result = {"count": len(leaderboard), "leaderboard": leaderboard}
+    _LEADERBOARD_CACHE["data"] = result
+    _LEADERBOARD_CACHE["timestamp"] = now
+    return result
