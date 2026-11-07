@@ -43,13 +43,30 @@ class GoogleAuthRequest(BaseModel):
     birthdate: Optional[str] = None
 
 
-def _ensure_user_plantilla(db: Session, target_user: User) -> Plantilla:
-    """Crea la plantilla inicial del usuario y se asegura de que la columna es_activa exista en TiDB."""
-    existing_plan = db.query(Plantilla).filter(Plantilla.user_id == target_user.id).first()
-    if existing_plan:
-        return existing_plan
+def _ensure_user_plantilla(db: Session, target_user: User) -> Optional[Plantilla]:
+    """Crea la plantilla inicial del usuario asegurando que las columnas existan en TiDB."""
+    # 1. Asegurar que las columnas requeridas existan en plantillas antes de consultar con SQLAlchemy
+    for col_name, col_def in [
+        ("es_activa", "BOOLEAN DEFAULT TRUE"),
+        ("created_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+        ("updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
+    ]:
+        try:
+            db.execute(text(f"ALTER TABLE plantillas ADD COLUMN {col_name} {col_def}"))
+            db.commit()
+        except Exception:
+            db.rollback()
 
+    # 2. Consultar plantilla existente con SELECT id seguro
     try:
+        row = db.execute(
+            text("SELECT id FROM plantillas WHERE user_id = :uid LIMIT 1"),
+            {"uid": target_user.id}
+        ).fetchone()
+
+        if row:
+            return db.query(Plantilla).filter(Plantilla.id == row[0]).first()
+
         plantilla = Plantilla(
             user_id=target_user.id,
             nombre=target_user.team_name or "Mi Alineación Principal",
@@ -62,27 +79,9 @@ def _ensure_user_plantilla(db: Session, target_user: User) -> Plantilla:
         db.refresh(plantilla)
         return plantilla
     except Exception as plan_err:
+        logger.warning(f"Aviso al asegurar plantilla para el usuario {target_user.id}: {plan_err}")
         db.rollback()
-        err_str = str(plan_err).lower()
-        if "es_activa" in err_str:
-            try:
-                db.execute(text("ALTER TABLE plantillas ADD COLUMN es_activa BOOLEAN DEFAULT TRUE"))
-                db.commit()
-                plantilla = Plantilla(
-                    user_id=target_user.id,
-                    nombre=target_user.team_name or "Mi Alineación Principal",
-                    formacion="1-2-2-1",
-                    costo_total=0.00,
-                    es_activa=True,
-                )
-                db.add(plantilla)
-                db.commit()
-                db.refresh(plantilla)
-                return plantilla
-            except Exception as retry_err:
-                logger.error(f"Error al reintentar creación de plantilla: {retry_err}")
-                db.rollback()
-        raise
+        return None
 
 
 # ============================================================================
@@ -188,6 +187,15 @@ async def register(
     # 2. Verificar si el email ya existe en la base de datos
     existing_user = db.query(User).filter(User.email == normalized_email).first()
     if existing_user:
+        is_google = (
+            getattr(existing_user, "auth_provider", None) == "google"
+            or (existing_user.photo_url and "googleusercontent.com" in existing_user.photo_url)
+        )
+        if is_google:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Este correo está registrado mediante inicio de sesión con Google. Por favor, inicia sesión con el botón 'Continuar con Google'.",
+            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El correo electrónico ya está registrado.",
@@ -244,7 +252,24 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     normalized_email = credentials.email.strip().lower()
 
     user = db.query(User).filter(User.email == normalized_email).first()
-    if not user or not verify_password(credentials.password, user.hashed_password):
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Correo o contraseña incorrectos. Por favor, inténtalo de nuevo.",
+        )
+
+    # Si el usuario se registró originalmente con Google
+    is_google = (
+        getattr(user, "auth_provider", None) == "google"
+        or (user.photo_url and "googleusercontent.com" in user.photo_url)
+    )
+    if is_google and not verify_password(credentials.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esta cuenta está vinculada a inicio de sesión con Google. Por favor, inicia sesión con el botón 'Continuar con Google'.",
+        )
+
+    if not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Correo o contraseña incorrectos. Por favor, inténtalo de nuevo.",
@@ -337,6 +362,7 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
         else:
             user.team_name = payload.team_name.strip()
             user.fecha_nacimiento = parse_birthdate(payload.birthdate)
+            user.auth_provider = "google"
             if photo_url and not user.photo_url:
                 user.photo_url = photo_url
             db.commit()
@@ -354,10 +380,12 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
 
     # Caso 2B: El usuario ya existe y tiene sus datos completos -> Login directo
     if user:
+        if getattr(user, "auth_provider", None) != "google":
+            user.auth_provider = "google"
         if photo_url and not user.photo_url:
             user.photo_url = photo_url
-            db.commit()
-            db.refresh(user)
+        db.commit()
+        db.refresh(user)
 
         _ensure_user_plantilla(db, user)
 
@@ -398,6 +426,7 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
         photo_url=photo_url,
         presupuesto=150.00,
         elo_rating=1000,
+        auth_provider="google",
     )
     db.add(new_user)
     db.commit()

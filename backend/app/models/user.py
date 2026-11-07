@@ -32,4 +32,5 @@ class User(Base):
     notif_activas = Column(Boolean, nullable=False, default=True)
     sonido_activo = Column(Boolean, nullable=False, default=False)
 
+    auth_provider = Column(String(20), nullable=False, default="local")
     created_at = Column(DateTime, server_default=func.now())

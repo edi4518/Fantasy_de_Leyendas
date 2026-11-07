@@ -35,6 +35,7 @@ CREATE TABLE users (
     -- Preferencias del Mánager
     notif_activas BOOLEAN NOT NULL DEFAULT TRUE,
     sonido_activo BOOLEAN NOT NULL DEFAULT FALSE,
+    auth_provider VARCHAR(20) NOT NULL DEFAULT 'local',
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_user_email (email),

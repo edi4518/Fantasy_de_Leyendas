@@ -90,18 +90,25 @@ def _ensure_optimized_schema():
                 ("goles_contra", "INT NOT NULL DEFAULT 0"),
                 ("notif_activas", "BOOLEAN NOT NULL DEFAULT 1"),
                 ("sonido_activo", "BOOLEAN NOT NULL DEFAULT 0"),
+                ("auth_provider", "VARCHAR(20) NOT NULL DEFAULT 'local'"),
             ]
             with engine.begin() as conn:
                 for col_name, col_def in new_user_columns:
                     if col_name not in user_cols:
                         conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}"))
 
-        # 1.1 Asegurar columna 'es_activa' en 'plantillas'
+        # 1.1 Asegurar columnas requeridas en 'plantillas' (es_activa, created_at, updated_at)
         if "plantillas" in existing_tables:
             plantilla_cols = {c["name"] for c in insp.get_columns("plantillas")}
-            if "es_activa" not in plantilla_cols:
-                with engine.begin() as conn:
-                    conn.execute(text("ALTER TABLE plantillas ADD COLUMN es_activa BOOLEAN DEFAULT TRUE"))
+            new_plantilla_columns = [
+                ("es_activa", "BOOLEAN DEFAULT TRUE"),
+                ("created_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+                ("updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
+            ]
+            with engine.begin() as conn:
+                for col_name, col_def in new_plantilla_columns:
+                    if col_name not in plantilla_cols:
+                        conn.execute(text(f"ALTER TABLE plantillas ADD COLUMN {col_name} {col_def}"))
 
         # 2. Si aún no existe 'user_players' o 'partidos' tiene el esquema viejo (sin 'local_user_id'),
         # recrear las tablas relacionales de plantillas y partidos para aplicar el nuevo modelo completo.
