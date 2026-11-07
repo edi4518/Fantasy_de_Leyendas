@@ -29,6 +29,24 @@ export const DEFAULT_AWAY_SQUAD = {
   ]
 };
 
+export const DEFAULT_HOME_SQUAD = {
+  name: 'Tu Equipo',
+  formation: '1-2-2-1',
+  players: [
+    { name: 'Casillas', role: 'POR', rating_general: 90, rating_fisico: 85, rating_palmares: 92, rating_defensa: 88, rating_creacion: 20, rating_tecnica: 40, rating_ataque: 10 },
+    { name: 'Maldini', role: 'DEF', rating_defensa: 96, rating_fisico: 88, rating_palmares: 95, rating_creacion: 75, rating_tecnica: 80, rating_ataque: 50 },
+    { name: 'Zidane', role: 'MC', rating_creacion: 96, rating_tecnica: 98, rating_fisico: 82, rating_palmares: 96, rating_ataque: 90, rating_defensa: 60 },
+    { name: 'Xavi', role: 'MC', rating_creacion: 97, rating_tecnica: 96, rating_fisico: 76, rating_palmares: 97, rating_ataque: 80, rating_defensa: 65 },
+    { name: 'Messi', role: 'DEL', rating_ataque: 99, rating_tecnica: 99, rating_fisico: 86, rating_palmares: 99, rating_creacion: 95, rating_defensa: 35 },
+    { name: 'Ronaldo Nazário', role: 'DEL', rating_ataque: 98, rating_tecnica: 95, rating_fisico: 90, rating_palmares: 94, rating_creacion: 80, rating_defensa: 30 },
+    // 4 Suplentes reglamentarios
+    { name: 'Ronaldinho', role: 'MC', rating_creacion: 95, rating_tecnica: 98, rating_fisico: 80, rating_palmares: 93, rating_ataque: 92, rating_defensa: 40 },
+    { name: 'Iniesta', role: 'MC', rating_creacion: 96, rating_tecnica: 97, rating_fisico: 78, rating_palmares: 97, rating_ataque: 84, rating_defensa: 60 },
+    { name: 'Puyol', role: 'DEF', rating_defensa: 94, rating_fisico: 90, rating_palmares: 94, rating_creacion: 65, rating_tecnica: 70, rating_ataque: 40 },
+    { name: 'Van der Sar', role: 'POR', rating_general: 89, rating_fisico: 82, rating_palmares: 88, rating_defensa: 86, rating_creacion: 25, rating_tecnica: 45, rating_ataque: 10 }
+  ]
+};
+
 export const DEFAULT_MATCH_DATA = {
   id: 1,
   status: 'PREVIA',
@@ -42,22 +60,12 @@ export const DEFAULT_MATCH_DATA = {
     fouls: { home: 0, away: 0, label: 'Faltas' }
   },
   lineups: {
-    home: [
-      { name: 'Messi', role: 'DEL' },
-      { name: 'Zidane', role: 'MC' },
-      { name: 'Maldini', role: 'DEF' },
-      { name: 'Xavi', role: 'MC' },
-      { name: 'Ronaldo', role: 'DEL' },
-      { name: 'Casillas', role: 'POR' }
-    ],
-    away: [
-      { name: 'Beckenbauer', role: 'DEF' },
-      { name: 'Maradona', role: 'MC' },
-      { name: 'Rivaldo', role: 'DEL' },
-      { name: 'Iniesta', role: 'MC' },
-      { name: 'Henry', role: 'DEL' },
-      { name: 'Buffon', role: 'POR' }
-    ]
+    home: DEFAULT_HOME_SQUAD.players.slice(0, 6),
+    away: DEFAULT_AWAY_SQUAD.players.slice(0, 6),
+    homeStarters: DEFAULT_HOME_SQUAD.players.slice(0, 6),
+    homeBench: DEFAULT_HOME_SQUAD.players.slice(6),
+    awayStarters: DEFAULT_AWAY_SQUAD.players.slice(0, 6),
+    awayBench: DEFAULT_AWAY_SQUAD.players.slice(6)
   }
 };
 
@@ -75,9 +83,9 @@ export function getUserSquad() {
     const saved = localStorage.getItem('fantasy_active_squad');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed && Array.isArray(parsed.players)) {
+      if (parsed && Array.isArray(parsed.players) && parsed.players.length > 0) {
         return {
-          name: parsed.name || 'Tu Equipo',
+          name: parsed.name || parsed.team_name || 'Tu Equipo',
           formation: parsed.formation || '1-2-2-1',
           players: [...parsed.players]
         };
@@ -86,7 +94,7 @@ export function getUserSquad() {
   } catch (err) {
     console.debug('[Match] Error leyendo plantilla del usuario:', err.message);
   }
-  return null;
+  return DEFAULT_HOME_SQUAD;
 }
 
 /**
@@ -167,7 +175,9 @@ export function renderMatchDetails(match = DEFAULT_MATCH_DATA) {
   renderTimeline(match.events);
   renderStats(match.stats, match);
 
-  const isFinished = match.status === 'FINAL' || (!match.isLive && match.status && !match.status.includes('EN VIVO') && !match.status.includes('DESCANSO'));
+  const statusStr = String(match.status || '');
+  const isPrevia = statusStr.includes('PREVIA') || statusStr.includes('CALENTAMIENTO');
+  const isFinished = !isPrevia && (statusStr === 'FINAL' || (!match.isLive && !statusStr.includes('EN VIVO') && !statusStr.includes('DESCANSO')));
   updateHeaderActionButton(isFinished);
   renderLineups(match.lineups, match.homeTeam, match.awayTeam);
 }
@@ -413,14 +423,18 @@ export function renderStats(stats = {}, match = DEFAULT_MATCH_DATA) {
   // Determinar minuto efectivo del partido (1..90) para escalar métricas acumulativas
   let elapsedMinute = 90;
   const statusStr = String(match?.status || 'FINAL');
-  if (statusStr === 'DESCANSO') {
+  const isPrevia = statusStr.includes('PREVIA') || statusStr.includes('CALENTAMIENTO') || (!match?.isLive && events.length === 0 && (homeScore + awayScore) === 0 && !statusStr.includes('FINAL'));
+
+  if (isPrevia) {
+    elapsedMinute = 0;
+  } else if (statusStr === 'DESCANSO') {
     elapsedMinute = 45;
   } else if (match?.isLive || statusStr.includes('EN VIVO')) {
     const parsedMin = parseInt(statusStr.replace(/[^\d]/g, ''), 10);
     const maxEventMin = events.reduce((max, ev) => Math.max(max, Number(ev.minute) || 0), 0);
     elapsedMinute = Math.max(1, parsedMin || currentSimulatedMinute || maxEventMin || 1);
   }
-  const progress = Math.max(0, Math.min(1, elapsedMinute <= 1 && match?.isLive ? 0.02 : elapsedMinute / 90));
+  const progress = isPrevia ? 0 : Math.max(0, Math.min(1, elapsedMinute <= 1 && match?.isLive ? 0.02 : elapsedMinute / 90));
 
   // Contabilizar eventos reales de la cronología
   let homeYellows = 0;
@@ -451,75 +465,75 @@ export function renderStats(stats = {}, match = DEFAULT_MATCH_DATA) {
   });
 
   // 1. Posesión
-  const possHome = Number(stats.possession?.home ?? 50);
-  const possAway = Number(stats.possession?.away ?? (100 - possHome));
+  const possHome = isPrevia ? 50 : Number(stats.possession?.home ?? 50);
+  const possAway = isPrevia ? 50 : Number(stats.possession?.away ?? (100 - possHome));
 
   // 2. Tiros a puerta y desglose de tiros totales
-  const rawShotsHome = Number(stats.shots?.home ?? 0);
-  const rawShotsAway = Number(stats.shots?.away ?? 0);
-  const shotsTargetHome = Math.max(homeScore, rawShotsHome);
-  const shotsTargetAway = Math.max(awayScore, rawShotsAway);
+  const rawShotsHome = isPrevia ? 0 : Number(stats.shots?.home ?? 0);
+  const rawShotsAway = isPrevia ? 0 : Number(stats.shots?.away ?? 0);
+  const shotsTargetHome = isPrevia ? 0 : Math.max(homeScore, rawShotsHome);
+  const shotsTargetAway = isPrevia ? 0 : Math.max(awayScore, rawShotsAway);
 
-  const shotsOffHome = elapsedMinute <= 1 && match?.isLive && shotsTargetHome === 0
+  const shotsOffHome = (isPrevia || (elapsedMinute <= 1 && match?.isLive && shotsTargetHome === 0))
     ? 0
     : Math.max(0, Math.round(shotsTargetHome * 0.65 + homeCornerEvents * 0.5 + progress * 1.5));
-  const shotsOffAway = elapsedMinute <= 1 && match?.isLive && shotsTargetAway === 0
+  const shotsOffAway = (isPrevia || (elapsedMinute <= 1 && match?.isLive && shotsTargetAway === 0))
     ? 0
     : Math.max(0, Math.round(shotsTargetAway * 0.65 + awayCornerEvents * 0.5 + progress * 1.2));
 
-  const shotsBlockedHome = elapsedMinute <= 1 && match?.isLive && shotsTargetHome === 0
+  const shotsBlockedHome = (isPrevia || (elapsedMinute <= 1 && match?.isLive && shotsTargetHome === 0))
     ? 0
     : Math.max(0, Math.round(shotsTargetHome * 0.28 + homeFreekicks * 0.5));
-  const shotsBlockedAway = elapsedMinute <= 1 && match?.isLive && shotsTargetAway === 0
+  const shotsBlockedAway = (isPrevia || (elapsedMinute <= 1 && match?.isLive && shotsTargetAway === 0))
     ? 0
     : Math.max(0, Math.round(shotsTargetAway * 0.28 + awayFreekicks * 0.5));
 
-  const totalShotsHome = shotsTargetHome + shotsOffHome + shotsBlockedHome;
-  const totalShotsAway = shotsTargetAway + shotsOffAway + shotsBlockedAway;
+  const totalShotsHome = isPrevia ? 0 : (shotsTargetHome + shotsOffHome + shotsBlockedHome);
+  const totalShotsAway = isPrevia ? 0 : (shotsTargetAway + shotsOffAway + shotsBlockedAway);
 
   // 3. Goles Esperados (xG) y Ocasiones Claras
-  const xgHomeVal = elapsedMinute <= 1 && match?.isLive && totalShotsHome === 0
+  const xgHomeVal = (isPrevia || (elapsedMinute <= 1 && match?.isLive && totalShotsHome === 0))
     ? 0
     : (homeScore * 0.44 + shotsTargetHome * 0.15 + shotsOffHome * 0.05 + shotsBlockedHome * 0.03);
-  const xgAwayVal = elapsedMinute <= 1 && match?.isLive && totalShotsAway === 0
+  const xgAwayVal = (isPrevia || (elapsedMinute <= 1 && match?.isLive && totalShotsAway === 0))
     ? 0
     : (awayScore * 0.44 + shotsTargetAway * 0.15 + shotsOffAway * 0.05 + shotsBlockedAway * 0.03);
 
-  const bigChancesHome = Math.max(homeScore, Math.round(homeScore + (shotsTargetHome - homeScore) * 0.4));
-  const bigChancesAway = Math.max(awayScore, Math.round(awayScore + (shotsTargetAway - awayScore) * 0.4));
+  const bigChancesHome = isPrevia ? 0 : Math.max(homeScore, Math.round(homeScore + (shotsTargetHome - homeScore) * 0.4));
+  const bigChancesAway = isPrevia ? 0 : Math.max(awayScore, Math.round(awayScore + (shotsTargetAway - awayScore) * 0.4));
 
   // 4. Córners
-  const cornersHome = Math.max(homeCornerEvents, Math.round(homeCornerEvents + shotsOffHome * 0.5 + shotsBlockedHome * 0.5));
-  const cornersAway = Math.max(awayCornerEvents, Math.round(awayCornerEvents + shotsOffAway * 0.5 + shotsBlockedAway * 0.5));
+  const cornersHome = isPrevia ? 0 : Math.max(homeCornerEvents, Math.round(homeCornerEvents + shotsOffHome * 0.5 + shotsBlockedHome * 0.5));
+  const cornersAway = isPrevia ? 0 : Math.max(awayCornerEvents, Math.round(awayCornerEvents + shotsOffAway * 0.5 + shotsBlockedAway * 0.5));
 
   // 5. Pases y Precisión
-  const baseTotalPasses = Math.round(840 * progress);
-  const passesHome = Math.max(0, Math.round(baseTotalPasses * (possHome / 100)));
-  const passesAway = Math.max(0, Math.round(baseTotalPasses * (possAway / 100)));
+  const baseTotalPasses = isPrevia ? 0 : Math.round(840 * progress);
+  const passesHome = isPrevia ? 0 : Math.max(0, Math.round(baseTotalPasses * (possHome / 100)));
+  const passesAway = isPrevia ? 0 : Math.max(0, Math.round(baseTotalPasses * (possAway / 100)));
 
-  const passAccPctHome = Math.min(93, Math.max(76, Math.round(80 + (possHome - 50) * 0.35 + (homeScore > awayScore ? 2 : 0))));
-  const passAccPctAway = Math.min(92, Math.max(74, Math.round(80 + (possAway - 50) * 0.35 + (awayScore > homeScore ? 2 : 0))));
-  const completedPassesHome = Math.round(passesHome * (passAccPctHome / 100));
-  const completedPassesAway = Math.round(passesAway * (passAccPctAway / 100));
+  const passAccPctHome = isPrevia ? 0 : Math.min(93, Math.max(76, Math.round(80 + (possHome - 50) * 0.35 + (homeScore > awayScore ? 2 : 0))));
+  const passAccPctAway = isPrevia ? 0 : Math.min(92, Math.max(74, Math.round(80 + (possAway - 50) * 0.35 + (awayScore > homeScore ? 2 : 0))));
+  const completedPassesHome = isPrevia ? 0 : Math.round(passesHome * (passAccPctHome / 100));
+  const completedPassesAway = isPrevia ? 0 : Math.round(passesAway * (passAccPctAway / 100));
 
-  const finalThirdPctHome = Math.min(78, Math.max(42, Math.round(52 + (possHome - 50) * 0.45 + shotsTargetHome * 1.4)));
-  const finalThirdPctAway = Math.min(76, Math.max(38, Math.round(50 + (possAway - 50) * 0.45 + shotsTargetAway * 1.4)));
+  const finalThirdPctHome = isPrevia ? 0 : Math.min(78, Math.max(42, Math.round(52 + (possHome - 50) * 0.45 + shotsTargetHome * 1.4)));
+  const finalThirdPctAway = isPrevia ? 0 : Math.min(76, Math.max(38, Math.round(50 + (possAway - 50) * 0.45 + shotsTargetAway * 1.4)));
 
   // 6. Defensa e Intensidad
-  const duelsHomePct = Math.min(68, Math.max(35, Math.round(50 + (possHome - 50) * 0.3 + (homeScore - awayScore) * 3)));
+  const duelsHomePct = isPrevia ? 50 : Math.min(68, Math.max(35, Math.round(50 + (possHome - 50) * 0.3 + (homeScore - awayScore) * 3)));
   const duelsAwayPct = 100 - duelsHomePct;
 
-  const recoveriesHome = Math.max(0, Math.round((42 + (possHome >= 50 ? 4 : -2)) * progress));
-  const recoveriesAway = Math.max(0, Math.round((39 + (possAway > 50 ? 4 : -2)) * progress));
+  const recoveriesHome = isPrevia ? 0 : Math.max(0, Math.round((42 + (possHome >= 50 ? 4 : -2)) * progress));
+  const recoveriesAway = isPrevia ? 0 : Math.max(0, Math.round((39 + (possAway > 50 ? 4 : -2)) * progress));
 
-  const savesHome = Math.max(homeSaveEvents, Math.max(0, shotsTargetAway - awayScore));
-  const savesAway = Math.max(awaySaveEvents, Math.max(0, shotsTargetHome - homeScore));
+  const savesHome = isPrevia ? 0 : Math.max(homeSaveEvents, Math.max(0, shotsTargetAway - awayScore));
+  const savesAway = isPrevia ? 0 : Math.max(awaySaveEvents, Math.max(0, shotsTargetHome - homeScore));
 
   // 7. Disciplina
-  const foulsHome = Number(stats.fouls?.home ?? 0);
-  const foulsAway = Number(stats.fouls?.away ?? 0);
-  const offsidesHome = Math.max(0, Math.round((1 + shotsTargetHome * 0.22) * progress));
-  const offsidesAway = Math.max(0, Math.round((1 + shotsTargetAway * 0.25) * progress));
+  const foulsHome = isPrevia ? 0 : Number(stats.fouls?.home ?? 0);
+  const foulsAway = isPrevia ? 0 : Number(stats.fouls?.away ?? 0);
+  const offsidesHome = isPrevia ? 0 : Math.max(0, Math.round((1 + shotsTargetHome * 0.22) * progress));
+  const offsidesAway = isPrevia ? 0 : Math.max(0, Math.round((1 + shotsTargetAway * 0.25) * progress));
 
   // 8. Actualizar Jugador del Partido (MVP en Vivo)
   updateLiveStatsMvpCard(match, events, homeScore, awayScore, savesHome, savesAway, elapsedMinute);
@@ -706,6 +720,29 @@ function resolveMvpPlayerPhotoUrl(playerObj, playerName = '') {
 }
 
 function updateLiveStatsMvpCard(match, events, homeScore, awayScore, savesHome, savesAway, elapsedMinute) {
+  const isPrevia = elapsedMinute === 0 || String(match?.status || '').includes('PREVIA') || String(match?.status || '').includes('CALENTAMIENTO');
+  if (isPrevia) {
+    const mvpCardEl = document.getElementById('stats-mvp-card');
+    if (mvpCardEl) {
+      mvpCardEl.classList.remove('stats-mvp-card--home', 'stats-mvp-card--away');
+    }
+    setElementText('stats-mvp-overline', 'Jugador del Partido');
+    const teamBadgeEl = document.getElementById('stats-mvp-team-badge');
+    if (teamBadgeEl) {
+      teamBadgeEl.textContent = 'En espera';
+      teamBadgeEl.className = 'stats-mvp-team-badge';
+    }
+    const avatarEl = document.getElementById('stats-mvp-avatar');
+    if (avatarEl) {
+      avatarEl.innerHTML = `<span style="font-size:22px; line-height: 48px; display: block; text-align: center;">⚽</span>`;
+    }
+    setElementText('stats-mvp-badge', 'Previa');
+    setElementText('stats-mvp-name', 'Por definir');
+    setElementText('stats-mvp-summary', 'Se determinará al comenzar el encuentro');
+    setElementText('stats-mvp-rating', '-');
+    return;
+  }
+
   const homeStarters = match?.lineups?.home || match?.lineups?.homeStarters || DEFAULT_MATCH_DATA.lineups.home;
   const awayStarters = match?.lineups?.away || match?.lineups?.awayStarters || DEFAULT_MATCH_DATA.lineups.away;
   const homeBench = match?.lineups?.homeBench || [];
@@ -834,13 +871,32 @@ export function renderLineups(lineups = {}, homeTeam = {}, awayTeam = {}) {
     awayTitleEl.textContent = `${awayTeam.name || 'Equipo Rival'}${formationSuffix}`;
   }
 
-  const homeStarters = lineups.homeStarters || lineups.home || [];
-  const homeBench = lineups.homeBench || (DEFAULT_HOME_SQUAD.players ? DEFAULT_HOME_SQUAD.players.slice(6) : []);
+  const userPlayers = getUserSquad()?.players || DEFAULT_HOME_SQUAD.players;
+
+  const homeStarters = (lineups.homeStarters && lineups.homeStarters.length > 0)
+    ? lineups.homeStarters
+    : (lineups.home && lineups.home.length > 0)
+      ? lineups.home
+      : userPlayers.slice(0, 6);
+
+  const homeBench = (lineups.homeBench && lineups.homeBench.length > 0)
+    ? lineups.homeBench
+    : userPlayers.slice(6);
+
+  const awayStarters = (lineups.awayStarters && lineups.awayStarters.length > 0)
+    ? lineups.awayStarters
+    : (lineups.away && lineups.away.length > 0)
+      ? lineups.away
+      : DEFAULT_AWAY_SQUAD.players.slice(0, 6);
+
+  const awayBench = (lineups.awayBench && lineups.awayBench.length > 0)
+    ? lineups.awayBench
+    : DEFAULT_AWAY_SQUAD.players.slice(6);
 
   const homeListEl = document.getElementById('lineup-home-players');
   if (homeListEl) {
     let html = renderPlayerListItems(homeStarters);
-    if (homeBench.length > 0) {
+    if (homeBench && homeBench.length > 0) {
       html += `
         <li class="lineup-section-divider">
           <span class="lineup-section-subtitle">Suplentes</span>
@@ -851,13 +907,10 @@ export function renderLineups(lineups = {}, homeTeam = {}, awayTeam = {}) {
     homeListEl.innerHTML = html;
   }
 
-  const awayStarters = lineups.awayStarters || lineups.away || [];
-  const awayBench = lineups.awayBench || (DEFAULT_AWAY_SQUAD.players ? DEFAULT_AWAY_SQUAD.players.slice(6) : []);
-
   const awayListEl = document.getElementById('lineup-away-players');
   if (awayListEl) {
     let html = renderPlayerListItems(awayStarters);
-    if (awayBench.length > 0) {
+    if (awayBench && awayBench.length > 0) {
       html += `
         <li class="lineup-section-divider">
           <span class="lineup-section-subtitle">Suplentes</span>
@@ -871,12 +924,13 @@ export function renderLineups(lineups = {}, homeTeam = {}, awayTeam = {}) {
 
 function renderPlayerListItems(players = [], isBench = false) {
   const benchClass = isBench ? 'lineup-player-item--bench' : '';
-  return players
+  return (players || [])
+    .filter(Boolean)
     .map(
       (p) => `
       <li class="lineup-player-item ${benchClass}">
-        <span class="player-name">${p.name}</span>
-        <span class="player-role">${p.role || p.posicion_base || 'MC'}</span>
+        <span class="player-name">${p.name || p.nombre || 'Jugador'}</span>
+        <span class="player-role">${p.role || p.assignedRole || p.posicion_base || p.posicion || 'MC'}</span>
       </li>
     `
     )
@@ -1089,7 +1143,7 @@ export async function startLiveMatchPlayback() {
 
   // 1. Obtener la plantilla real del usuario y un rival CPU aleatorio de los equipos del sistema
   currentFullMatch = null;
-  const homeSquad = getUserSquad();
+  const homeSquad = getUserSquad() || DEFAULT_HOME_SQUAD;
   let awaySquad = null;
   try {
     const rawRival = sessionStorage.getItem('fantasy_selected_rival');
@@ -1101,15 +1155,22 @@ export async function startLiveMatchPlayback() {
   if (!awaySquad) {
     awaySquad = getRandomCpuTeam() || DEFAULT_AWAY_SQUAD;
   }
-  console.info(`[Match] Simulación en vivo contra CPU: ${homeSquad.name} vs ${awaySquad.name} (Formación: ${awaySquad.formation})`);
+  const homeName = homeSquad.name || homeSquad.team_name || 'Tu Equipo';
+  const awayName = awaySquad.name || awaySquad.team_name || 'Equipo Rival';
+  console.info(`[Match] Simulación en vivo contra rival: ${homeName} vs ${awayName} (Formación: ${awaySquad.formation || '1-2-2-1'})`);
+
+  const homeStarters = (homeSquad.players || []).slice(0, 6).filter(Boolean);
+  const homeBench = (homeSquad.players || []).slice(6).filter(Boolean);
+  const awayStarters = (awaySquad.players || []).slice(0, 6).filter(Boolean);
+  const awayBench = (awaySquad.players || []).slice(6).filter(Boolean);
 
   // Renderizar de inmediato 0-0 y los nombres reales para evitar parpadeos con valores anteriores
   renderMatchDetails({
     status: 'PREVIA',
     isLive: false,
-    homeTeam: { name: homeSquad.name, score: 0, formation: homeSquad.formation },
-    awayTeam: { name: awaySquad.name, score: 0, formation: awaySquad.formation },
-    liveAction: { team: homeSquad.name, status: 'CALENTAMIENTO' },
+    homeTeam: { name: homeName, score: 0, formation: homeSquad.formation || '1-2-2-1' },
+    awayTeam: { name: awayName, score: 0, formation: awaySquad.formation || '1-2-2-1' },
+    liveAction: { team: homeName, status: 'CALENTAMIENTO' },
     events: [],
     stats: {
       possession: { home: 50, away: 50, label: 'Posesión' },
@@ -1117,13 +1178,26 @@ export async function startLiveMatchPlayback() {
       fouls: { home: 0, away: 0, label: 'Faltas' }
     },
     lineups: {
-      home: (homeSquad.players || []).slice(0, 6).filter(Boolean),
-      away: (awaySquad.players || []).slice(0, 6).filter(Boolean)
+      homeStarters,
+      homeBench,
+      awayStarters,
+      awayBench,
+      home: homeStarters,
+      away: awayStarters
     }
   });
 
   // 2. Simulación (Backend con fallback local offline)
-  currentFullMatch = await matchService.simulateMatch(homeSquad, awaySquad);
+  try {
+    currentFullMatch = await matchService.simulateMatch(homeSquad, awaySquad);
+  } catch (err) {
+    console.warn('[Match] Error simulando con matchService, fallback local:', err);
+    currentFullMatch = simulateMatchEngine(homeSquad, awaySquad);
+  }
+
+  if (!currentFullMatch) {
+    currentFullMatch = simulateMatchEngine(homeSquad, awaySquad);
+  }
   window.__fantasyCurrentFullMatch = currentFullMatch;
   const snapshots = currentFullMatch.cycleSnapshots || [];
   let activeSnapshotIndex = -1;
@@ -1135,9 +1209,9 @@ export async function startLiveMatchPlayback() {
   renderMatchDetails({
     status: "EN VIVO 1'",
     isLive: true,
-    homeTeam: { name: homeSquad.name, score: 0, formation: homeSquad.formation },
-    awayTeam: { name: awaySquad.name, score: 0, formation: awaySquad.formation },
-    liveAction: { team: homeSquad.name, status: '¡PITIDO INICIAL! RUEDA EL BALÓN' },
+    homeTeam: { name: homeName, score: 0, formation: homeSquad.formation || '1-2-2-1' },
+    awayTeam: { name: awayName, score: 0, formation: awaySquad.formation || '1-2-2-1' },
+    liveAction: { team: homeName, status: '¡PITIDO INICIAL! RUEDA EL BALÓN' },
     events: [{ minute: 0, isPeriodBreak: true, label: 'INICIO DEL PARTIDO' }],
     stats: {
       possession: { home: 50, away: 50, label: 'Posesión' },
@@ -1148,6 +1222,30 @@ export async function startLiveMatchPlayback() {
   });
 
   const TICK_MS = 150; // Timing acelerado (~150ms por minuto simulado)
+
+  function triggerHalftimePause() {
+    // Detener temporalmente el reloj para el descanso
+    if (liveSimulationInterval) {
+      clearInterval(liveSimulationInterval);
+      liveSimulationInterval = null;
+      window.__fantasySimulationInterval = null;
+    }
+
+    const statusTextEl = document.getElementById('match-status-text');
+    if (statusTextEl) statusTextEl.textContent = 'DESCANSO';
+    const statusDot = document.getElementById('status-dot');
+    if (statusDot) statusDot.classList.remove('is-live');
+
+    // Pausa táctica de entretiempo (1.1 segundos) antes de reanudar el segundo tiempo
+    halftimeTimeout = setTimeout(() => {
+      if (!isMatchLive) return;
+      currentSimulatedMinute = 45; // El siguiente tick avanzará a 46'
+      if (statusDot) statusDot.classList.add('is-live');
+      liveSimulationInterval = setInterval(runSimulationTick, TICK_MS);
+      window.__fantasySimulationInterval = liveSimulationInterval;
+    }, 1100);
+    window.__fantasyHalftimeTimeout = halftimeTimeout;
+  }
 
   function runSimulationTick() {
     if (!isMatchLive) return;
@@ -1167,8 +1265,8 @@ export async function startLiveMatchPlayback() {
         renderMatchDetails({
           status: 'DESCANSO',
           isLive: false,
-          homeTeam: { name: homeSquad.name, score: step.homeScore, formation: homeSquad.formation },
-          awayTeam: { name: awaySquad.name, score: step.awayScore, formation: awaySquad.formation },
+          homeTeam: { name: homeName, score: step.homeScore, formation: homeSquad.formation },
+          awayTeam: { name: awayName, score: step.awayScore, formation: awaySquad.formation },
           liveAction: step.liveAction,
           events: step.events,
           stats: step.stats,
@@ -1176,44 +1274,9 @@ export async function startLiveMatchPlayback() {
         });
       }
 
-      // Detener temporalmente el reloj para el descanso
-      if (liveSimulationInterval) {
-        clearInterval(liveSimulationInterval);
-        liveSimulationInterval = null;
-      }
-
-      const statusTextEl = document.getElementById('match-status-text');
-      if (statusTextEl) statusTextEl.textContent = 'DESCANSO';
-      const statusDot = document.getElementById('status-dot');
-      if (statusDot) statusDot.classList.remove('is-live');
-
       triggerHalftimePause();
       return;
     }
-    function triggerHalftimePause() {
-      // Detener temporalmente el reloj para el descanso
-      if (liveSimulationInterval) {
-        clearInterval(liveSimulationInterval);
-        liveSimulationInterval = null;
-        window.__fantasySimulationInterval = null;
-      }
-
-      const statusTextEl = document.getElementById('match-status-text');
-      if (statusTextEl) statusTextEl.textContent = 'DESCANSO';
-      const statusDot = document.getElementById('status-dot');
-      if (statusDot) statusDot.classList.remove('is-live');
-
-      // Pausa táctica de entretiempo (1.1 segundos) antes de reanudar el segundo tiempo
-      halftimeTimeout = setTimeout(() => {
-        if (!isMatchLive) return;
-        currentSimulatedMinute = 45; // El siguiente tick avanzará a 46'
-        if (statusDot) statusDot.classList.add('is-live');
-        liveSimulationInterval = setInterval(runSimulationTick, TICK_MS);
-        window.__fantasySimulationInterval = liveSimulationInterval;
-      }, 1100);
-      window.__fantasyHalftimeTimeout = halftimeTimeout;
-    }
-
 
     // 2. Caso: Fin del partido al minuto 90
     if (currentSimulatedMinute >= 90) {
@@ -1225,8 +1288,8 @@ export async function startLiveMatchPlayback() {
         renderMatchDetails({
           status: 'FINAL',
           isLive: false,
-          homeTeam: { name: homeSquad.name, score: step.homeScore, formation: homeSquad.formation },
-          awayTeam: { name: awaySquad.name, score: step.awayScore, formation: awaySquad.formation },
+          homeTeam: { name: homeName, score: step.homeScore, formation: homeSquad.formation },
+          awayTeam: { name: awayName, score: step.awayScore, formation: awaySquad.formation },
           liveAction: step.liveAction,
           events: step.events,
           stats: step.stats,
@@ -1256,8 +1319,8 @@ export async function startLiveMatchPlayback() {
       renderMatchDetails({
         status: `EN VIVO ${currentSimulatedMinute}'`,
         isLive: true,
-        homeTeam: { name: homeSquad.name, score: step.homeScore, formation: homeSquad.formation },
-        awayTeam: { name: awaySquad.name, score: step.awayScore, formation: awaySquad.formation },
+        homeTeam: { name: homeName, score: step.homeScore, formation: homeSquad.formation },
+        awayTeam: { name: awayName, score: step.awayScore, formation: awaySquad.formation },
         liveAction: step.liveAction,
         events: step.events,
         stats: step.stats,
@@ -1275,7 +1338,7 @@ export async function startLiveMatchPlayback() {
 
         const goalInfo = {
           player: goalEvent?.player || '',
-          team: goalEvent?.side === 'home' ? homeSquad.name : (goalEvent?.side === 'away' ? awaySquad.name : ''),
+          team: goalEvent?.side === 'home' ? homeName : (goalEvent?.side === 'away' ? awayName : ''),
           minute: goalEvent?.minute || step.minute || currentSimulatedMinute
         };
 
