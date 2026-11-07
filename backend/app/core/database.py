@@ -326,6 +326,26 @@ def _ensure_optimized_schema():
                     if col_name not in p_cols:
                         conn.execute(text(f"ALTER TABLE partidos ADD COLUMN {col_name} {col_def}"))
 
+        # 1.4 En MySQL / TiDB asegurar AUTO_ID_CACHE = 1 en todas las tablas con AUTO_INCREMENT
+        # para forzar IDs estrictamente secuenciales (1, 2, 3...) y evitar los saltos en bloques de 4000 de TiDB
+        if engine.dialect.name == "mysql":
+            tidb_tables = [
+                "users",
+                "players",
+                "user_players",
+                "plantillas",
+                "plantilla_jugadores",
+                "partidos",
+                "eventos_partido",
+            ]
+            with engine.begin() as conn:
+                for t_name in tidb_tables:
+                    if t_name in existing_tables:
+                        try:
+                            conn.execute(text(f"ALTER TABLE {t_name} AUTO_ID_CACHE = 1"))
+                        except Exception as tidb_err:
+                            logger.debug(f"Aviso al configurar AUTO_ID_CACHE en {t_name}: {tidb_err}")
+
     except Exception as mig_err:
         logger.warning(f"Aviso durante verificación de esquema optimizado: {mig_err}")
 
