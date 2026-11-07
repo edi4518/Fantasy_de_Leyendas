@@ -1602,8 +1602,6 @@ function showMatchResultModal(match) {
   } else {
     pointsText = fallbackPoints;
   }
-  const rankText = saveOutcome?.currentStats?.ranking ? `#${saveOutcome.currentStats.ranking}` : (isWin ? '#428' : '#430');
-
   openMatchResultModal(
     {
       homeTeam: homeTeamName,
@@ -1622,7 +1620,7 @@ function showMatchResultModal(match) {
       },
       ranking: {
         pointsGained: pointsText,
-        currentRank: rankText
+        currentRank: '—'
       }
     },
     {
@@ -1639,6 +1637,7 @@ function showMatchResultModal(match) {
       }
     }
   );
+  updateModalRankAfterPersistence(saveOutcome);
   } catch (modalError) {
     console.error('[Match] Error procesando showMatchResultModal:', modalError);
     // Modal de rescate asegurado para garantizar visualización
@@ -1663,7 +1662,7 @@ function showMatchResultModal(match) {
       },
       ranking: {
         pointsGained: isWin ? '+25 Puntos' : (isLoss ? '-15 Puntos' : '+5 Puntos'),
-        currentRank: '#430'
+        currentRank: '—'
       }
     }, {
       onNextMatch: () => {
@@ -1678,7 +1677,21 @@ function showMatchResultModal(match) {
         if (window.router && window.router.navigate) window.router.navigate('/dashboard'); else window.location.href = '/dashboard';
       }
     });
+    updateModalRankAfterPersistence(match?.saveOutcome);
   }
+}
+
+function updateModalRankAfterPersistence(saveOutcome) {
+  const persistencePromise = saveOutcome?.persistencePromise;
+  if (!persistencePromise || typeof persistencePromise.then !== 'function') return;
+
+  persistencePromise.then((result) => {
+    if (!Number.isInteger(result?.current_rank) || result.current_rank < 1) return;
+    const rankElement = document.getElementById('modal-current-rank');
+    if (rankElement) rankElement.textContent = `#${result.current_rank}`;
+  }).catch((error) => {
+    console.error('[Match] No se pudo actualizar la posición del modal:', error);
+  });
 }
 
 export function formatHistoryMatchToDetail(item = {}) {

@@ -269,11 +269,12 @@
   color: #D97706;
 }
 
-.matchmaking-container .dot {
+.matchmaking-container .matchmaking-dot {
+  display: inline-block;
   width: 7px;
   height: 7px;
+  flex: 0 0 7px;
   border-radius: 50%;
-  display: inline-block;
 }
 
 .matchmaking-container .user-dot {

@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.api.routes.ranking import get_user_rank, invalidate_leaderboard_cache
 from app.models.match import EventoPartido, Partido
 from app.models.player import Player
 from app.models.squad import Plantilla, UserPlayer
@@ -319,6 +320,8 @@ def record_finished_match(
 
     db.commit()
     db.refresh(user)
+    invalidate_leaderboard_cache()
+    current_rank = get_user_rank(db, user.id)
 
     return {
         "status": "recorded",
@@ -327,6 +330,7 @@ def record_finished_match(
         "resultado": res_label,
         "variacion_elo": elo_var_local,
         "nuevo_elo": user.elo_rating,
+        "current_rank": current_rank,
         "record": {
             "partidos_jugados": user.partidos_jugados,
             "victorias": user.victorias,

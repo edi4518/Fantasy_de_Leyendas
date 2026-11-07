@@ -10,7 +10,7 @@
 import { getRandomCpuTeam } from '../../domain/cpu-teams.js';
 import { isTacticalCounter, FORMATIONS_6V6 } from '../../domain/formation-rules.js';
 import { matchService } from '../../services/match-service.js';
-
+import { getUnifiedLeaderboard, getUserRankInfo } from '../../services/ranking-service.js';
 
 let matchmakingTimer = null;
 let navigationExecuted = false;
@@ -38,7 +38,7 @@ export async function initMatchmaking(router) {
   // 2. Obtener un rival real de los usuarios registrados en el backend
   let awaySquad = null;
   try {
-    const userRaw = localStorage.getItem('fantasy_logged_user');
+    const userRaw = localStorage.getItem('user') || localStorage.getItem('fantasy_logged_user');
     const userObj = userRaw ? JSON.parse(userRaw) : null;
     const realOpponents = await matchService.getCpuOpponents();
     if (Array.isArray(realOpponents) && realOpponents.length > 0) {
@@ -83,8 +83,8 @@ export async function initMatchmaking(router) {
   const awayStats = calculateTeamMetrics(awaySquad);
 
   // 4. Renderizar cabecera y versus (soporta tanto IDs del template v1 como v2)
-  renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats);
-
+// 4. Renderizar cabecera y versus conectando con la base de datos
+  await renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats);
   // 5. Renderizar comparativa táctica divergente
   renderTacticalComparison(homeStats, awayStats, homeSquad, awaySquad);
 
@@ -227,7 +227,7 @@ export function calculateTeamMetrics(squad) {
   };
 }
 
-function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
+async function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
   // Datos locales (Soporta IDs de ambas plantillas)
   const homeNameEl = document.getElementById('user-name') || document.getElementById('home-team-name');
   const homeManagerEl = document.getElementById('user-owner') || document.getElementById('home-manager-name');
@@ -235,15 +235,49 @@ function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
   const homeRankEl = document.getElementById('user-rank') || document.getElementById('home-team-rank');
 
   let localManagerName = 'Tú';
-  let localRank = '#1';
+  let localRank = '-';
+
   try {
-    const rawUser = localStorage.getItem('user') || localStorage.getItem('fantasy_user');
-    if (rawUser) {
-      const u = JSON.parse(rawUser);
-      if (u.name || u.nombre) localManagerName = u.name || u.nombre;
-      if (u.ranking) localRank = `#${u.ranking}`;
+    const rawUser = localStorage.getItem('user') || localStorage.getItem('fantasy_logged_user') || localStorage.getItem('fantasy_user');
+    const savedUser = rawUser ? JSON.parse(rawUser) : {};
+    const teamName = localStorage.getItem('team_name') || savedUser.team_name || homeSquad.name || 'Tu Equipo';
+
+    if (savedUser.name || savedUser.nombre) {
+      localManagerName = savedUser.name || savedUser.nombre;
+    } else if (savedUser.first_name) {
+      localManagerName = `${savedUser.first_name} ${savedUser.last_name || ''}`.trim();
     }
-  } catch (e) { }
+
+    // Obtenemos la tabla global unificada desde TiDB Cloud mediante el servicio
+    const combinedEntries = await getUnifiedLeaderboard();
+
+    // Verificamos si el usuario ya disputó partidos buscando su entrada unificada (por ID, email o club)
+    const myEntry = combinedEntries.find(e =>
+      (savedUser?.id && e.userId && Number(e.userId) === Number(savedUser.id)) ||
+      (savedUser?.email && e.email && e.email.toLowerCase() === savedUser.email.toLowerCase()) ||
+      (teamName && e.team_name && e.team_name.toLowerCase() === teamName.toLowerCase())
+    );
+
+    let rawStats = null;
+    try {
+      const raw = localStorage.getItem('fantasy_user_stats');
+      if (raw) rawStats = JSON.parse(raw);
+    } catch (_) {}
+
+    const hasPlayed = Boolean(
+      (myEntry && myEntry.has_played) ||
+      (rawStats && rawStats.matchesPlayed > 0) ||
+      (savedUser && savedUser.partidos_jugados > 0)
+    );
+
+    // Calculamos el rank exacto utilizando la misma función oficial del ranking global
+    const rankInfo = getUserRankInfo(combinedEntries, savedUser, teamName, hasPlayed);
+    if (rankInfo && rankInfo.displayRank) {
+      localRank = rankInfo.displayRank; // Ej: "#1", "#3", o "-" si no ha jugado
+    }
+  } catch (e) {
+    console.debug('[Matchmaking] Error obteniendo el rank real del usuario:', e);
+  }
 
   if (homeNameEl) homeNameEl.textContent = homeSquad.name || 'Tu Equipo';
   if (homeManagerEl) homeManagerEl.textContent = localManagerName;
@@ -501,8 +535,10 @@ function calculateTacticalFactor(homeStats, awayStats, homeSquad, awaySquad) {
 }
 
 // Fallback por si la pantalla se carga fuera del router SPA
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('btn-start-match')) {
-    initMatchmaking(window.router);
-  }
-});
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('btn-start-match')) {
+      initMatchmaking(window.router);
+    }
+  });
+}

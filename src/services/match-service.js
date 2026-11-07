@@ -210,6 +210,7 @@ export const matchService = {
     const statsResult = this.recordPlayerMatchStats(matchData);
 
     // 4. Persistir el resultado oficial, MVP, estadísticas cara a cara, eventos y stamina en MySQL
+    let persistencePromise = null;
     try {
       let currentUserId = null;
       const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -224,7 +225,7 @@ export const matchService = {
         }
       } catch (_) {}
 
-      apiClient.post('/matches/record', {
+      persistencePromise = apiClient.post('/matches/record', {
         rival_name: matchData.awayTeam.name || 'Leyendas Rival',
         home_score: homeScore,
         away_score: awayScore,
@@ -242,21 +243,41 @@ export const matchService = {
           try {
             const u = JSON.parse(localStorage.getItem('user') || '{}');
             u.elo_rating = res.nuevo_elo;
+            if (res.record?.partidos_jugados !== undefined) {
+              u.partidos_jugados = res.record.partidos_jugados;
+            }
             localStorage.setItem('user', JSON.stringify(u));
           } catch (_) {}
+        }
+        if (Number.isInteger(res?.current_rank) && res.current_rank > 0) {
+          try {
+            const rawStats = localStorage.getItem(STORAGE_KEYS.STATS);
+            const updatedStats = rawStats ? JSON.parse(rawStats) : {};
+            updatedStats.ranking = res.current_rank;
+            localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(updatedStats));
+            if (matchData.saveOutcome?.currentStats) {
+              matchData.saveOutcome.currentStats.ranking = res.current_rank;
+            }
+          } catch (err) {
+            console.warn('[MatchService] Error guardando la posición actual:', err);
+          }
         }
         console.debug('[MatchService] Partido guardado en MySQL exitosamente:', res);
       }).catch((err) => {
         console.debug('[MatchService] Guardado en MySQL omitido (modo local):', err.message);
+        return null;
       });
-    } catch (_) {}
+    } catch (err) {
+      console.error('[MatchService] No se pudo iniciar el guardado del partido:', err);
+    }
 
     const outcome = {
       resultType,
       pointsGained,
       currentStats,
       playerStats: statsResult.stats,
-      matchMvp: statsResult.matchMvp
+      matchMvp: statsResult.matchMvp,
+      persistencePromise
     };
     matchData.saveOutcome = outcome;
     return outcome;
