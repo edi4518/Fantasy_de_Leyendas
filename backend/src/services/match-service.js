@@ -232,7 +232,7 @@ export const matchService = {
         away_formation: matchData.awayTeam?.formation || '1-2-2-1',
         events: Array.isArray(matchData.events) ? matchData.events : [],
         stats: matchData.stats || {},
-        mvp: statsResult.matchMvp || null,
+        mvp: matchData.officialMvp || statsResult.matchMvp || null,
         squad_players: activeSquadPlayers,
         player_stats: statsResult.stats || {},
         user_id: currentUserId,
@@ -256,7 +256,7 @@ export const matchService = {
       pointsGained,
       currentStats,
       playerStats: statsResult.stats,
-      matchMvp: statsResult.matchMvp
+      matchMvp: matchData.officialMvp || statsResult.matchMvp
     };
     matchData.saveOutcome = outcome;
     return outcome;

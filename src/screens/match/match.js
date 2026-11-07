@@ -719,6 +719,177 @@ function resolveMvpPlayerPhotoUrl(playerObj, playerName = '') {
   return slug ? `${SUPABASE_PLAYERS_BASE_URL}${slug}.webp` : `${SUPABASE_PLAYERS_BASE_URL}lionel_messi.webp`;
 }
 
+/**
+ * Determina de forma canónica, unificada y 100% determinista la figura del encuentro (MVP).
+ * Garantiza coincidencia absoluta e inquebrantable entre la pestaña de Estadísticas y el pop-up de Resultado.
+ */
+export function determineOfficialMatchMvp(match) {
+  if (match?.officialMvp) {
+    return match.officialMvp;
+  }
+
+  const homeScore = match?.homeTeam?.score ?? 0;
+  const awayScore = match?.awayTeam?.score ?? 0;
+  const isLoss = homeScore < awayScore;
+  const isWin = homeScore > awayScore;
+
+  const homeTeamName = match?.homeTeam?.name || 'Tu Equipo';
+  const awayTeamName = match?.awayTeam?.name || 'Equipo Rival';
+
+  const events = Array.isArray(match?.events) ? match.events : [];
+  const homeStarters = match?.lineups?.home || match?.lineups?.homeStarters || DEFAULT_MATCH_DATA.lineups.home;
+  const awayStarters = match?.lineups?.away || match?.lineups?.awayStarters || DEFAULT_MATCH_DATA.lineups.away;
+  const homeBench = match?.lineups?.homeBench || [];
+  const awayBench = match?.lineups?.awayBench || [];
+
+  const homePool = [...homeStarters, ...homeBench];
+  const awayPool = [...awayStarters, ...awayBench];
+
+  // REGLA DE ORO DE COMPETICIÓN:
+  // - En DERROTA: El MVP DEBE PERTENECER AL EQUIPO RIVAL GANADOR.
+  // - En VICTORIA: El MVP DEBE PERTENECER AL EQUIPO LOCAL DEL USUARIO.
+  // - En EMPATE: Se evalúan ambos equipos para elegir al jugador con mayor impacto del partido.
+  let targetSide = isLoss ? 'away' : (isWin ? 'home' : 'both');
+
+  const candidates = [];
+
+  function evaluatePool(pool, side) {
+    pool.forEach((player) => {
+      if (!player || (!player.name && !player.nombre)) return;
+      const pName = player.name || player.nombre;
+      const role = (player.role || player.posicion_base || 'DEL').toUpperCase();
+      const baseRating = Number(player.rating_general || player.media_juego || 75);
+
+      // Goles anotados por este jugador en el encuentro
+      const playerGoals = events.filter((e) =>
+        e &&
+        e.side === side &&
+        (e.type === 'goal' || e.type === 'penalty-goal') &&
+        (e.player === pName || (e.player && (e.player.includes(pName) || pName.includes(e.player))))
+      ).length;
+
+      // Atajadas si es arquero
+      const playerSaves = events.filter((e) =>
+        e &&
+        e.side === side &&
+        e.type === 'save' &&
+        (e.player === pName || (e.player && (e.player.includes(pName) || pName.includes(e.player))))
+      ).length;
+
+      // Pases clave / tiros de esquina
+      const keyActions = events.filter((e) =>
+        e &&
+        e.side === side &&
+        (e.type === 'freekick' || e.type === 'corner') &&
+        (e.player === pName || (e.player && (e.player.includes(pName) || pName.includes(e.player))))
+      ).length;
+
+      // Cálculo compuesto de rendimiento
+      let impactScore = playerGoals * 12;
+      if (role === 'DEL') impactScore += 1.5;
+      else if (role === 'MC') impactScore += 1.2 + keyActions * 1.5;
+      else if (role === 'DEF') impactScore += (side === 'home' && awayScore === 0 ? 3.5 : (side === 'away' && homeScore === 0 ? 3.5 : 0));
+      else if (role === 'POR') impactScore += playerSaves * 2.5 + (side === 'home' && awayScore === 0 ? 4.5 : (side === 'away' && homeScore === 0 ? 4.5 : 0));
+
+      // Ponderación de jerarquía futbolística (ratings como Messi 99, Ronaldo 97 desempatan con justicia)
+      impactScore += baseRating * 0.05;
+
+      candidates.push({
+        player,
+        name: pName,
+        role,
+        side,
+        goals: playerGoals,
+        saves: playerSaves,
+        baseRating,
+        impactScore
+      });
+    });
+  }
+
+  if (targetSide === 'away') {
+    evaluatePool(awayPool, 'away');
+  } else if (targetSide === 'home') {
+    evaluatePool(homePool, 'home');
+  } else {
+    evaluatePool(homePool, 'home');
+    evaluatePool(awayPool, 'away');
+  }
+
+  // Ordenar candidatos por puntuación de impacto de forma descendente
+  candidates.sort((a, b) => b.impactScore - a.impactScore);
+
+  let best = candidates[0];
+  if (!best) {
+    const fallbackPool = targetSide === 'away' ? awayPool : homePool;
+    const fallbackPlayer = fallbackPool.find(p => p.role === 'DEL' || p.role === 'MC') || fallbackPool[0] || { name: 'Lionel Messi', role: 'DEL' };
+    best = {
+      player: fallbackPlayer,
+      name: fallbackPlayer.name || 'Lionel Messi',
+      role: fallbackPlayer.role || 'DEL',
+      side: targetSide === 'away' ? 'away' : 'home',
+      goals: targetSide === 'away' ? awayScore : homeScore,
+      saves: 0,
+      baseRating: 90,
+      impactScore: 10
+    };
+  }
+
+  const isRival = best.side === 'away';
+  const teamName = isRival ? awayTeamName : homeTeamName;
+  const isCleanSheet = isRival ? (homeScore === 0) : (awayScore === 0);
+
+  // Calificación del MVP (escala 8.4 a 9.8)
+  let ratingNum = 8.5;
+  if (best.goals >= 2) ratingNum = 9.4;
+  else if (best.goals === 1) ratingNum = 8.8;
+  else if (best.role === 'POR' && isCleanSheet) ratingNum = 9.0;
+  else if (isCleanSheet) ratingNum = 8.6;
+  else ratingNum = Math.min(9.5, Math.max(8.2, 8.2 + (best.baseRating - 75) * 0.03));
+
+  const ratingStr = ratingNum.toFixed(1);
+
+  // Resumen uniforme idéntico para pop-up y pestaña de estadísticas
+  let summary = '';
+  if (best.goals > 0) {
+    summary = `${best.goals} ${best.goals > 1 ? 'Goles anotados' : 'Gol anotado'} • 4 Regates exitosos`;
+  } else if (best.role === 'POR') {
+    summary = isCleanSheet ? 'Valla invicta y atajadas clave' : `${Math.max(1, best.saves)} Atajadas • Portería segura`;
+  } else if (best.role === 'MC') {
+    summary = 'Control del mediocampo y visión de juego';
+  } else if (best.role === 'DEF') {
+    summary = isCleanSheet ? 'Solidez defensiva y portería a cero' : 'Liderazgo y cortes defensivos';
+  } else {
+    summary = isRival ? 'Figura del triunfo rival' : 'Desmarque y presión ofensiva';
+  }
+
+  const avatarUrl = resolveMvpPlayerPhotoUrl(best.player, best.name);
+
+  const officialMvp = {
+    name: best.name,
+    role: best.role,
+    teamName,
+    isRival,
+    matchGoals: best.goals,
+    savesCount: best.saves,
+    cleanSheet: isCleanSheet,
+    matchRating: Number(ratingStr),
+    rating: Number(ratingStr),
+    summary,
+    stats: summary,
+    photoUrl: avatarUrl,
+    avatarUrl,
+    initials: safeGetInitials(best.name)
+  };
+
+  match.officialMvp = officialMvp;
+  if (match.saveOutcome) {
+    match.saveOutcome.matchMvp = officialMvp;
+  }
+
+  return officialMvp;
+}
+
 function updateLiveStatsMvpCard(match, events, homeScore, awayScore, savesHome, savesAway, elapsedMinute) {
   const isPrevia = elapsedMinute === 0 || String(match?.status || '').includes('PREVIA') || String(match?.status || '').includes('CALENTAMIENTO');
   if (isPrevia) {
@@ -740,6 +911,48 @@ function updateLiveStatsMvpCard(match, events, homeScore, awayScore, savesHome, 
     setElementText('stats-mvp-name', 'Por definir');
     setElementText('stats-mvp-summary', 'Se determinará al comenzar el encuentro');
     setElementText('stats-mvp-rating', '-');
+    return;
+  }
+
+  // Si el partido ya finalizó o estamos en el minuto 90, usamos el MVP oficial canónico
+  const isFinished = elapsedMinute >= 90 || String(match?.status || '') === 'FINAL' || (!match?.isLive && !String(match?.status || '').includes('EN VIVO') && !String(match?.status || '').includes('DESCANSO'));
+
+  if (isFinished) {
+    const officialMvp = determineOfficialMatchMvp(match);
+    const isHomeMvp = !officialMvp.isRival;
+
+    const mvpCardEl = document.getElementById('stats-mvp-card');
+    if (mvpCardEl) {
+      mvpCardEl.classList.toggle('stats-mvp-card--home', isHomeMvp);
+      mvpCardEl.classList.toggle('stats-mvp-card--away', !isHomeMvp);
+    }
+
+    setElementText(
+      'stats-mvp-overline',
+      isHomeMvp ? 'Jugador del Partido' : 'Jugador del Partido · Rival'
+    );
+
+    const teamBadgeEl = document.getElementById('stats-mvp-team-badge');
+    if (teamBadgeEl) {
+      teamBadgeEl.textContent = officialMvp.teamName;
+      teamBadgeEl.className = `stats-mvp-team-badge ${isHomeMvp ? 'stats-mvp-team-badge--home' : 'stats-mvp-team-badge--away'}`;
+    }
+
+    const avatarEl = document.getElementById('stats-mvp-avatar');
+    if (avatarEl) {
+      avatarEl.innerHTML = `<img src="${officialMvp.photoUrl}" alt="${officialMvp.name}" class="stats-mvp-avatar__img" loading="lazy" />`;
+      const imgEl = avatarEl.querySelector('img');
+      if (imgEl) {
+        imgEl.addEventListener('error', () => {
+          avatarEl.textContent = officialMvp.initials;
+        }, { once: true });
+      }
+    }
+
+    setElementText('stats-mvp-badge', 'Final');
+    setElementText('stats-mvp-name', officialMvp.name);
+    setElementText('stats-mvp-summary', officialMvp.summary);
+    setElementText('stats-mvp-rating', officialMvp.matchRating.toFixed(1));
     return;
   }
 
@@ -1492,107 +1705,15 @@ function showMatchResultModal(match) {
   const awayTeamName = match.awayTeam?.name || 'Equipo Rival';
   const homeTeamName = match.homeTeam?.name || 'Tu Equipo';
 
-  // REGLA DE ORO DE COMPETICIÓN:
-  // Si el usuario pierde el partido (DERROTA), el MVP DEBE PERTENECER AL EQUIPO RIVAL GANADOR
-  if (isLoss) {
-    if (!matchMvp || !matchMvp.isRival) {
-      const awayGoalEvents = (match.events || []).filter(e =>
-        e.side === 'away' && (e.type === 'goal' || e.type === 'penalty-goal')
-      );
-      const awayStarters = match.lineups?.away || match.lineups?.awayStarters || [];
+  // OBTENER LA FIGURA DEL ENCUENTRO OFICIAL (100% UNIFICADA CON LA PESTAÑA DE ESTADÍSTICAS)
+  const officialMvp = determineOfficialMatchMvp(match);
 
-      let topScorer = null;
-      let maxGoals = 0;
-      if (awayGoalEvents.length > 0) {
-        const counts = {};
-        awayGoalEvents.forEach(e => {
-          const n = e.player || 'Delantero Rival';
-          counts[n] = (counts[n] || 0) + 1;
-          if (counts[n] > maxGoals) { maxGoals = counts[n]; topScorer = n; }
-        });
-      }
-
-      if (!topScorer) {
-        const fwd = awayStarters.find(p => p.role === 'DEL') || awayStarters[awayStarters.length - 1];
-        topScorer = fwd?.name || 'Goleador Rival';
-        maxGoals = Math.max(1, awayScore);
-      }
-
-      const foundRival = awayStarters.find(p => p.name === topScorer);
-      matchMvp = {
-        name: topScorer,
-        role: foundRival?.role || 'DEL',
-        matchRating: maxGoals >= 2 ? 9.3 : 8.8,
-        matchGoals: maxGoals,
-        savesCount: 0,
-        cleanSheet: homeScore === 0,
-        goalsConceded: homeScore,
-        isRival: true,
-        teamName: awayTeamName
-      };
-    }
-  } else if (isWin) {
-    if (!matchMvp || matchMvp.isRival) {
-      const homeStarters = match.lineups?.home || match.lineups?.homeStarters || [];
-      const leader = homeStarters.find(p => p.role === 'DEL' || p.role === 'MC') || homeStarters[0] || { name: 'Messi', role: 'DEL' };
-      matchMvp = {
-        name: leader.name,
-        role: leader.role || 'DEL',
-        matchRating: 9.2,
-        matchGoals: Math.max(1, homeScore),
-        savesCount: 0,
-        cleanSheet: awayScore === 0,
-        goalsConceded: awayScore,
-        isRival: false,
-        teamName: homeTeamName
-      };
-    }
-  }
-
-  const isRivalMvp = Boolean(matchMvp?.isRival);
-  const mvpName = matchMvp?.name || (isRivalMvp ? awayTeamName : 'Messi');
-  const mvpRating = matchMvp?.matchRating || (isWin ? 9.2 : (isLoss ? 9.0 : 8.0));
-  const mvpTeamName = matchMvp?.teamName || (isRivalMvp ? awayTeamName : homeTeamName);
-
-  const homePool = [...(match.lineups?.home || match.lineups?.homeStarters || []), ...(match.lineups?.homeBench || [])];
-  const awayPool = [...(match.lineups?.away || match.lineups?.awayStarters || []), ...(match.lineups?.awayBench || [])];
-  const primaryPool = isRivalMvp ? awayPool : homePool;
-  const allPool = [...primaryPool, ...homePool, ...awayPool];
-  const mvpPlayerObj =
-    primaryPool.find((p) => p?.name && (p.name === mvpName || mvpName.includes(p.name) || p.name.includes(mvpName))) ||
-    allPool.find((p) => p?.name && (p.name === mvpName || mvpName.includes(p.name) || p.name.includes(mvpName))) ||
-    matchMvp ||
-    null;
-  const mvpAvatarUrl = resolveMvpPlayerPhotoUrl(mvpPlayerObj, mvpName);
-
-  let mvpStats = 'Rendimiento destacado';
-  if (isRivalMvp) {
-    if (matchMvp?.matchGoals > 0) {
-      mvpStats = `${matchMvp.matchGoals} ${matchMvp.matchGoals > 1 ? 'Goles anotados' : 'Gol anotado'}`;
-    } else if (matchMvp?.role === 'POR') {
-      mvpStats = matchMvp.cleanSheet ? 'Valla invicta y atajadas clave' : `${matchMvp.savesCount || 2} atajadas clave`;
-    } else {
-      mvpStats = 'Figura del triunfo rival';
-    }
-  } else {
-    if (matchMvp?.role === 'POR') {
-      const isCleanSheet = awayScore === 0;
-      const saves = matchMvp.savesCount || 0;
-      if (isCleanSheet) {
-        mvpStats = saves > 0 ? `Valla invicta y ${saves} ${saves === 1 ? 'atajada clave' : 'atajadas clave'}` : 'Valla invicta';
-      } else {
-        mvpStats = saves > 0 ? `${saves} ${saves === 1 ? 'atajada clave' : 'atajadas clave'}` : 'Seguridad bajo los tres palos';
-      }
-    } else if (matchMvp?.matchGoals > 0) {
-      mvpStats = `${matchMvp.matchGoals} ${matchMvp.matchGoals > 1 ? 'Goles anotados' : 'Gol anotado'}`;
-    } else if (matchMvp?.role === 'DEL') {
-      mvpStats = 'Desmarque y presión ofensiva';
-    } else if (matchMvp?.role === 'MC') {
-      mvpStats = 'Control del mediocampo y visión de juego';
-    } else if (matchMvp?.role === 'DEF') {
-      mvpStats = awayScore === 0 ? 'Solidez y portería a cero' : 'Liderazgo y cortes defensivos';
-    }
-  }
+  const isRivalMvp = Boolean(officialMvp?.isRival);
+  const mvpName = officialMvp?.name || (isRivalMvp ? awayTeamName : 'Messi');
+  const mvpRating = officialMvp?.matchRating || (isWin ? 9.2 : (isLoss ? 8.8 : 8.0));
+  const mvpTeamName = officialMvp?.teamName || (isRivalMvp ? awayTeamName : homeTeamName);
+  const mvpAvatarUrl = officialMvp?.avatarUrl || resolveMvpPlayerPhotoUrl(null, mvpName);
+  const mvpStats = officialMvp?.summary || officialMvp?.stats || 'Rendimiento destacado';
 
   let pointsText;
   if (saveOutcome && typeof saveOutcome.pointsGained === 'number') {
