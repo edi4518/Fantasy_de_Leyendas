@@ -994,3 +994,137 @@
   border: var(--border-width-thin) solid var(--color-border);
   border-radius: var(--radius-md);
 }
+
+
+/* ==========================================================================
+   LAYOUT DE PANTALLAS INTERNAS Y BARRA INFERIOR (Movido de layout.css)
+   ========================================================================== */
+
+.app-main:has(.screen-dashboard),
+.app-main:has(.home-app-container),
+.app-main:has(#home-view),
+.app-main:has(.match-detail-container),
+.app-main:has(.login-card:not(.register-card)) {
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.app-main:has(.register-card) {
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: block !important;
+  background-color: #ffffff !important;
+}
+
+.app-main:has(.matchmaking-container),
+#app-content:has(.matchmaking-container) {
+  padding: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-layout:has(.match-detail-container) #app-navigation {
+  display: none !important;
+}
+
+.app-navigation {
+  flex: 0 0 60px;
+  height: 60px;
+  min-height: 60px;
+  width: 100%;
+  max-width: 100%;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  z-index: 50;
+  box-sizing: border-box;
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+
+.bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background-color: #ffffff;
+  height: 60px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+  font-family: inherit;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.bottom-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav__svg {
+  width: 20px;
+  height: 20px;
+  stroke: #64748b;
+  transition: stroke 0.15s ease;
+}
+
+.bottom-nav__label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1;
+  color: inherit;
+}
+
+.bottom-nav__item:hover {
+  color: #266046;
+}
+
+.bottom-nav__item:hover .bottom-nav__svg {
+  stroke: #266046;
+}
+
+.bottom-nav__item--active,
+.bottom-nav__item.is-active {
+  color: #266046 !important;
+}
+
+.bottom-nav__item--active .bottom-nav__svg,
+.bottom-nav__item.is-active .bottom-nav__svg {
+  stroke: #266046 !important;
+}
+
+.bottom-nav__item--active .bottom-nav__label,
+.bottom-nav__item.is-active .bottom-nav__label {
+  font-weight: 700 !important;
+  color: #266046 !important;
+}

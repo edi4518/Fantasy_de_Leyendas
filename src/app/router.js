@@ -7,7 +7,7 @@
  */
 
 import { authService } from "../services/auth-service.js";
-import { updateActiveNavItem } from "./navigation.js";
+import { renderNavigation, updateActiveNavItem } from "./navigation.js?v=2";
 
 const routes = {
   "/": {
@@ -54,7 +54,12 @@ const routes = {
   "/admin/players": { screen: "admin", authRequired: true, adminOnly: true },
 };
 
+let isRouterInitialized = false;
+
 export function initRouter() {
+  if (isRouterInitialized) return;
+  isRouterInitialized = true;
+
   window.router = { navigate: navigateTo, current: getCurrentRoute };
 
   // Manejo de eventos de retroceso/avance del navegador y cambio de hash
@@ -220,28 +225,38 @@ async function handleLocation() {
   const appContent = document.getElementById("app-content");
   if (!appContent) return;
 
-  // Suavizar salida de la pantalla actual
-  appContent.style.opacity = "0";
-  appContent.style.transition = "opacity 0.15s ease";
+  const isFirstPaint = !appContent.innerHTML.trim();
+  if (!isFirstPaint) {
+    appContent.style.opacity = "0";
+    appContent.style.transition = "opacity 0.15s ease";
+  }
 
   const viewFile = route.subview || route.screen;
+  const viewUrl = route.screen === "onboarding"
+    ? `/src/screens/${route.screen}/${viewFile}.html?v=31`
+    : `/src/screens/${route.screen}/${viewFile}.html?v=${Date.now()}`;
 
   try {
-    const response = await fetch(`/src/screens/${route.screen}/${viewFile}.html?v=${Date.now()}`);
+    const [response] = await Promise.all([
+      fetch(viewUrl),
+      ensureScreenStylesheet(route.screen),
+    ]);
     if (!response.ok) {
       throw new Error(`No se pudo cargar la vista: ${route.screen}/${viewFile}.html`);
     }
     const html = await response.text();
 
-    // Asegurar que la hoja de estilos de la pantalla esté cargada
-    ensureScreenStylesheet(route.screen);
-
-    // Inyectar nuevo contenido y transición hacia adentro
-    setTimeout(async () => {
+    if (isFirstPaint) {
       appContent.innerHTML = html;
       appContent.style.opacity = "1";
       await loadScreenController(route);
-    }, 100);
+    } else {
+      setTimeout(async () => {
+        appContent.innerHTML = html;
+        appContent.style.opacity = "1";
+        await loadScreenController(route);
+      }, 100);
+    }
   } catch (error) {
     console.error("[Router] Error cargando vista:", error);
     appContent.innerHTML = `<p class="error-message">Error al cargar la pantalla.</p>`;
@@ -261,7 +276,7 @@ async function loadScreenController(route) {
   switch (route.screen) {
     case "onboarding": {
       try {
-        const module = await import(`../screens/onboarding/onboarding.js?t=${Date.now()}`);
+        const module = await import("../screens/onboarding/onboarding.js?v=31");
         if (typeof module.initOnboarding === "function") {
           module.initOnboarding(routerInstance);
         }
@@ -285,6 +300,7 @@ async function loadScreenController(route) {
 
     case "auth": {
       try {
+        ensureGoogleIdentityScript();
         const module = await import(`../screens/auth/auth.js?t=${Date.now()}`);
         if (typeof module.initAuth === "function") {
           module.initAuth(route.subview, routerInstance);
@@ -433,14 +449,73 @@ async function loadScreenController(route) {
   }
 }
 
-function ensureScreenStylesheet(screenName) {
-  if (!screenName) return;
-  const href = `/src/styles/screens/${screenName}.css`;
-  const existing = document.querySelector(`link[href*="${screenName}.css"]`);
-  if (!existing) {
+function loadStylesheetOnce(basePath, versionQuery = "v=30") {
+  const existing = document.querySelector(`link[href*="${basePath}"]`);
+  if (existing) return Promise.resolve();
+
+  return new Promise((resolve) => {
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = `${href}?v=${Date.now()}`;
+    link.href = `${basePath}?${versionQuery}`;
+    const timer = setTimeout(resolve, 250);
+    link.onload = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    link.onerror = () => {
+      clearTimeout(timer);
+      resolve();
+    };
     document.head.appendChild(link);
+  });
+}
+
+function ensureGoogleIdentityScript() {
+  if (document.querySelector('script[src*="accounts.google.com/gsi/client"]')) return;
+  const script = document.createElement("script");
+  script.src = "https://accounts.google.com/gsi/client";
+  script.async = true;
+  script.defer = true;
+  document.body.appendChild(script);
+}
+
+function ensureScreenStylesheet(screenName) {
+  if (!screenName) return Promise.resolve();
+  if (screenName === "onboarding") {
+    if (document.querySelector('link[href*="main.min.css"], link[href*="main.css"]')) {
+      return Promise.resolve();
+    }
+    return loadStylesheetOnce("/src/styles/screens/onboarding.css", "v=31");
+  }
+  return Promise.all([
+    loadStylesheetOnce("/src/styles/components.css", "v=27"),
+    loadStylesheetOnce("/src/components/modal/modal.css", "v=19"),
+    loadStylesheetOnce(`/src/styles/screens/${screenName}.css`, "v=31"),
+  ]);
+}
+
+function bootstrapRouter() {
+  if (typeof window !== "undefined") {
+    if (window.__fantasyRouterBootstrapped) return;
+    window.__fantasyRouterBootstrapped = true;
+  }
+  try {
+    if (authService && typeof authService.initAuthState === "function") {
+      authService.initAuthState();
+    }
+  } catch (err) {
+    console.warn("[Auth] Error inicializando sesión:", err);
+  }
+  if (typeof renderNavigation === "function") {
+    renderNavigation();
+  }
+  initRouter();
+}
+
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootstrapRouter);
+  } else {
+    bootstrapRouter();
   }
 }

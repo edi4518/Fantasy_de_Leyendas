@@ -7,14 +7,12 @@
  * @exports bootstrapApp
  */
 
-import { initRouter } from './router.js?v=50';
-import { renderNavigation } from './navigation.js?v=50';
-import { authService } from '../services/auth-service.js?v=50';
+import { initRouter } from './router.min.js?v=2';
+import { renderNavigation } from './navigation.js';
+import { authService } from '../services/auth-service.js';
 
-export async function bootstrapApp() {
-  console.info('[App] Inicializando Fantasy de Leyendas PWA...');
-
-  // 1. Limpieza preventiva de cachés anteriores y desregistro de Service Workers antiguos
+export function bootstrapApp() {
+  // 1. Limpieza preventiva no bloqueante de cachés y Service Workers antiguos
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => caches.delete(name));
@@ -22,20 +20,17 @@ export async function bootstrapApp() {
   }
 
   if ('serviceWorker' in navigator) {
-    try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
       for (const reg of registrations) {
-        await reg.unregister();
+        reg.unregister();
       }
-    } catch (error) {
-      console.warn('[PWA] Error al limpiar Service Worker:', error);
-    }
+    }).catch(() => {});
   }
 
   // 2. Verificar estado de autenticación inicial (sesión en localStorage o token)
   try {
     if (authService && typeof authService.initAuthState === 'function') {
-      await authService.initAuthState();
+      authService.initAuthState();
     }
   } catch (error) {
     console.error('[Auth] Error al inicializar estado de sesión:', error);
@@ -46,11 +41,14 @@ export async function bootstrapApp() {
     renderNavigation();
   }
 
-  // 4. Iniciar enrutador SPA para resolver la vista inicial (Onboarding, Login o Dashboard)
+  // 4. Iniciar enrutador SPA inmediatamente para acelerar FCP y LCP
   if (typeof initRouter === 'function') {
     initRouter();
   }
 }
 
-// Ejecutar arranque al cargar completamente el DOM
-document.addEventListener('DOMContentLoaded', bootstrapApp);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrapApp);
+} else {
+  bootstrapApp();
+}
