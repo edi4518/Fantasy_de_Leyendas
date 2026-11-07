@@ -10,7 +10,7 @@ export const authService = {
   currentUser: null,
 
   initAuthState() {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token') || localStorage.getItem('auth_token');
     return Boolean(token);
   },
 
@@ -40,8 +40,30 @@ export const authService = {
     return await apiClient.post('/auth/register', { username, email, password });
   },
 
-  logout() {
-    localStorage.removeItem('access_token');
-    window.location.href = '/login';
+  logout({ redirect = false } = {}) {
+    this.currentUser = null;
+    const sessionKeys = [
+      'access_token',
+      'auth_token',
+      'user',
+      'team_name',
+      'user_avatar',
+      'fantasy_active_squad',
+      'fantasy_player_stats',
+      'fantasy_match_history',
+      'fantasy_processed_match_ids',
+    ];
+    sessionKeys.forEach((key) => localStorage.removeItem(key));
+    localStorage.setItem('hasSeenOnboarding', 'true');
+
+    try {
+      if (window.google?.accounts?.id?.disableAutoSelect) {
+        window.google.accounts.id.disableAutoSelect();
+      }
+    } catch (_) {}
+
+    if (redirect) {
+      window.location.replace('/login');
+    }
   }
 };

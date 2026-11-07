@@ -7,9 +7,9 @@
  * @exports bootstrapApp
  */
 
-import { initRouter } from './router.min.js?v=2';
+import { initRouter } from './router.min.js?v=11';
 import { renderNavigation } from './navigation.js';
-import { authService } from '../services/auth-service.js';
+import { authService } from '../services/auth-service.js?v=2';
 
 export function bootstrapApp() {
   // 1. Limpieza preventiva no bloqueante de cachés y Service Workers antiguos

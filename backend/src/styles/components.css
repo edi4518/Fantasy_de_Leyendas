@@ -375,7 +375,7 @@
   padding-top: var(--space-1);
   padding-bottom: var(--space-1);
   color: var(--color-text-muted);
-  transition: color var(--transition-fast);
+  transition: opacity 150ms ease, transform 150ms ease;
   text-decoration: none;
 }
 
@@ -1079,7 +1079,7 @@
   color: #64748b;
   cursor: pointer;
   padding: 4px 0;
-  transition: color 0.15s ease;
+  transition: opacity 150ms ease, transform 150ms ease;
   font-family: inherit;
   text-decoration: none;
   box-sizing: border-box;
@@ -1095,7 +1095,7 @@
   width: 20px;
   height: 20px;
   stroke: #64748b;
-  transition: stroke 0.15s ease;
+  transition: none;
 }
 
 .bottom-nav__label {
