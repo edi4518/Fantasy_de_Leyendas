@@ -56,6 +56,7 @@ class RecordMatchRequest(BaseModel):
     squad_players: Optional[List[Optional[Dict[str, Any]]]] = None
     player_stats: Optional[Dict[str, Any]] = None
     user_id: Optional[int] = None
+    rival_user_id: Optional[int] = None
 
 
 def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int] = None) -> Optional[User]:
@@ -141,15 +142,18 @@ def record_finished_match(
     if home_score > away_score:
         res_enum = "local"
         res_label = "VICTORIA"
-        elo_var = 25
+        elo_var_local = 25
+        elo_var_visitante = -15
     elif home_score == away_score:
         res_enum = "empate"
         res_label = "EMPATE"
-        elo_var = 5
+        elo_var_local = 5
+        elo_var_visitante = 5
     else:
         res_enum = "visitante"
         res_label = "DERROTA"
-        elo_var = -15
+        elo_var_local = -15
+        elo_var_visitante = 25
 
     user = _resolve_user(request, db, payload.user_id)
     if not user:
@@ -208,8 +212,8 @@ def record_finished_match(
         goles_local=home_score,
         goles_visitante=away_score,
         resultado=res_enum,
-        variacion_elo_local=elo_var,
-        variacion_elo_visitante=-elo_var,
+        variacion_elo_local=elo_var_local,
+        variacion_elo_visitante=elo_var_visitante,
         mvp_nombre=mvp_name,
         mvp_rol=mvp_role,
         mvp_rating=mvp_rating,
@@ -257,7 +261,7 @@ def record_finished_match(
 
     # 5. Actualizar récord competitivo y ELO del mánager en 'users' (respetando 0 sin resetear a 1000)
     current_elo = user.elo_rating if user.elo_rating is not None else 1000
-    user.elo_rating = max(0, current_elo + elo_var)
+    user.elo_rating = max(0, current_elo + elo_var_local)
     user.partidos_jugados = (user.partidos_jugados or 0) + 1
     if res_enum == "local":
         user.victorias = (user.victorias or 0) + 1
@@ -267,6 +271,23 @@ def record_finished_match(
         user.derrotas = (user.derrotas or 0) + 1
     user.goles_favor = (user.goles_favor or 0) + home_score
     user.goles_contra = (user.goles_contra or 0) + away_score
+
+    # Actualizar récord del rival si es un usuario real registrado
+    if payload.rival_user_id:
+        rival_user = db.query(User).filter(User.id == payload.rival_user_id).first()
+        if rival_user:
+            partido.visitante_user_id = rival_user.id
+            current_rival_elo = rival_user.elo_rating if rival_user.elo_rating is not None else 1000
+            rival_user.elo_rating = max(0, current_rival_elo + elo_var_visitante)
+            rival_user.partidos_jugados = (rival_user.partidos_jugados or 0) + 1
+            if res_enum == "visitante":
+                rival_user.victorias = (rival_user.victorias or 0) + 1
+            elif res_enum == "empate":
+                rival_user.empates = (rival_user.empates or 0) + 1
+            else:
+                rival_user.derrotas = (rival_user.derrotas or 0) + 1
+            rival_user.goles_favor = (rival_user.goles_favor or 0) + away_score
+            rival_user.goles_contra = (rival_user.goles_contra or 0) + home_score
 
     # 6. Actualizar energía (stamina) y estadísticas en el club dentro de 'user_players'
     user_players = db.query(UserPlayer).filter(UserPlayer.user_id == user.id).all()
@@ -304,7 +325,7 @@ def record_finished_match(
         "partido_id": partido.id,
         "user_id": user.id,
         "resultado": res_label,
-        "variacion_elo": elo_var,
+        "variacion_elo": elo_var_local,
         "nuevo_elo": user.elo_rating,
         "record": {
             "partidos_jugados": user.partidos_jugados,
@@ -349,7 +370,7 @@ def simulate_match(
 
     if home_score > away_score:
         res_type = "VICTORIA"
-        pts = 15
+        pts = 25
         elo_var = 25
     elif home_score == away_score:
         res_type = "EMPATE"
@@ -357,7 +378,7 @@ def simulate_match(
         elo_var = 5
     else:
         res_type = "DERROTA"
-        pts = 0
+        pts = -15
         elo_var = -15
 
     goal_events = [e for e in sim_result.get("events", []) if e.get("type") == "goal"]

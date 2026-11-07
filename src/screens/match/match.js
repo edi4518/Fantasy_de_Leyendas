@@ -1483,7 +1483,7 @@ function showMatchResultModal(match) {
   const isDraw = homeScore === awayScore;
 
   const resultType = isWin ? 'VICTORIA' : (isDraw ? 'EMPATE' : 'DERROTA');
-  const fallbackPoints = isWin ? '+15 Puntos' : (isDraw ? '+5 Puntos' : '-15 Puntos');
+  const fallbackPoints = isWin ? '+25 Puntos' : (isDraw ? '+5 Puntos' : '-15 Puntos');
 
   const saveOutcome = match.saveOutcome || matchService.saveMatchResult(match);
   match.saveOutcome = saveOutcome;
@@ -1662,7 +1662,7 @@ function showMatchResultModal(match) {
         isRival: isLoss
       },
       ranking: {
-        pointsGained: isWin ? '+15 Puntos' : (isLoss ? '-15 Puntos' : '+5 Puntos'),
+        pointsGained: isWin ? '+25 Puntos' : (isLoss ? '-15 Puntos' : '+5 Puntos'),
         currentRank: '#430'
       }
     }, {

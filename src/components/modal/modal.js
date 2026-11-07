@@ -115,7 +115,7 @@ export const DEFAULT_MATCH_RESULT_DATA = {
     rating: 9.8
   },
   ranking: {
-    pointsGained: '+15 Puntos',
+    pointsGained: '+25 Puntos',
     currentRank: '#430'
   }
 };

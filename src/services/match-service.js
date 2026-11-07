@@ -146,7 +146,7 @@ export const matchService = {
     const isDraw = homeScore === awayScore;
 
     const resultType = isWin ? 'VICTORIA' : (isDraw ? 'EMPATE' : 'DERROTA');
-    const pointsGained = isWin ? 15 : (isDraw ? 5 : -15);
+    const pointsGained = isWin ? 25 : (isDraw ? 5 : -15);
     const resultSymbol = isWin ? 'V' : (isDraw ? 'E' : 'D');
 
     // 1. Guardar en Historial de Partidos
@@ -239,7 +239,8 @@ export const matchService = {
         mvp: statsResult.matchMvp || null,
         squad_players: activeSquadPlayers,
         player_stats: statsResult.stats || {},
-        user_id: currentUserId
+        user_id: currentUserId,
+        rival_user_id: matchData.awayTeam?.user_id || matchData.awayTeam?.userId || null
       }).then((res) => {
         if (res && typeof res.nuevo_elo === 'number') {
           try {
