@@ -118,7 +118,7 @@ export const matchService = {
     const isDraw = homeScore === awayScore;
     return {
       resultType: isWin ? 'VICTORIA' : (isDraw ? 'EMPATE' : 'DERROTA'),
-      pointsGained: isWin ? 15 : (isDraw ? 5 : -15),
+      pointsGained: isWin ? 25 : (isDraw ? 5 : -15),
       currentStats: this.getUserStats(),
       playerStats: this.getAllPlayerStats(),
       matchMvp: null
@@ -177,13 +177,13 @@ export const matchService = {
 
     // 2. Actualizar Estadísticas del Mánager y Racha
     let currentStats = {
-      points: 120,
-      matchesPlayed: 8,
-      wins: 5,
-      draws: 2,
-      losses: 1,
-      ranking: 450,
-      streak: ['V', 'V', 'E', 'D']
+      points: 0,
+      matchesPlayed: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      ranking: 1,
+      streak: []
     };
 
     try {
@@ -197,10 +197,6 @@ export const matchService = {
       if (isWin) currentStats.wins += 1;
       else if (isDraw) currentStats.draws += 1;
       else currentStats.losses += 1;
-
-      // Ranking sube con victorias y baja levemente con derrotas
-      if (isWin) currentStats.ranking = Math.max(1, currentStats.ranking - Math.floor(Math.random() * 8 + 4));
-      else if (!isDraw) currentStats.ranking += Math.floor(Math.random() * 3 + 1);
 
       // Actualizar racha (últimos 5 resultados)
       currentStats.streak = [resultSymbol, ...(currentStats.streak || [])].slice(0, 5);
@@ -644,13 +640,13 @@ export const matchService = {
       console.warn('[MatchService] Error leyendo stats:', e);
     }
     return {
-      points: 120,
-      matchesPlayed: 8,
-      wins: 5,
-      draws: 2,
-      losses: 1,
-      ranking: 450,
-      streak: ['V', 'V', 'E', 'D']
+      points: 0,
+      matchesPlayed: 0,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      ranking: 1,
+      streak: []
     };
   },
 

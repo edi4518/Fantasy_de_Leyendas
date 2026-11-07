@@ -235,18 +235,20 @@ function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
   const homeRankEl = document.getElementById('user-rank') || document.getElementById('home-team-rank');
 
   let localManagerName = 'Tú';
+  let localRank = '#1';
   try {
-    const rawUser = localStorage.getItem('fantasy_user');
+    const rawUser = localStorage.getItem('user') || localStorage.getItem('fantasy_user');
     if (rawUser) {
       const u = JSON.parse(rawUser);
       if (u.name || u.nombre) localManagerName = u.name || u.nombre;
+      if (u.ranking) localRank = `#${u.ranking}`;
     }
   } catch (e) { }
 
   if (homeNameEl) homeNameEl.textContent = homeSquad.name || 'Tu Equipo';
   if (homeManagerEl) homeManagerEl.textContent = localManagerName;
   if (homeOvrEl) homeOvrEl.textContent = `${homeStats.ovr} OVR`;
-  if (homeRankEl) homeRankEl.textContent = '★ Rank: #450';
+  if (homeRankEl) homeRankEl.textContent = `★ Rank: ${localRank}`;
 
   // Datos del rival
   const awayNameEl = document.getElementById('rival-name') || document.getElementById('away-team-name');

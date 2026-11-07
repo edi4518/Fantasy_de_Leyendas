@@ -15,200 +15,7 @@ let currentHistoryMatches = [];
  * Listado canónico de partidos por defecto alineado con la interfaz de Stitch.
  * Proporciona renderizado instantáneo y fallback en entornos offline.
  */
-export const DEFAULT_HISTORY_MATCHES = [
-  {
-    id: 1,
-    opponent: 'Real Galácticos',
-    relativeDate: 'Hoy',
-    homeTeam: 'Tu Equipo',
-    awayTeam: 'Real Galácticos',
-    awayTeamDisplay: 'Real Galáctic...',
-    homeScore: 2,
-    awayScore: 1,
-    points: 25,
-    resultType: 'win',
-    events: [
-      { minute: 88, side: 'away', type: 'yellow-card', player: 'R. Carlos', detail: '(Tarjeta Amarilla)' },
-      { minute: 74, side: 'home', type: 'goal', player: 'L. Messi', detail: '(Gol)' },
-      { minute: 61, side: 'away', type: 'missed-penalty', player: 'L. Figo', detail: '(Penalti Fallado)' },
-      { minute: 45, isPeriodBreak: true, label: 'DESCANSO' },
-      { minute: 44, side: 'home', type: 'yellow-card', player: 'P. Maldini', detail: '(Tarjeta Amarilla)' },
-      { minute: 28, side: 'away', type: 'goal', player: 'R. Nazário', detail: '(Gol)' },
-      { minute: 12, side: 'home', type: 'goal', player: 'Z. Zidane', detail: '(Gol)' }
-    ]
-  },
-  {
-    id: 2,
-    opponent: 'Milan Vintage',
-    relativeDate: 'Hace 2 días',
-    homeTeam: 'Tu Equipo',
-    awayTeam: 'Milan Vintage',
-    awayTeamDisplay: 'Milan Vintage',
-    homeScore: 1,
-    awayScore: 1,
-    points: 5,
-    resultType: 'draw',
-    events: [
-      { minute: 81, side: 'away', type: 'yellow-card', player: 'F. Baresi', detail: '(Tarjeta Amarilla)' },
-      { minute: 67, side: 'away', type: 'goal', player: 'M. van Basten', detail: '(Gol)' },
-      { minute: 45, isPeriodBreak: true, label: 'DESCANSO' },
-      { minute: 38, side: 'home', type: 'yellow-card', player: 'Xavi', detail: '(Tarjeta Amarilla)' },
-      { minute: 19, side: 'home', type: 'goal', player: 'L. Messi', detail: '(Gol)' }
-    ]
-  },
-  {
-    id: 3,
-    opponent: 'Santos Eterno',
-    relativeDate: 'Hace 3 días',
-    homeTeam: 'Tu Equipo',
-    awayTeam: 'Santos Eterno',
-    awayTeamDisplay: 'Santos Eterno',
-    homeScore: 0,
-    awayScore: 3,
-    points: -15,
-    resultType: 'loss',
-    events: [
-      { minute: 84, side: 'away', type: 'goal', player: 'Pelé', detail: '(Gol)' },
-      { minute: 69, side: 'home', type: 'missed-penalty', player: 'Z. Zidane', detail: '(Penalti Fallado)' },
-      { minute: 53, side: 'away', type: 'goal', player: 'Coutinho', detail: '(Gol)' },
-      { minute: 45, isPeriodBreak: true, label: 'DESCANSO' },
-      { minute: 34, side: 'home', type: 'yellow-card', player: 'C. Puyol', detail: '(Tarjeta Amarilla)' },
-      { minute: 16, side: 'away', type: 'goal', player: 'Pelé', detail: '(Gol)' }
-    ]
-  },
-  {
-    id: 4,
-    opponent: 'Bayern Leyendas',
-    relativeDate: 'Hace 4 días',
-    homeTeam: 'Tu Equipo',
-    awayTeam: 'Bayern Leyendas',
-    awayTeamDisplay: 'Bayern Leyend...',
-    homeScore: 3,
-    awayScore: 2,
-    points: 25,
-    resultType: 'win',
-    events: [
-      { minute: 86, side: 'home', type: 'goal', player: 'L. Messi', detail: '(Gol)' },
-      { minute: 71, side: 'away', type: 'goal', player: 'G. Müller', detail: '(Gol)' },
-      { minute: 55, side: 'home', type: 'goal', player: 'Ronaldo', detail: '(Gol)' },
-      { minute: 45, isPeriodBreak: true, label: 'DESCANSO' },
-      { minute: 31, side: 'away', type: 'goal', player: 'L. Matthäus', detail: '(Gol)' },
-      { minute: 14, side: 'home', type: 'goal', player: 'Z. Zidane', detail: '(Gol)' }
-    ]
-  },
-  {
-    id: 5,
-    opponent: 'Ajax Clásico',
-    relativeDate: 'Hace 5 días',
-    homeTeam: 'Tu Equipo',
-    awayTeam: 'Ajax Clásico',
-    awayTeamDisplay: 'Ajax Clásico',
-    homeScore: 2,
-    awayScore: 2,
-    points: 5,
-    resultType: 'draw',
-    events: [
-      { minute: 79, side: 'away', type: 'goal', player: 'J. Cruyff', detail: '(Gol)' },
-      { minute: 62, side: 'home', type: 'goal', player: 'A. Iniesta', detail: '(Gol)' },
-      { minute: 45, isPeriodBreak: true, label: 'DESCANSO' },
-      { minute: 29, side: 'away', type: 'goal', player: 'J. Neeskens', detail: '(Gol)' },
-      { minute: 11, side: 'home', type: 'goal', player: 'L. Messi', detail: '(Gol)' }
-    ]
-  },
-  {
-    id: 6,
-    opponent: 'Liverpool Épico',
-    relativeDate: 'Hace 6 días',
-    homeTeam: 'Tu Equipo',
-    awayTeam: 'Liverpool Épico',
-    awayTeamDisplay: 'Liverpool Épico',
-    homeScore: 1,
-    awayScore: 0,
-    points: 25,
-    resultType: 'win',
-    events: [
-      { minute: 77, side: 'away', type: 'yellow-card', player: 'S. Gerrard', detail: '(Tarjeta Amarilla)' },
-      { minute: 58, side: 'home', type: 'goal', player: 'L. Messi', detail: '(Gol)' },
-      { minute: 45, isPeriodBreak: true, label: 'DESCANSO' },
-      { minute: 22, side: 'home', type: 'yellow-card', player: 'P. Maldini', detail: '(Tarjeta Amarilla)' }
-    ]
-  },
-  {
-    id: 7,
-    opponent: 'Boca Histórico',
-    relativeDate: 'Hace 7 días',
-    homeTeam: 'Tu Equipo',
-    awayTeam: 'Boca Histórico',
-    awayTeamDisplay: 'Boca Histórico',
-    homeScore: 0,
-    awayScore: 1,
-    points: -15,
-    resultType: 'loss',
-    events: [
-      { minute: 82, side: 'home', type: 'yellow-card', player: 'Z. Zidane', detail: '(Tarjeta Amarilla)' },
-      { minute: 64, side: 'away', type: 'goal', player: 'J. Riquelme', detail: '(Gol)' },
-      { minute: 45, isPeriodBreak: true, label: 'DESCANSO' },
-      { minute: 27, side: 'away', type: 'yellow-card', player: 'M. Palermo', detail: '(Tarjeta Amarilla)' }
-    ]
-  },
-  {
-    id: 8,
-    opponent: 'Juve Dinastía',
-    relativeDate: 'Hace 8 días',
-    homeTeam: 'Tu Equipo',
-    awayTeam: 'Juve Dinastía',
-    awayTeamDisplay: 'Juve Dinastía',
-    homeScore: 2,
-    awayScore: 0,
-    points: 25,
-    resultType: 'win',
-    events: [
-      { minute: 75, side: 'home', type: 'goal', player: 'Ronaldo', detail: '(Gol)' },
-      { minute: 45, isPeriodBreak: true, label: 'DESCANSO' },
-      { minute: 39, side: 'away', type: 'yellow-card', player: 'G. Chiellini', detail: '(Tarjeta Amarilla)' },
-      { minute: 18, side: 'home', type: 'goal', player: 'L. Messi', detail: '(Gol)' }
-    ]
-  },
-  {
-    id: 9,
-    opponent: 'Arsenal Invictos',
-    relativeDate: 'Hace 9 días',
-    homeTeam: 'Tu Equipo',
-    awayTeam: 'Arsenal Invictos',
-    awayTeamDisplay: 'Arsenal Invic...',
-    homeScore: 3,
-    awayScore: 3,
-    points: 5,
-    resultType: 'draw',
-    events: [
-      { minute: 89, side: 'away', type: 'goal', player: 'T. Henry', detail: '(Gol)' },
-      { minute: 73, side: 'home', type: 'goal', player: 'L. Messi', detail: '(Gol)' },
-      { minute: 59, side: 'away', type: 'goal', player: 'D. Bergkamp', detail: '(Gol)' },
-      { minute: 45, isPeriodBreak: true, label: 'DESCANSO' },
-      { minute: 36, side: 'home', type: 'goal', player: 'Z. Zidane', detail: '(Gol)' },
-      { minute: 24, side: 'away', type: 'goal', player: 'P. Vieira', detail: '(Gol)' },
-      { minute: 10, side: 'home', type: 'goal', player: 'Ronaldo', detail: '(Gol)' }
-    ]
-  },
-  {
-    id: 10,
-    opponent: 'Manchester Clásico',
-    relativeDate: 'Hace 10 días',
-    homeTeam: 'Tu Equipo',
-    awayTeam: 'Manchester Clásico',
-    awayTeamDisplay: 'Manchester Cl...',
-    homeScore: 2,
-    awayScore: 1,
-    points: 25,
-    resultType: 'win',
-    events: [
-      { minute: 83, side: 'home', type: 'goal', player: 'L. Messi', detail: '(Gol)' },
-      { minute: 52, side: 'away', type: 'goal', player: 'E. Cantona', detail: '(Gol)' },
-      { minute: 45, isPeriodBreak: true, label: 'DESCANSO' },
-      { minute: 21, side: 'home', type: 'goal', player: 'Xavi', detail: '(Gol)' }
-    ]
-  }
-];
+export const DEFAULT_HISTORY_MATCHES = [];
 
 /**
  * Consulta el historial de partidos disputados desde la API de FastAPI o LocalStorage.
@@ -253,7 +60,7 @@ export async function fetchMatchHistory() {
     console.debug('[History] Error leyendo partidos locales:', e);
   }
 
-  return DEFAULT_HISTORY_MATCHES;
+  return [];
 }
 
 /**
@@ -681,7 +488,7 @@ export function setupHistoryEventListeners() {
  */
 export async function initHistory(router) {
   console.info('[History] Inicializando vista Historial de Partidos...');
-  renderHistory(DEFAULT_HISTORY_MATCHES);
+  // Se omite renderizar partidos mockeados; se espera a fetchMatchHistory()
   setupHistoryEventListeners(router);
 
   const liveMatches = await fetchMatchHistory();

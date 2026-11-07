@@ -98,7 +98,7 @@ export const DEFAULT_HOME_DATA = {
   manager: {
     name: 'Nombre del Mánager',
     season: 'Temporada 24 / 25',
-    ranking: 450,
+    ranking: 1,
     avatarUrl: null
   },
   budget: {
@@ -136,12 +136,8 @@ export const DEFAULT_HOME_DATA = {
     players: []
   },
   streak: {
-    lastMatch: {
-      result: 'V',
-      scoreText: 'V 2 – 1',
-      opponent: 'vs MánagerX'
-    },
-    recentResults: ['V', 'V', 'D', 'E', 'V']
+    lastMatch: null,
+    recentResults: []
   }
 };
 
@@ -163,8 +159,12 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
     }
 
     const rankingValueEl = document.getElementById('ranking-value');
-    if (rankingValueEl && data.manager?.ranking !== undefined) {
-      rankingValueEl.textContent = `#${data.manager.ranking}`;
+    if (rankingValueEl) {
+      if (data.manager?.ranking !== undefined && data.manager?.ranking !== null) {
+        rankingValueEl.textContent = `#${data.manager.ranking}`;
+      } else {
+        rankingValueEl.textContent = '#1';
+      }
     }
 
     const managerAvatarEl = document.getElementById('manager-avatar');
@@ -346,11 +346,11 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
     const streakResultScore = document.getElementById('streak-result-score');
     const streakOpponentEl = document.getElementById('streak-opponent-text');
 
-    if (data.streak?.lastMatch) {
-      const res = (data.streak.lastMatch.result || 'V').toUpperCase();
+    if (data.streak?.lastMatch && data.streak.lastMatch.result && data.streak.lastMatch.result !== '-') {
+      const res = data.streak.lastMatch.result.toUpperCase();
       let colorClass = 'text-win';
       if (res === 'D') colorClass = 'text-loss';
-      else if (res === 'E' || res === '-') colorClass = 'text-draw';
+      else if (res === 'E') colorClass = 'text-draw';
 
       if (streakResultBadge) {
         streakResultBadge.textContent = res;
@@ -363,9 +363,20 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
       }
 
       if (streakOpponentEl) {
-        let opp = data.streak.lastMatch.opponent || 'MánagerX';
-        if (!opp.startsWith('vs ') && !opp.startsWith('¡')) opp = `vs ${opp}`;
+        let opp = data.streak.lastMatch.opponent || 'Rival';
+        if (!opp.startsWith('vs ') && !opp.startsWith('¡') && !opp.toLowerCase().startsWith('sin ')) opp = `vs ${opp}`;
         streakOpponentEl.textContent = opp;
+      }
+    } else {
+      if (streakResultBadge) {
+        streakResultBadge.textContent = '-';
+        streakResultBadge.className = 'text-draw';
+      }
+      if (streakResultScore) {
+        streakResultScore.textContent = '0 – 0';
+      }
+      if (streakOpponentEl) {
+        streakOpponentEl.textContent = 'Sin partidos disputados';
       }
     }
 
@@ -420,12 +431,39 @@ export async function fetchHomeData() {
 
   let managerData = null;
   let analyticsData = null;
+  let userRankingPosition = 1;
+
+  let savedUser = null;
+  try {
+    const rawUser = localStorage.getItem('user');
+    if (rawUser) savedUser = JSON.parse(rawUser);
+  } catch (_) {}
 
   // 1. Fetch Perfil del Mánager (/api/me) a través del cliente oficial de FastAPI
   try {
     managerData = await apiClient.get('/me');
   } catch (err) {
     console.info('[Dashboard] Modo offline o backend no disponible para /api/me:', err.message);
+  }
+
+  // 1.1 Obtener posición real en el ranking general desde /ranking/leaderboard
+  try {
+    const lbRes = await apiClient.get('/ranking/leaderboard').catch(() => null);
+    if (lbRes && Array.isArray(lbRes.leaderboard) && lbRes.leaderboard.length > 0) {
+      const teamName = localStorage.getItem('team_name') || savedUser?.team_name;
+      const foundIdx = lbRes.leaderboard.findIndex(u =>
+        (savedUser?.id && Number(u.user_id) === Number(savedUser.id)) ||
+        (savedUser?.email && u.email && u.email.toLowerCase() === savedUser.email.toLowerCase()) ||
+        (teamName && u.team_name && u.team_name.toLowerCase() === teamName.toLowerCase())
+      );
+      if (foundIdx !== -1) {
+        userRankingPosition = lbRes.leaderboard[foundIdx].position || (foundIdx + 1);
+      } else {
+        userRankingPosition = lbRes.leaderboard.length + 1;
+      }
+    }
+  } catch (err) {
+    console.debug('[Dashboard] Error al consultar ranking leaderboard:', err);
   }
 
   // 2. Fetch Resumen Analítico (/api/analytics/summary)
@@ -578,13 +616,38 @@ export async function fetchHomeData() {
   }
 
   // 5. Mapeo y fusión con el esquema canónico
+  const managerDisplayName = savedUser?.name || (savedUser?.first_name ? `${savedUser.first_name} ${savedUser.last_name || ''}`.trim() : null) || managerData?.username || managerData?.name || DEFAULT_HOME_DATA.manager.name;
+
+  const hasDbMatches = Boolean(analyticsData?.has_matches && Array.isArray(analyticsData?.streak?.recentResults) && analyticsData.streak.recentResults.length > 0);
+  const hasLocalMatches = Boolean(Array.isArray(localStats?.streak) && localStats.streak.length > 0);
+
+  let recentResults = [];
+  if (hasDbMatches) {
+    recentResults = analyticsData.streak.recentResults.slice(0, 5);
+  } else if (hasLocalMatches) {
+    recentResults = localStats.streak.slice(0, 5);
+  }
+
+  let lastMatch = null;
+  if (analyticsData?.streak?.lastMatch && analyticsData.streak.lastMatch.result && analyticsData.streak.lastMatch.result !== '-') {
+    lastMatch = analyticsData.streak.lastMatch;
+  } else if (localLastMatch) {
+    const resLetter = localLastMatch.resultado === 'VICTORIA' ? 'V' : (localLastMatch.resultado === 'EMPATE' ? 'E' : 'D');
+    lastMatch = {
+      result: resLetter,
+      score: localLastMatch.score || '0 – 0',
+      scoreText: `${resLetter} ${localLastMatch.score || '0 – 0'}`,
+      opponent: localLastMatch.rival ? (localLastMatch.rival.startsWith('vs ') ? localLastMatch.rival : `vs ${localLastMatch.rival}`) : 'vs Rival'
+    };
+  }
+
   const consolidatedData = {
     ...DEFAULT_HOME_DATA,
     manager: {
       ...DEFAULT_HOME_DATA.manager,
-      name: managerData?.username || managerData?.name || DEFAULT_HOME_DATA.manager.name,
+      name: managerDisplayName,
       season: managerData?.season || DEFAULT_HOME_DATA.manager.season,
-      ranking: localStats?.ranking ?? managerData?.ranking ?? DEFAULT_HOME_DATA.manager.ranking
+      ranking: userRankingPosition
     },
     budget: {
       total: 150.0,
@@ -645,25 +708,8 @@ export async function fetchHomeData() {
       avatarUrl: null
     },
     streak: {
-      ...DEFAULT_HOME_DATA.streak,
-      recentResults: (Array.isArray(analyticsData?.streak?.recentResults) && analyticsData.streak.recentResults.length > 0)
-        ? analyticsData.streak.recentResults.slice(0, 5)
-        : ((localStats?.streak && Array.isArray(localStats.streak) && localStats.streak.length > 0)
-            ? localStats.streak.slice(0, 5)
-            : (analyticsData?.has_matches === false ? [] : DEFAULT_HOME_DATA.streak.recentResults)),
-      lastMatch: analyticsData?.streak?.lastMatch
-        ? analyticsData.streak.lastMatch
-        : (localLastMatch ? {
-            result: localLastMatch.resultado === 'VICTORIA' ? 'V' : (localLastMatch.resultado === 'EMPATE' ? 'E' : 'D'),
-            score: localLastMatch.score || '2 – 1',
-            scoreText: `${localLastMatch.resultado === 'VICTORIA' ? 'V' : (localLastMatch.resultado === 'EMPATE' ? 'E' : 'D')} ${localLastMatch.score || '2 – 1'}`,
-            opponent: localLastMatch.rival ? (localLastMatch.rival.startsWith('vs ') ? localLastMatch.rival : `vs ${localLastMatch.rival}`) : 'vs MánagerX'
-          } : (analyticsData?.has_matches === false ? {
-            result: '-',
-            score: '0 – 0',
-            scoreText: '- 0 – 0',
-            opponent: '¡Busca tu primer rival!'
-          } : DEFAULT_HOME_DATA.streak.lastMatch))
+      recentResults,
+      lastMatch
     }
   };
 
@@ -1055,17 +1101,17 @@ export function ensureDashboardIntegrity() {
       <div class="streak-card__content">
         <div class="streak-match-info" id="streak-match-info">
           <strong class="streak-result-highlight" id="streak-result-container">
-            <span class="text-win" id="streak-result-badge">V</span>
-            <span id="streak-result-score">2 – 1</span>
+            <span class="text-draw" id="streak-result-badge">-</span>
+            <span id="streak-result-score">0 – 0</span>
           </strong>
-          <span class="streak-opponent" id="streak-opponent-text">vs MánagerX</span>
+          <span class="streak-opponent" id="streak-opponent-text">Sin partidos disputados</span>
         </div>
         <div class="streak-circles-wrapper" id="streak-circles-container" aria-label="Historial de los últimos 5 partidos">
-          <span class="streak-circle streak-circle--win" title="Victoria (V)">V</span>
-          <span class="streak-circle streak-circle--win" title="Victoria (V)">V</span>
-          <span class="streak-circle streak-circle--loss" title="Derrota (D)">D</span>
-          <span class="streak-circle streak-circle--draw" title="Empate (E)">E</span>
-          <span class="streak-circle streak-circle--win" title="Victoria (V)">V</span>
+          <span class="streak-circle streak-circle--draw" title="Sin partido disputado">-</span>
+          <span class="streak-circle streak-circle--draw" title="Sin partido disputado">-</span>
+          <span class="streak-circle streak-circle--draw" title="Sin partido disputado">-</span>
+          <span class="streak-circle streak-circle--draw" title="Sin partido disputado">-</span>
+          <span class="streak-circle streak-circle--draw" title="Sin partido disputado">-</span>
         </div>
       </div>
     `;
