@@ -25,7 +25,12 @@ export async function getUnifiedLeaderboard() {
     console.debug('[RankingService] Error al obtener leaderboard remoto:', e);
   }
 
-  const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
+  const savedUser = JSON.parse(
+    localStorage.getItem('user') ||
+    localStorage.getItem('fantasy_logged_user') ||
+    localStorage.getItem('fantasy_user') ||
+    'null'
+  );
 
   const combined = dbLeaderboard.map(u => {
     const matches = Number(u.partidos_jugados || 0);
@@ -82,10 +87,17 @@ export async function getUnifiedLeaderboard() {
         if (points > 1000) trend = 'up';
         else if (points < 1000) trend = 'down';
       }
+      let squadName = null;
+      try {
+        const sq = localStorage.getItem('fantasy_active_squad');
+        if (sq) squadName = JSON.parse(sq)?.name;
+      } catch (_) {}
+      const effectiveTeamName = localStorage.getItem('team_name') || savedUser.team_name || squadName || 'Tu Equipo';
+
       combined.push({
         name: savedUser.name || (savedUser.first_name ? `${savedUser.first_name} ${savedUser.last_name || ''}`.trim() : null) || savedUser.username || 'Mi Equipo',
         manager_name: savedUser.name || (savedUser.first_name ? `${savedUser.first_name} ${savedUser.last_name || ''}`.trim() : null) || savedUser.username || 'Mi Equipo',
-        team_name: localStorage.getItem('team_name') || savedUser.team_name || 'Tu Equipo',
+        team_name: effectiveTeamName,
         points: points,
         elo_rating: points,
         trend: trend,

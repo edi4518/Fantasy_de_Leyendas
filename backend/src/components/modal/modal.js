@@ -116,7 +116,7 @@ export const DEFAULT_MATCH_RESULT_DATA = {
   },
   ranking: {
     pointsGained: '+25 Puntos',
-    currentRank: '#430'
+    currentRank: '—'
   }
 };
 
@@ -218,7 +218,7 @@ export function openMatchResultModal(data = DEFAULT_MATCH_RESULT_DATA, options =
             <div class="ranking-subcard__content">
               <strong class="points-gained ${pointsModifierClass}" id="modal-points-gained">${rawPoints}</strong>
               <span class="current-rank-label">
-                Puesto Actual: <strong class="current-rank-value" id="modal-current-rank">${data.ranking?.currentRank || '#430'}</strong>
+                Puesto Actual: <strong class="current-rank-value" id="modal-current-rank">${data.ranking?.currentRank || '—'}</strong>
               </span>
             </div>
           </article>

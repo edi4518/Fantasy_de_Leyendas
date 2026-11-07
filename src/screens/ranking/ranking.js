@@ -145,8 +145,14 @@ function renderRankingList(container, listEntries) {
  * Renderiza la tarjeta fija del mánager conectado con su posición real sincronizada y flecha dinámica
  */
 function renderCurrentUserCard(container, combinedEntries) {
-  const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const teamName = localStorage.getItem('team_name') || savedUser.team_name || 'Tu Equipo';
+  const rawUser = localStorage.getItem('user') || localStorage.getItem('fantasy_logged_user') || localStorage.getItem('fantasy_user') || '{}';
+  const savedUser = JSON.parse(rawUser || '{}');
+  let squadName = null;
+  try {
+    const rawSq = localStorage.getItem('fantasy_active_squad');
+    if (rawSq) squadName = JSON.parse(rawSq)?.name;
+  } catch (_) {}
+  const teamName = localStorage.getItem('team_name') || savedUser.team_name || squadName || 'Tu Equipo';
   const managerDisplayName = savedUser.name || (savedUser.first_name ? `${savedUser.first_name} ${savedUser.last_name || ''}`.trim() : null) || savedUser.username || 'Mi Equipo';
 
   let rawStats = null;
