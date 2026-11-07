@@ -147,6 +147,21 @@ def get_summary(
                         item[1].media_juego or 0,
                     ),
                 )
+                score_val = float(best_up.rating_promedio) if (best_up.partidos_club or 0) > 0 and best_up.rating_promedio else None
+                if (best_up.partidos_club or 0) > 0 and (score_val is None or score_val < 4.0 or score_val > 10.0):
+                    from app.api.routes.squads import calculate_realistic_rating
+                    score_val = calculate_realistic_rating(
+                        best_up.partidos_club or 0,
+                        best_up.goles_club or 0,
+                        best_up.mvps_club or 0,
+                        int(best_p.rating_general or best_p.media_juego or 75)
+                    )
+                    best_up.rating_promedio = score_val
+                    try:
+                        db.commit()
+                    except Exception:
+                        db.rollback()
+
                 mvp_data = {
                     "id": best_p.id,
                     "name": best_p.nombre,
@@ -154,7 +169,7 @@ def get_summary(
                     "matches": best_up.partidos_club or 0,
                     "goals": best_up.goles_club or 0,
                     "mvpAwards": best_up.mvps_club or 0,
-                    "score": float(best_up.rating_promedio) if (best_up.partidos_club or 0) > 0 and best_up.rating_promedio else "-",
+                    "score": round(score_val, 1) if score_val is not None else "-",
                     "image_filename": best_p.image_filename,
                 }
 
