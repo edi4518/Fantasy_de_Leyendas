@@ -1,25 +1,18 @@
 /**
  * @file ranking-service.js
  * @description Servicio centralizado para la clasificación de la liga en Fantasy de Leyendas.
- * Unifica los benchmarks oficiales de la liga con los mánagers registrados en MySQL,
- * asegurando consistencia matemática exacta entre Dashboard y la vista de Ranking.
+ * Consulta directamente a los mánagers reales desde la base de datos MySQL / TiDB Cloud,
+ * asegurando consistencia matemática exacta entre Dashboard y la vista de Ranking sin datos hardcodeados.
  */
 
 import { apiClient } from './api-client.js';
 
-export const LEAGUE_BENCHMARK_MANAGERS = [
-  { name: 'David Villa', points: 1520, trend: 'equal', isDbUser: false, matches: 15, has_played: true },
-  { name: 'Alex Mercer', points: 1480, trend: 'equal', isDbUser: false, matches: 14, has_played: true },
-  { name: 'Carlos Sainz', points: 1395, trend: 'equal', isDbUser: false, matches: 15, has_played: true },
-  { name: 'Lucas Moreno', points: 1250, trend: 'up', isDbUser: false, matches: 12, has_played: true },
-  { name: 'Martín Silva', points: 1180, trend: 'down', isDbUser: false, matches: 13, has_played: true },
-  { name: 'Alonso Ramos', points: 1105, trend: 'neutral', isDbUser: false, matches: 11, has_played: true },
-  { name: 'Daniel Craig', points: 1040, trend: 'up', isDbUser: false, matches: 10, has_played: true },
-];
+// Lista vacía por compatibilidad en caso de importación legada
+export const LEAGUE_BENCHMARK_MANAGERS = [];
 
 /**
- * Obtiene la tabla unificada de clasificación de la liga combinando
- * los mánagers benchmark oficiales con los mánagers reales de MySQL.
+ * Obtiene la tabla unificada de clasificación de la liga basada 100% en los mánagers reales
+ * registrados en la base de datos (con cálculo dinámico de tendencia y posición).
  */
 export async function getUnifiedLeaderboard() {
   let dbLeaderboard = [];
@@ -32,45 +25,90 @@ export async function getUnifiedLeaderboard() {
     console.debug('[RankingService] Error al obtener leaderboard remoto:', e);
   }
 
-  const combined = [
-    ...LEAGUE_BENCHMARK_MANAGERS.map(m => ({
-      name: m.name,
-      manager_name: m.name,
-      team_name: 'Leyendas Liga',
-      points: m.points,
-      elo_rating: m.points,
-      trend: m.trend,
-      isDbUser: false,
-      partidos_jugados: m.matches,
-      has_played: true,
-      diferencia_gol: 0,
-      victorias: 0
-    })),
-    ...dbLeaderboard.map(u => {
-      const matches = Number(u.partidos_jugados || 0);
-      return {
-        name: `${u.manager_name} (${u.team_name})`,
-        manager_name: u.manager_name,
-        team_name: u.team_name,
-        points: Number(u.elo_rating ?? 1000),
-        elo_rating: Number(u.elo_rating ?? 1000),
-        trend: 'up',
+  const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
+
+  const combined = dbLeaderboard.map(u => {
+    const matches = Number(u.partidos_jugados || 0);
+    const points = Number(u.elo_rating ?? 1000);
+    const hasPlayed = Boolean(u.has_played || matches > 0);
+
+    let trend = 'neutral';
+    if (hasPlayed) {
+      if (points > 1000) trend = 'up';
+      else if (points < 1000) trend = 'down';
+      else if ((u.victorias || 0) > (u.derrotas || 0)) trend = 'up';
+      else if ((u.derrotas || 0) > (u.victorias || 0)) trend = 'down';
+    }
+
+    return {
+      name: u.manager_name || 'Mánager',
+      manager_name: u.manager_name || 'Mánager',
+      team_name: u.team_name || 'Sin club',
+      points: points,
+      elo_rating: points,
+      trend: trend,
+      isDbUser: true,
+      userId: u.user_id,
+      email: u.email,
+      partidos_jugados: matches,
+      has_played: hasPlayed,
+      goles_favor: u.goles_favor || 0,
+      goles_contra: u.goles_contra || 0,
+      diferencia_gol: u.diferencia_gol || 0,
+      victorias: u.victorias || 0,
+      derrotas: u.derrotas || 0,
+      empates: u.empates || 0,
+      photo_url: u.photo_url || null
+    };
+  });
+
+  // Si el usuario autenticado aún no figura en dbLeaderboard, incluirlo dinámicamente
+  if (savedUser && savedUser.id) {
+    const alreadyIncluded = combined.some(u => 
+      Number(u.userId) === Number(savedUser.id) ||
+      (savedUser.email && u.email && u.email.toLowerCase() === savedUser.email.toLowerCase())
+    );
+    if (!alreadyIncluded) {
+      let rawStats = null;
+      try {
+        const raw = localStorage.getItem('fantasy_user_stats');
+        if (raw) rawStats = JSON.parse(raw);
+      } catch (_) {}
+      const matches = Number(rawStats?.matchesPlayed || savedUser.partidos_jugados || 0);
+      const points = Number(savedUser.elo_rating ?? 1000);
+      const hasPlayed = matches > 0;
+      let trend = 'neutral';
+      if (hasPlayed) {
+        if (points > 1000) trend = 'up';
+        else if (points < 1000) trend = 'down';
+      }
+      combined.push({
+        name: savedUser.name || (savedUser.first_name ? `${savedUser.first_name} ${savedUser.last_name || ''}`.trim() : null) || savedUser.username || 'Mi Equipo',
+        manager_name: savedUser.name || (savedUser.first_name ? `${savedUser.first_name} ${savedUser.last_name || ''}`.trim() : null) || savedUser.username || 'Mi Equipo',
+        team_name: localStorage.getItem('team_name') || savedUser.team_name || 'Tu Equipo',
+        points: points,
+        elo_rating: points,
+        trend: trend,
         isDbUser: true,
-        userId: u.user_id,
-        email: u.email,
+        userId: savedUser.id,
+        email: savedUser.email,
         partidos_jugados: matches,
-        has_played: matches > 0,
-        goles_favor: u.goles_favor || 0,
-        goles_contra: u.goles_contra || 0,
-        diferencia_gol: u.diferencia_gol || 0,
-        victorias: u.victorias || 0
-      };
-    })
-  ];
+        has_played: hasPlayed,
+        goles_favor: 0,
+        goles_contra: 0,
+        diferencia_gol: 0,
+        victorias: 0,
+        derrotas: 0,
+        empates: 0,
+        photo_url: savedUser.photo_url || null
+      });
+    }
+  }
 
   // Ordenar:
   // 1. Mánagers con partidos disputados (has_played === true) ordenados por puntos ELO desc
-  // 2. Mánagers sin partidos disputados (has_played === false) al final
+  // 2. Desempate por diferencia de gol y victorias
+  // 3. Mánagers sin partidos disputados (has_played === false) al final
   combined.sort((a, b) => {
     if (a.has_played && !b.has_played) return -1;
     if (!a.has_played && b.has_played) return 1;
@@ -79,9 +117,14 @@ export async function getUnifiedLeaderboard() {
     return (b.victorias || 0) - (a.victorias || 0);
   });
 
-  // Asignar posición de clasificación a cada competidor
-  combined.forEach((entry, idx) => {
-    entry.rank = idx + 1;
+  // Asignar posición de clasificación a competidores que han jugado
+  let rankCounter = 1;
+  combined.forEach((entry) => {
+    if (entry.has_played) {
+      entry.rank = rankCounter++;
+    } else {
+      entry.rank = null;
+    }
   });
 
   return combined;
@@ -117,7 +160,7 @@ export function getUserRankInfo(leaderboard, savedUser, teamName, hasPlayed) {
     (teamName && e.team_name && e.team_name.toLowerCase() === teamName.toLowerCase())
   );
 
-  if (found) {
+  if (found && found.rank) {
     return {
       rank: found.rank,
       displayRank: `#${found.rank}`,
@@ -126,9 +169,11 @@ export function getUserRankInfo(leaderboard, savedUser, teamName, hasPlayed) {
     };
   }
 
+  const playedCount = leaderboard.filter(e => e.has_played).length;
+  const computedRank = playedCount > 0 ? playedCount : 1;
   return {
-    rank: leaderboard.length + 1,
-    displayRank: `#${leaderboard.length + 1}`,
+    rank: computedRank,
+    displayRank: `#${computedRank}`,
     points: Number(savedUser?.elo_rating ?? 1000),
     hasPlayed: true
   };

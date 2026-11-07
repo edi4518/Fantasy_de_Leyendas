@@ -249,6 +249,24 @@
   max-width: 96px;
 }
 
+.podium-team-name {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 86px;
+  display: block;
+}
+
+.podium-card--first .podium-team-name {
+  font-size: 0.70rem;
+  color: #78716c;
+  max-width: 96px;
+}
+
 /* Puntos de los mánagers en el podio */
 .podium-points {
   font-size: 0.75rem;
@@ -339,6 +357,36 @@
   text-overflow: ellipsis;
   margin-right: 8px;
   text-align: left;
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  margin-right: 8px;
+}
+
+.item-manager-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-team-name {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .item-stats {
@@ -492,6 +540,18 @@
   font-weight: 800;
   font-size: 0.85rem;
   line-height: 1;
+}
+
+.user-points-trend.trend-up {
+  color: #86efac !important;
+}
+
+.user-points-trend.trend-down {
+  color: #fca5a5 !important;
+}
+
+.user-points-trend.trend-neutral {
+  color: #cbd5e1 !important;
 }
 
 /* --------------------------------------------------------------------------
