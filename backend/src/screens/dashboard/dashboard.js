@@ -887,7 +887,6 @@ export async function fetchHomeData({ force = false } = {}) {
       }
     } catch (_) {}
   }
-  } catch (_) {}
 
   let savedUser = null;
   try {
