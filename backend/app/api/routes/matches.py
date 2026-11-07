@@ -464,12 +464,19 @@ def get_real_opponents(
 
         if len(players_list) >= 6:
             team_label = (u.team_name if u and u.team_name else pl.nombre) or "Equipo Rival"
+            manager_label = (
+                f"{u.nombre} {u.apellido}".strip()
+                if u and (u.nombre or u.apellido)
+                else (u.username if u else "Mánager Rival")
+            )
             opponents.append({
                 "id": pl.id,
                 "user_id": u.id if u else None,
                 "team_name": team_label,
                 "name": team_label,
                 "nombre_equipo": team_label,
+                "manager_name": manager_label,
+                "owner": manager_label,
                 "formation": pl.formacion or "1-2-2-1",
                 "costo_total": float(pl.costo_total or 0.0),
                 "players": players_list,

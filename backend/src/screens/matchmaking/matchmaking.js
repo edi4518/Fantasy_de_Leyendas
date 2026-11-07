@@ -50,6 +50,10 @@ export async function initMatchmaking(router) {
           name: picked.team_name || picked.name || 'Equipo Rival',
           formation: picked.formation || '1-2-2-1',
           cost: picked.costo_total || 0,
+          userId: picked.user_id,
+          user_id: picked.user_id,
+          owner: picked.owner || picked.manager_name,
+          manager_name: picked.manager_name || picked.owner,
           players: picked.players.map(p => ({
             ...p,
             name: p.name || p.nombre,
@@ -237,6 +241,15 @@ async function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
   let localManagerName = 'Tú';
   let localRank = '-';
 
+  // Datos del rival
+  const awayNameEl = document.getElementById('rival-name') || document.getElementById('away-team-name');
+  const awayManagerEl = document.getElementById('rival-owner') || document.getElementById('away-manager-name');
+  const awayOvrEl = document.getElementById('rival-ovr') || document.getElementById('away-team-ovr');
+  const awayRankEl = document.getElementById('rival-rank') || document.getElementById('away-team-rank');
+
+  let awayManagerName = awaySquad.owner || awaySquad.manager_name || `Míster ${awaySquad.name?.split(' ')[0] || 'Rival'}`;
+  let awayRank = '-';
+
   try {
     const rawUser = localStorage.getItem('user') || localStorage.getItem('fantasy_logged_user') || localStorage.getItem('fantasy_user');
     const savedUser = rawUser ? JSON.parse(rawUser) : {};
@@ -275,8 +288,28 @@ async function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
     if (rankInfo && rankInfo.displayRank) {
       localRank = rankInfo.displayRank; // Ej: "#1", "#3", o "-" si no ha jugado
     }
+
+    // Buscamos la posición real y mánager del rival en el ranking unificado
+    const rivalEntry = combinedEntries.find(e =>
+      (awaySquad?.userId && e.userId && Number(e.userId) === Number(awaySquad.userId)) ||
+      (awaySquad?.user_id && e.userId && Number(e.userId) === Number(awaySquad.user_id)) ||
+      (awaySquad?.name && e.team_name && e.team_name.toLowerCase().trim() === awaySquad.name.toLowerCase().trim()) ||
+      (awaySquad?.owner && e.manager_name && e.manager_name.toLowerCase().trim() === awaySquad.owner.toLowerCase().trim()) ||
+      (awaySquad?.manager_name && e.manager_name && e.manager_name.toLowerCase().trim() === awaySquad.manager_name.toLowerCase().trim())
+    );
+
+    if (rivalEntry) {
+      if (rivalEntry.manager_name) {
+        awayManagerName = rivalEntry.manager_name;
+      }
+      if (rivalEntry.rank) {
+        awayRank = `#${rivalEntry.rank}`;
+      } else if (rivalEntry.has_played === false) {
+        awayRank = '-';
+      }
+    }
   } catch (e) {
-    console.debug('[Matchmaking] Error obteniendo el rank real del usuario:', e);
+    console.debug('[Matchmaking] Error obteniendo el rank real del usuario o rival:', e);
   }
 
   if (homeNameEl) homeNameEl.textContent = homeSquad.name || 'Tu Equipo';
@@ -284,18 +317,10 @@ async function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
   if (homeOvrEl) homeOvrEl.textContent = `${homeStats.ovr} OVR`;
   if (homeRankEl) homeRankEl.textContent = `★ Rank: ${localRank}`;
 
-  // Datos del rival
-  const awayNameEl = document.getElementById('rival-name') || document.getElementById('away-team-name');
-  const awayManagerEl = document.getElementById('rival-owner') || document.getElementById('away-manager-name');
-  const awayOvrEl = document.getElementById('rival-ovr') || document.getElementById('away-team-ovr');
-  const awayRankEl = document.getElementById('rival-rank') || document.getElementById('away-team-rank');
-
-  const rivalRankNumber = Math.floor(Math.random() * 80) + 390;
-
   if (awayNameEl) awayNameEl.textContent = awaySquad.name;
-  if (awayManagerEl) awayManagerEl.textContent = `Míster ${awaySquad.name.split(' ')[0]}`;
+  if (awayManagerEl) awayManagerEl.textContent = awayManagerName;
   if (awayOvrEl) awayOvrEl.textContent = `${awayStats.ovr} OVR`;
-  if (awayRankEl) awayRankEl.textContent = `★ Rank: #${rivalRankNumber}`;
+  if (awayRankEl) awayRankEl.textContent = `★ Rank: ${awayRank}`;
 
   // ID aleatorio de Sala
   const roomEl = document.getElementById('matchmaking-room-id');
