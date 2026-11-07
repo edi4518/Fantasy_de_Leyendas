@@ -1,4 +1,15 @@
 {
+  "headers": [
+    {
+      "source": "/(index\\.html|onboarding|login|register|dashboard|matchmaking|market|comparison|lineup|history|ranking|profile|admin)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",

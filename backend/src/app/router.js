@@ -7,7 +7,7 @@
  */
 
 import { authService } from "../services/auth-service.js?v=2";
-import { renderNavigation, updateActiveNavItem } from "./navigation.js?v=11";
+import { renderNavigation, updateActiveNavItem } from "./navigation.js?v=13";
 
 const routes = {
   "/": {
@@ -242,7 +242,7 @@ async function handleLocation() {
   const viewFile = route.subview || route.screen;
   const viewUrl =
     route.screen === "onboarding" || route.screen === "auth"
-      ? `/src/screens/${route.screen}/${viewFile}.html?v=37`
+      ? `/src/screens/${route.screen}/${viewFile}.html?v=38`
       : `/src/screens/${route.screen}/${viewFile}.html?v=${Date.now()}`;
 
   try {
@@ -309,11 +309,13 @@ async function loadScreenController(route) {
 
     case "auth": {
       try {
-        const module = await import("../screens/auth/auth.js?v=38");
+        const module = await import("../screens/auth/auth.js?v=40");
         if (typeof module.initAuth === "function") {
           module.initAuth(route.subview, routerInstance);
         }
-        setTimeout(ensureGoogleIdentityScript, 0);
+        if (route.subview !== "register") {
+          setTimeout(ensureGoogleIdentityScript, 0);
+        }
       } catch (err) {
         console.warn("[Router] Controlador auth.js no inicializado:", err);
       }
@@ -466,7 +468,7 @@ function loadStylesheetOnce(basePath, versionQuery = "v=30") {
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = `${basePath}?${versionQuery}`;
-    const timer = setTimeout(resolve, 250);
+    const timer = setTimeout(resolve, 2500);
     link.onload = () => {
       clearTimeout(timer);
       resolve();
@@ -497,9 +499,9 @@ function ensureScreenStylesheet(screenName) {
     return loadStylesheetOnce("/src/styles/screens/onboarding.css", "v=31");
   }
   return Promise.all([
-    loadStylesheetOnce("/src/styles/components.css", "v=28"),
+    loadStylesheetOnce("/src/styles/components.css", "v=29"),
     loadStylesheetOnce("/src/components/modal/modal.css", "v=19"),
-    loadStylesheetOnce(`/src/styles/screens/${screenName}.css`, "v=35"),
+    loadStylesheetOnce(`/src/styles/screens/${screenName}.css`, "v=36"),
   ]);
 }
 

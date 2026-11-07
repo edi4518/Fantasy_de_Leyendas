@@ -1040,30 +1040,47 @@
 }
 
 .app-navigation {
-  flex: 0 0 60px;
-  height: 60px;
-  min-height: 60px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  min-height: 64px;
   width: 100%;
   max-width: 100%;
   background-color: #ffffff;
   border-top: 1px solid #e5e7eb;
   z-index: 50;
   box-sizing: border-box;
-  position: relative;
   margin: 0;
   padding: 0;
 }
 
 .bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: space-around;
   background-color: #ffffff;
-  height: 60px;
+  border-top: 1px solid #e5e7eb;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  min-height: 64px;
   width: 100%;
+  z-index: 50;
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
+  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+@media screen and (min-width: 480px) {
+  .app-navigation,
+  .bottom-nav {
+    max-width: 440px;
+    margin: 0 auto;
+  }
 }
 
 .bottom-nav__item {
