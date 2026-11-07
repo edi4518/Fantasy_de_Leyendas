@@ -53,8 +53,29 @@ def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int]
     return db.query(User).order_by(User.id.desc()).first()
 
 
+def calculate_realistic_rating(partidos: int, goles: int, mvps: int, base_rating: int) -> float:
+    """Calcula una nota media realista (4.0 a 10.0) evitando valores corrompidos debajo de 1."""
+    if not partidos or partidos <= 0:
+        return 0.0
+    goals_bonus = min(2.0, (goles / partidos) * 2.5)
+    mvp_bonus = min(1.0, (mvps / partidos) * 2.0)
+    skill_bonus = min(0.8, max(-0.6, (base_rating - 70) * 0.02))
+    val = min(9.5, max(5.5, 6.4 + goals_bonus + mvp_bonus + skill_bonus))
+    return round(val, 1)
+
+
 def _serialize_player(p: Player, up: Optional[UserPlayer] = None) -> Dict[str, Any]:
     """Serializa un objeto Player fusionando su estado físico (energia) y estadísticas en el club desde UserPlayer."""
+    raw_rating = float(up.rating_promedio if up and up.rating_promedio is not None else 0.0)
+    if up and (up.partidos_club or 0) > 0 and (raw_rating < 4.0 or raw_rating > 10.0):
+        raw_rating = calculate_realistic_rating(
+            up.partidos_club or 0,
+            up.goles_club or 0,
+            up.mvps_club or 0,
+            int(p.rating_general or p.media_juego or 75)
+        )
+        up.rating_promedio = raw_rating
+
     return {
         "id": p.id,
         "user_player_id": up.id if up else None,
@@ -81,7 +102,7 @@ def _serialize_player(p: Player, up: Optional[UserPlayer] = None) -> Dict[str, A
         "goles_club": int(up.goles_club if up else 0),
         "vallas_invictas_club": int(up.vallas_invictas_club if up else 0),
         "mvps_club": int(up.mvps_club if up else 0),
-        "rating_promedio": float(up.rating_promedio if up else 0.0),
+        "rating_promedio": raw_rating,
     }
 
 
@@ -132,6 +153,10 @@ def _build_squad_response(plantilla: Plantilla, user: Optional[User], db: Sessio
 
     costo_total = round(sum(float(p["precio"]) for p in slots if p), 2)
     presupuesto_restante = round(max(0.0, MAX_SALARY_CAP - costo_total), 2)
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
 
     return {
         "id": plantilla.id,

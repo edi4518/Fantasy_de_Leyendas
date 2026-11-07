@@ -232,7 +232,7 @@ export const matchService = {
         away_formation: matchData.awayTeam?.formation || '1-2-2-1',
         events: Array.isArray(matchData.events) ? matchData.events : [],
         stats: matchData.stats || {},
-        mvp: statsResult.matchMvp || null,
+        mvp: matchData.officialMvp || statsResult.matchMvp || null,
         squad_players: activeSquadPlayers,
         player_stats: statsResult.stats || {},
         user_id: currentUserId,
@@ -256,7 +256,7 @@ export const matchService = {
       pointsGained,
       currentStats,
       playerStats: statsResult.stats,
-      matchMvp: statsResult.matchMvp
+      matchMvp: matchData.officialMvp || statsResult.matchMvp
     };
     matchData.saveOutcome = outcome;
     return outcome;
@@ -495,8 +495,17 @@ export const matchService = {
         matchRating += Math.max(0, (baseRating - 75) * 0.02);
         matchRating = Math.min(10.0, Math.max(4.0, Math.round(matchRating * 10) / 10));
 
-        // Acumular nota y calcular promedio real
-        stats[pName].totalRating = Math.round(((stats[pName].totalRating || 0) + matchRating) * 10) / 10;
+        // Acumular nota y calcular promedio real garantizando consistencia histórica
+        const priorMatches = Math.max(0, (stats[pName].matchesPlayed || 1) - 1);
+        let currentTotal = stats[pName].totalRating;
+        if (!currentTotal || currentTotal < priorMatches * 3.5) {
+          const priorAvg = (stats[pName].avgRating && stats[pName].avgRating >= 4.0 && stats[pName].avgRating <= 10.0)
+            ? stats[pName].avgRating
+            : Math.min(9.5, Math.max(5.5, 6.4 + ((stats[pName].goals || 0) / Math.max(1, priorMatches)) * 2.0));
+          currentTotal = Math.round(priorAvg * priorMatches * 10) / 10;
+        }
+
+        stats[pName].totalRating = Math.round((currentTotal + matchRating) * 10) / 10;
         stats[pName].matchRatings = [...(stats[pName].matchRatings || []), matchRating];
         stats[pName].avgRating = Math.round((stats[pName].totalRating / stats[pName].matchesPlayed) * 10) / 10;
         stats[pName].lastMatchRating = matchRating;

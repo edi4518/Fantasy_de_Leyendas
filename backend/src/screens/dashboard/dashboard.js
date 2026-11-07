@@ -528,6 +528,57 @@ export function invalidateDashboardCache() {
 }
 
 /**
+ * Sanea y valida la nota media de un jugador en la escala 1.0 a 10.0.
+ * Corrige notas anómalas o corrompidas (por ejemplo menores a 4.0 como 0.2)
+ * recalculando una valoración realista basada en partidos, goles y rating base.
+ */
+export function sanitizePlayerRating(rawRating, matchesPlayed = 0, goals = 0, baseRating = 75, mvps = 0) {
+  const matches = Number(matchesPlayed) || 0;
+  if (matches <= 0) return null;
+
+  const raw = Number(rawRating);
+  if (!isNaN(raw) && raw >= 4.0 && raw <= 10.0) {
+    return Math.round(raw * 10) / 10;
+  }
+
+  const goalsRatio = goals / matches;
+  const goalsBonus = Math.min(2.0, goalsRatio * 2.5);
+  const mvpBonus = Math.min(1.0, ((Number(mvps) || 0) / matches) * 2.0);
+  const skillBonus = Math.min(0.8, Math.max(-0.6, ((Number(baseRating) || 75) - 70) * 0.02));
+
+  const estimated = Math.min(9.8, Math.max(5.5, 6.4 + goalsBonus + mvpBonus + skillBonus));
+  return Math.round(estimated * 10) / 10;
+}
+
+/**
+ * Auto-repara y previene persistencia de notas corrompidas en localStorage.
+ */
+export function healLocalPlayerStats(rawStats) {
+  if (!rawStats) return {};
+  let statsObj = {};
+  try {
+    statsObj = typeof rawStats === 'string' ? JSON.parse(rawStats) : { ...rawStats };
+  } catch (_) {
+    return {};
+  }
+  let changed = false;
+  Object.keys(statsObj).forEach((k) => {
+    const item = statsObj[k];
+    if (item && item.matchesPlayed > 0 && (item.avgRating == null || item.avgRating < 4.0 || item.avgRating > 10.0)) {
+      item.avgRating = sanitizePlayerRating(item.avgRating, item.matchesPlayed, item.goals, 75, item.mvpAwards);
+      item.totalRating = Math.round((item.avgRating || 6.5) * item.matchesPlayed * 10) / 10;
+      changed = true;
+    }
+  });
+  if (changed) {
+    try {
+      localStorage.setItem('fantasy_player_stats', JSON.stringify(statsObj));
+    } catch (_) {}
+  }
+  return statsObj;
+}
+
+/**
  * Helper sincrónico puro que fusiona el estado (local o remoto) en la estructura
  * canónica estándar DEFAULT_HOME_DATA para renderizar instantáneamente el Dashboard.
  */
@@ -585,8 +636,10 @@ export function buildConsolidatedHomeData({
     topPlayer = [...playersWithMatches].sort((a, b) => {
       const sA = getPlayerStatRecord(a.name) || {};
       const sB = getPlayerStatRecord(b.name) || {};
-      const scoreA = (sA.mvpAwards || 0) * 15 + (sA.goals || 0) * 5 + (Number(sA.avgRating) || 0) * 2;
-      const scoreB = (sB.mvpAwards || 0) * 15 + (sB.goals || 0) * 5 + (Number(sB.avgRating) || 0) * 2;
+      const ratingA = sanitizePlayerRating(sA.avgRating, sA.matchesPlayed, sA.goals, getPlayerRating(a), sA.mvpAwards) || 6.5;
+      const ratingB = sanitizePlayerRating(sB.avgRating, sB.matchesPlayed, sB.goals, getPlayerRating(b), sB.mvpAwards) || 6.5;
+      const scoreA = (sA.mvpAwards || 0) * 15 + (sA.goals || 0) * 5 + ratingA * 2;
+      const scoreB = (sB.mvpAwards || 0) * 15 + (sB.goals || 0) * 5 + ratingB * 2;
       return scoreB - scoreA;
     })[0];
     topStats = getPlayerStatRecord(topPlayer.name);
@@ -674,8 +727,8 @@ export function buildConsolidatedHomeData({
       position: (topPlayer.role || topPlayer.posicion_base || 'DEL').toUpperCase(),
       matches: topStats?.matchesPlayed || 0,
       goals: topStats?.goals || 0,
-      score: (topStats?.matchesPlayed > 0 && topStats?.avgRating != null)
-        ? Number(topStats.avgRating).toFixed(1)
+      score: (topStats?.matchesPlayed > 0)
+        ? (sanitizePlayerRating(topStats.avgRating, topStats.matchesPlayed, topStats.goals, getPlayerRating(topPlayer), topStats.mvpAwards)?.toFixed(1) || '-')
         : '-',
       maxScore: 10,
       avatarUrl: topPlayer.image_filename
@@ -745,7 +798,7 @@ export function getOptimisticHomeData() {
   let playerStats = {};
   try {
     const rawPlayerStats = localStorage.getItem('fantasy_player_stats');
-    if (rawPlayerStats) playerStats = JSON.parse(rawPlayerStats);
+    if (rawPlayerStats) playerStats = healLocalPlayerStats(rawPlayerStats);
   } catch (_) {}
 
   return buildConsolidatedHomeData({
@@ -828,7 +881,7 @@ export async function fetchHomeData() {
   let playerStats = {};
   try {
     const rawPlayerStats = localStorage.getItem('fantasy_player_stats');
-    if (rawPlayerStats) playerStats = JSON.parse(rawPlayerStats);
+    if (rawPlayerStats) playerStats = healLocalPlayerStats(rawPlayerStats);
   } catch (e) {
     console.debug('[Dashboard] Error leyendo estadisticas locales de jugadores:', e);
   }
@@ -866,6 +919,13 @@ export async function fetchHomeData() {
       remotePlayers.forEach((rp) => {
         if (rp && (rp.nombre || rp.name) && (rp.partidos_club > 0 || rp.goles_club > 0 || rp.mvps_club > 0)) {
           const pKey = rp.nombre || rp.name;
+          const cleanRating = sanitizePlayerRating(
+            rp.rating_promedio,
+            rp.partidos_club,
+            rp.goles_club,
+            rp.rating_general || rp.media_juego || 75,
+            rp.mvps_club
+          );
           if (!playerStats[pKey] || (rp.partidos_club || 0) >= (playerStats[pKey].matchesPlayed || 0)) {
             playerStats[pKey] = {
               name: pKey,
@@ -873,7 +933,8 @@ export async function fetchHomeData() {
               goals: rp.goles_club || 0,
               cleanSheets: rp.vallas_invictas_club || 0,
               mvpAwards: rp.mvps_club || 0,
-              avgRating: rp.rating_promedio ?? null
+              avgRating: cleanRating,
+              totalRating: cleanRating ? Math.round(cleanRating * (rp.partidos_club || 0) * 10) / 10 : 0
             };
           }
         }
@@ -1199,7 +1260,7 @@ export function setupHomeEventListeners(router) {
     let stats = {};
     try {
       const raw = localStorage.getItem('fantasy_player_stats');
-      if (raw) stats = JSON.parse(raw);
+      if (raw) stats = healLocalPlayerStats(raw);
     } catch (e) {}
 
     const rawList = Array.isArray(squad?.players) ? squad.players : [];
@@ -1243,8 +1304,9 @@ export function setupHomeEventListeners(router) {
       const hasPlayed = (pStats.matchesPlayed || 0) > 0;
       const matches = pStats.matchesPlayed || 0;
       const goals = pStats.goals || 0;
-      const rating = (hasPlayed && pStats.avgRating != null)
-        ? Number(pStats.avgRating).toFixed(1)
+      const cleanRating = sanitizePlayerRating(pStats.avgRating, matches, goals, getPlayerRating(p), pStats.mvpAwards);
+      const rating = (hasPlayed && cleanRating != null)
+        ? cleanRating.toFixed(1)
         : '-';
       const isStarter = idx < 6;
       const tokenClass = `player-stat-card__token--${role.toLowerCase()}`;

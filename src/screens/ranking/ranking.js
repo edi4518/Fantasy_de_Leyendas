@@ -188,11 +188,17 @@ function renderCurrentUserCard(container, combinedEntries) {
 
   const userTrend = getTrendDetails(myEntry || { points: userPoints, has_played: hasPlayed }, lastMatchLetter);
 
+  let userDock = container.querySelector('.ranking-current-user-dock');
   let userCard = container.querySelector('.ranking-current-user');
   if (!userCard) {
     userCard = document.createElement('div');
     userCard.className = 'ranking-current-user';
-    container.appendChild(userCard);
+    userCard.id = 'ranking-current-user';
+    if (userDock) {
+      userDock.appendChild(userCard);
+    } else {
+      container.appendChild(userCard);
+    }
   }
 
   userCard.innerHTML = `

@@ -70,25 +70,27 @@
   <!-- Lista Clasificada Dinámica (Puestos 4 en adelante) -->
   <ul class="ranking-list" id="ranking-list"></ul>
 
-  <!-- Tarjeta Fija del Mánager Conectado -->
-  <div class="ranking-current-user" id="ranking-current-user">
-    <div class="user-position-box">
-      <span class="user-position-label">POSICIÓN</span>
-      <span class="user-rank" id="user-rank-val">-</span>
-    </div>
-    <div class="user-avatar-badge" id="user-avatar-badge">
-      <svg class="avatar-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round"
-          stroke-linejoin="round" stroke-width="2"></path>
-      </svg>
-    </div>
-    <div class="user-team-info">
-      <span class="user-team-title" id="user-display-name">Mi Equipo</span>
-      <span class="user-team" id="user-team-name">-</span>
-    </div>
-    <div class="user-points-badge">
-      <span class="user-points" id="user-points-val">1.000 pts</span>
-      <span class="user-points-trend" id="user-points-trend">-</span>
+  <!-- Contenedor Fijo Flotante del Mánager Conectado (Dock con gradiente superior) -->
+  <div class="ranking-current-user-dock" id="ranking-current-user-dock">
+    <div class="ranking-current-user" id="ranking-current-user">
+      <div class="user-position-box">
+        <span class="user-position-label">POSICIÓN</span>
+        <span class="user-rank" id="user-rank-val">-</span>
+      </div>
+      <div class="user-avatar-badge" id="user-avatar-badge">
+        <svg class="avatar-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round"
+            stroke-linejoin="round" stroke-width="2"></path>
+        </svg>
+      </div>
+      <div class="user-team-info">
+        <span class="user-team-title" id="user-display-name">Mi Equipo</span>
+        <span class="user-team" id="user-team-name">-</span>
+      </div>
+      <div class="user-points-badge">
+        <span class="user-points" id="user-points-val">1.000 pts</span>
+        <span class="user-points-trend" id="user-points-trend">-</span>
+      </div>
     </div>
   </div>
 </section>

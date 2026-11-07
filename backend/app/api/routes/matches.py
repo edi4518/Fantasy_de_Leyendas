@@ -316,7 +316,22 @@ def record_finished_match(
                 up.vallas_invictas_club = int(st.get("cleanSheets") or up.vallas_invictas_club or 0)
                 up.mvps_club = int(st.get("mvpAwards") or up.mvps_club or 0)
                 if st.get("avgRating") is not None:
-                    up.rating_promedio = float(st["avgRating"])
+                    try:
+                        raw_r = float(st["avgRating"])
+                        if 4.0 <= raw_r <= 10.0:
+                            up.rating_promedio = raw_r
+                        elif (up.partidos_club or 0) > 0:
+                            from app.api.routes.squads import calculate_realistic_rating
+                            p_obj = db.query(Player).filter(Player.id == matched_pid).first()
+                            base_r = int(p_obj.rating_general or p_obj.media_juego or 75) if p_obj else 75
+                            up.rating_promedio = calculate_realistic_rating(
+                                up.partidos_club or 0,
+                                up.goles_club or 0,
+                                up.mvps_club or 0,
+                                base_r
+                            )
+                    except (ValueError, TypeError):
+                        pass
 
     db.commit()
     db.refresh(user)

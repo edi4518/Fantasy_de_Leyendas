@@ -21,8 +21,7 @@
   flex-direction: column;
   padding: 14px 16px 16px 16px;
   position: relative;
-  overflow-y: visible;
-  overflow-x: hidden;
+  overflow: visible;
 }
 
 /* --------------------------------------------------------------------------
@@ -296,7 +295,7 @@
   gap: 8px;
   width: 100%;
   margin: 0 0 10px 0;
-  padding: 0;
+  padding: 0 0 76px 0;
   list-style: none;
   box-sizing: border-box;
   flex-shrink: 0;
@@ -425,11 +424,28 @@
 /* --------------------------------------------------------------------------
    5. TARJETA FIJA DEL MÁNAGER CONECTADO (Ubicada fija sobre la Bottom Nav)
    -------------------------------------------------------------------------- */
-.ranking-current-user {
-  position: sticky;
-  bottom: 10px;
-  margin-top: auto;
+.ranking-current-user-dock {
+  position: fixed;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   width: 100%;
+  max-width: 440px;
+  padding: 14px 16px 8px 16px;
+  box-sizing: border-box;
+  z-index: 45;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0) 0%, rgba(248, 250, 252, 0.78) 35%, rgba(248, 250, 252, 0.96) 65%, #f8fafc 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ranking-current-user {
+  position: relative;
+  width: 100%;
+  pointer-events: auto;
   background-color: #266046;
   color: #ffffff;
   padding: 10px 14px;
@@ -438,8 +454,7 @@
   align-items: center;
   justify-content: space-between;
   box-sizing: border-box;
-  z-index: 40;
-  box-shadow: 0 8px 24px rgba(38, 96, 70, 0.38), 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px rgba(38, 96, 70, 0.42), 0 2px 6px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(8px);
   flex-shrink: 0;

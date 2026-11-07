@@ -733,7 +733,19 @@ function openPlayerActionModal(slotIndex) {
     const hasPlayed = (pStats.matchesPlayed || 0) > 0;
     const matches = pStats.matchesPlayed || 0;
     const goals = pStats.goals || 0;
-    const rating = (hasPlayed && pStats.avgRating != null) ? Number(pStats.avgRating).toFixed(1) : '-';
+    let cleanRating = null;
+    if (hasPlayed) {
+      const rawR = Number(pStats.avgRating);
+      if (!isNaN(rawR) && rawR >= 4.0 && rawR <= 10.0) {
+        cleanRating = rawR;
+      } else {
+        const goalsBonus = Math.min(2.0, (goals / matches) * 2.5);
+        const pSkill = Number(player.rating_general || player.media_juego || 75);
+        const skillBonus = Math.min(0.8, Math.max(-0.6, (pSkill - 70) * 0.02));
+        cleanRating = Math.round(Math.min(9.8, Math.max(5.5, 6.4 + goalsBonus + skillBonus)) * 10) / 10;
+      }
+    }
+    const rating = (hasPlayed && cleanRating != null) ? cleanRating.toFixed(1) : '-';
     const mvps = pStats.mvpAwards || 0;
 
     statsBox.innerHTML = `
