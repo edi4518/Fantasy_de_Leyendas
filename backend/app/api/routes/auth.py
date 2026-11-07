@@ -1,10 +1,12 @@
 import os
 import re
 import shutil
+import logging
 from datetime import date, datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 import bcrypt
 import httpx
@@ -13,6 +15,7 @@ from app.core.database import get_db
 from app.models.user import User
 from app.models.squad import Plantilla
 
+logger = logging.getLogger("app.auth")
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 GOOGLE_CLIENT_ID = "367906456287-h602ut2oho5r8c0q9cpa0epevsil3juo.apps.googleusercontent.com"
@@ -37,6 +40,49 @@ class LoginRequest(BaseModel):
 class GoogleAuthRequest(BaseModel):
     credential: str
     team_name: Optional[str] = None
+    birthdate: Optional[str] = None
+
+
+def _ensure_user_plantilla(db: Session, target_user: User) -> Plantilla:
+    """Crea la plantilla inicial del usuario y se asegura de que la columna es_activa exista en TiDB."""
+    existing_plan = db.query(Plantilla).filter(Plantilla.user_id == target_user.id).first()
+    if existing_plan:
+        return existing_plan
+
+    try:
+        plantilla = Plantilla(
+            user_id=target_user.id,
+            nombre=target_user.team_name or "Mi Alineación Principal",
+            formacion="1-2-2-1",
+            costo_total=0.00,
+            es_activa=True,
+        )
+        db.add(plantilla)
+        db.commit()
+        db.refresh(plantilla)
+        return plantilla
+    except Exception as plan_err:
+        db.rollback()
+        err_str = str(plan_err).lower()
+        if "es_activa" in err_str:
+            try:
+                db.execute(text("ALTER TABLE plantillas ADD COLUMN es_activa BOOLEAN DEFAULT TRUE"))
+                db.commit()
+                plantilla = Plantilla(
+                    user_id=target_user.id,
+                    nombre=target_user.team_name or "Mi Alineación Principal",
+                    formacion="1-2-2-1",
+                    costo_total=0.00,
+                    es_activa=True,
+                )
+                db.add(plantilla)
+                db.commit()
+                db.refresh(plantilla)
+                return plantilla
+            except Exception as retry_err:
+                logger.error(f"Error al reintentar creación de plantilla: {retry_err}")
+                db.rollback()
+        raise
 
 
 # ============================================================================
@@ -276,12 +322,44 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
     # 2. Verificar si el usuario ya existe en la base de datos
     user = db.query(User).filter(User.email == email).first()
 
+    # Caso 2A: El usuario ya existe pero le falta completar fecha_nacimiento o nombre de club
+    if user and (not user.fecha_nacimiento or not user.team_name):
+        if not payload.team_name or not payload.birthdate:
+            return {
+                "is_new_user": True,
+                "email": email,
+                "first_name": first_name,
+                "last_name": last_name,
+                "name": full_name,
+                "photo_url": photo_url,
+                "team_name": user.team_name or "",
+            }
+        else:
+            user.team_name = payload.team_name.strip()
+            user.fecha_nacimiento = parse_birthdate(payload.birthdate)
+            if photo_url and not user.photo_url:
+                user.photo_url = photo_url
+            db.commit()
+            db.refresh(user)
+
+            _ensure_user_plantilla(db, user)
+
+            return {
+                "message": "Registro completado exitosamente",
+                "access_token": f"token_user_{user.id}",
+                "token_type": "bearer",
+                "is_new_user": False,
+                "user": serialize_user(user),
+            }
+
+    # Caso 2B: El usuario ya existe y tiene sus datos completos -> Login directo
     if user:
-        # Actualizar foto de perfil si no tenía y Google la proporciona
         if photo_url and not user.photo_url:
             user.photo_url = photo_url
             db.commit()
             db.refresh(user)
+
+        _ensure_user_plantilla(db, user)
 
         return {
             "message": "Inicio de sesión con Google exitoso",
@@ -291,8 +369,8 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
             "user": serialize_user(user),
         }
 
-    # 3. Usuario NUEVO: Si aún no eligió nombre de equipo, se lo pedimos al frontend mediante el pop-up
-    if not payload.team_name or not payload.team_name.strip():
+    # 3. Usuario NUEVO: Si aún no completó nombre de equipo o fecha de nacimiento, abrir el pop-up
+    if not payload.team_name or not payload.team_name.strip() or not payload.birthdate or not payload.birthdate.strip():
         return {
             "is_new_user": True,
             "email": email,
@@ -302,8 +380,9 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
             "photo_url": photo_url,
         }
 
-    # 4. Usuario NUEVO con nombre de equipo elegido: Dar de alta en TiDB
+    # 4. Usuario NUEVO con formulario completo: Dar de alta en TiDB
     team_name_clean = payload.team_name.strip()
+    parsed_birthdate = parse_birthdate(payload.birthdate)
     sub_id = token_data.get("sub", email)
     placeholder_pwd = hash_password(f"google_oauth_{sub_id}_{email}")
 
@@ -315,6 +394,7 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
         apellido=last_name or first_name,
         team_name=team_name_clean,
         rol="manager",
+        fecha_nacimiento=parsed_birthdate,
         photo_url=photo_url,
         presupuesto=150.00,
         elo_rating=1000,
@@ -323,16 +403,7 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
     db.commit()
     db.refresh(new_user)
 
-    # Crear la plantilla inicial del usuario
-    plantilla = Plantilla(
-        user_id=new_user.id,
-        nombre=team_name_clean,
-        formacion="1-2-2-1",
-        costo_total=0.00,
-        es_activa=True,
-    )
-    db.add(plantilla)
-    db.commit()
+    _ensure_user_plantilla(db, new_user)
 
     return {
         "message": "Registro con Google exitoso",

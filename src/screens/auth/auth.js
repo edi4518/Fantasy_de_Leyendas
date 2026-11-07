@@ -47,11 +47,24 @@ function initLogin(router) {
   let pendingGoogleCredential = null;
   const teamModal = document.getElementById('google-team-modal');
   const teamInput = document.getElementById('google-team-name-input');
+  const birthdateInput = document.getElementById('google-birthdate-input');
   const teamSubmitBtn = document.getElementById('google-team-submit-btn');
   const teamModalError = document.getElementById('google-modal-error');
   const welcomeTitle = document.getElementById('google-welcome-title');
   const avatarImg = document.getElementById('google-modal-avatar');
   const avatarFallback = document.getElementById('google-modal-avatar-fallback');
+
+  if (birthdateInput) {
+    birthdateInput.addEventListener('input', (e) => {
+      let value = e.target.value.replace(/\D/g, '').slice(0, 8);
+      if (value.length >= 5) {
+        value = `${value.slice(0, 2)} / ${value.slice(2, 4)} / ${value.slice(4)}`;
+      } else if (value.length >= 3) {
+        value = `${value.slice(0, 2)} / ${value.slice(2)}`;
+      }
+      e.target.value = value;
+    });
+  }
 
   async function handleGoogleResponse(response) {
     if (!response || !response.credential) return;
@@ -61,7 +74,7 @@ function initLogin(router) {
       const res = await authService.loginWithGoogle(response.credential);
 
       if (res.is_new_user) {
-        // Usuario nuevo: mostrar modal para elegir nombre de club
+        // Usuario nuevo: mostrar modal para elegir nombre de club y fecha de nacimiento
         pendingGoogleCredential = response.credential;
         if (welcomeTitle && res.first_name) {
           welcomeTitle.textContent = `¡Bienvenido, ${res.first_name}!`;
@@ -71,10 +84,13 @@ function initLogin(router) {
           avatarImg.style.display = 'block';
           if (avatarFallback) avatarFallback.style.display = 'none';
         }
+        if (teamInput && res.team_name) {
+          teamInput.value = res.team_name;
+        }
         if (teamModal) {
           teamModal.style.display = 'flex';
           teamModal.classList.remove('hidden');
-          setTimeout(() => teamInput?.focus(), 150);
+          setTimeout(() => (teamInput?.value ? birthdateInput?.focus() : teamInput?.focus()), 150);
         }
       } else if (res.access_token) {
         // Usuario existente: login directo al dashboard
@@ -98,10 +114,12 @@ function initLogin(router) {
     }
   }
 
-  // Confirmar nombre de club en el modal de nuevo mánager
+  // Confirmar nombre de club y fecha de nacimiento en el modal de nuevo mánager
   if (teamSubmitBtn && teamInput) {
     teamSubmitBtn.addEventListener('click', async () => {
       const teamName = teamInput.value.trim();
+      const birthdate = birthdateInput ? birthdateInput.value.trim() : '';
+
       if (!teamName) {
         if (teamModalError) {
           teamModalError.textContent = 'Por favor, ingresa un nombre para tu equipo.';
@@ -118,13 +136,38 @@ function initLogin(router) {
         teamInput.focus();
         return;
       }
+      if (!birthdate || birthdate.length < 14) {
+        if (teamModalError) {
+          teamModalError.textContent = 'Por favor, introduce tu fecha de nacimiento (DD / MM / AAAA).';
+          teamModalError.style.display = 'block';
+        }
+        birthdateInput?.focus();
+        return;
+      }
+
+      // Validar componentes de la fecha
+      const dateParts = birthdate.replace(/\s/g, '').split('/');
+      if (dateParts.length === 3) {
+        const d = parseInt(dateParts[0], 10);
+        const m = parseInt(dateParts[1], 10);
+        const y = parseInt(dateParts[2], 10);
+        const currentYear = new Date().getFullYear();
+        if (isNaN(d) || isNaN(m) || isNaN(y) || d < 1 || d > 31 || m < 1 || m > 12 || y < 1920 || y > currentYear) {
+          if (teamModalError) {
+            teamModalError.textContent = 'Introduce una fecha de nacimiento válida.';
+            teamModalError.style.display = 'block';
+          }
+          birthdateInput?.focus();
+          return;
+        }
+      }
 
       try {
         teamSubmitBtn.disabled = true;
         teamSubmitBtn.textContent = 'CREANDO CLUB...';
         if (teamModalError) teamModalError.style.display = 'none';
 
-        const res = await authService.loginWithGoogle(pendingGoogleCredential, teamName);
+        const res = await authService.loginWithGoogle(pendingGoogleCredential, teamName, birthdate);
         if (res.access_token) {
           localStorage.setItem('hasSeenOnboarding', 'true');
           if (res.user) {
@@ -150,6 +193,17 @@ function initLogin(router) {
     });
 
     teamInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (birthdateInput && !birthdateInput.value) {
+          birthdateInput.focus();
+        } else {
+          teamSubmitBtn.click();
+        }
+      }
+    });
+
+    birthdateInput?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         teamSubmitBtn.click();

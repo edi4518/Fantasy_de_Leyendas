@@ -23,10 +23,11 @@ export const authService = {
     return data;
   },
 
-  async loginWithGoogle(credential, teamName = null) {
+  async loginWithGoogle(credential, teamName = null, birthdate = null) {
     const data = await apiClient.post('/auth/google', {
       credential,
-      team_name: teamName
+      team_name: teamName,
+      birthdate: birthdate
     });
     if (data.access_token) {
       localStorage.setItem('access_token', data.access_token);
