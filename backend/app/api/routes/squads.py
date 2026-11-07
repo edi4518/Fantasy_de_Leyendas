@@ -20,7 +20,7 @@ MAX_SALARY_CAP = 150.0
 
 
 def _ensure_squad_columns(db: Session):
-    """Garantiza que las columnas de stamina y estadísticas en user_players y plantillas existan en TiDB."""
+    """Garantiza que las columnas de stamina y estadísticas en user_players, plantillas y players existan en TiDB."""
     for col_name, col_def in [
         ("energia", "TINYINT UNSIGNED NOT NULL DEFAULT 100"),
         ("partidos_club", "SMALLINT UNSIGNED NOT NULL DEFAULT 0"),
@@ -43,6 +43,60 @@ def _ensure_squad_columns(db: Session):
     ]:
         try:
             db.execute(text(f"ALTER TABLE plantillas ADD COLUMN {col_name} {col_def}"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+    for col_name, col_def in [
+        ("partidos_oficiales", "INT DEFAULT 0"),
+        ("minutos_jugados", "INT DEFAULT 0"),
+        ("vallas_invictas", "INT DEFAULT 0"),
+        ("goles_oficiales", "INT DEFAULT 0"),
+        ("remates_totales", "INT DEFAULT 0"),
+        ("asistencias_oficiales", "INT DEFAULT 0"),
+        ("pases_intentados", "INT DEFAULT 0"),
+        ("pases_completados", "INT DEFAULT 0"),
+        ("pases_clave", "INT DEFAULT 0"),
+        ("regates_intentados", "INT DEFAULT 0"),
+        ("regates_exitosos", "INT DEFAULT 0"),
+        ("recuperaciones", "INT DEFAULT 0"),
+        ("intercepciones", "INT DEFAULT 0"),
+        ("entradas_exitosas", "INT DEFAULT 0"),
+        ("duelos_defensivos_totales", "INT DEFAULT 0"),
+        ("duelos_defensivos_ganados", "INT DEFAULT 0"),
+        ("ocasiones_creadas", "INT DEFAULT 0"),
+        ("goles_sin_penal", "INT DEFAULT 0"),
+        ("distinciones_individuales", "INT DEFAULT 0"),
+        ("balones_de_oro", "INT DEFAULT 0"),
+        ("titulos_totales", "INT DEFAULT 0"),
+        ("goles_sin_penal_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("goles_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("conversion_goles", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("rating_ataque", "INT NOT NULL DEFAULT 0"),
+        ("asistencias_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("pases_clave_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("ocasiones_creadas_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("rating_creacion", "INT NOT NULL DEFAULT 0"),
+        ("porcentaje_regates", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("precision_pases", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("rating_tecnica", "INT NOT NULL DEFAULT 0"),
+        ("porcentaje_duelos_defensivos", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("entradas_exitosas_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("intercepciones_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("recuperaciones_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("rating_defensa", "INT NOT NULL DEFAULT 0"),
+        ("duelos_ganados_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("rating_fisico", "INT NOT NULL DEFAULT 0"),
+        ("distinciones_norm", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("balones_oro_norm", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("titulos_norm", "DECIMAL(6,2) DEFAULT 0.00"),
+        ("rating_palmares", "INT NOT NULL DEFAULT 0"),
+        ("precio", "DECIMAL(6,2) NOT NULL DEFAULT 0.00"),
+        ("rating_general", "INT NOT NULL DEFAULT 0"),
+        ("media_juego", "INT NOT NULL DEFAULT 0"),
+    ]:
+        try:
+            db.execute(text(f"ALTER TABLE players ADD COLUMN {col_name} {col_def}"))
             db.commit()
         except Exception:
             db.rollback()

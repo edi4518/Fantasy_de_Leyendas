@@ -78,6 +78,180 @@ def _ensure_optimized_schema():
         insp = inspect(engine)
         existing_tables = set(insp.get_table_names())
 
+        # 1.0 Asegurar TODAS las columnas requeridas en 'players' (incluyendo métricas históricas)
+        if "players" in existing_tables:
+            player_cols = {c["name"] for c in insp.get_columns("players")}
+            player_definitions = [
+                ("partidos_oficiales", "INT DEFAULT 0"),
+                ("minutos_jugados", "INT DEFAULT 0"),
+                ("vallas_invictas", "INT DEFAULT 0"),
+                ("goles_oficiales", "INT DEFAULT 0"),
+                ("remates_totales", "INT DEFAULT 0"),
+                ("asistencias_oficiales", "INT DEFAULT 0"),
+                ("pases_intentados", "INT DEFAULT 0"),
+                ("pases_completados", "INT DEFAULT 0"),
+                ("pases_clave", "INT DEFAULT 0"),
+                ("regates_intentados", "INT DEFAULT 0"),
+                ("regates_exitosos", "INT DEFAULT 0"),
+                ("recuperaciones", "INT DEFAULT 0"),
+                ("intercepciones", "INT DEFAULT 0"),
+                ("entradas_exitosas", "INT DEFAULT 0"),
+                ("duelos_defensivos_totales", "INT DEFAULT 0"),
+                ("duelos_defensivos_ganados", "INT DEFAULT 0"),
+                ("ocasiones_creadas", "INT DEFAULT 0"),
+                ("goles_sin_penal", "INT DEFAULT 0"),
+                ("distinciones_individuales", "INT DEFAULT 0"),
+                ("balones_de_oro", "INT DEFAULT 0"),
+                ("titulos_totales", "INT DEFAULT 0"),
+                ("goles_sin_penal_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("goles_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("conversion_goles", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("rating_ataque", "INT NOT NULL DEFAULT 0"),
+                ("asistencias_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("pases_clave_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("ocasiones_creadas_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("rating_creacion", "INT NOT NULL DEFAULT 0"),
+                ("porcentaje_regates", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("precision_pases", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("rating_tecnica", "INT NOT NULL DEFAULT 0"),
+                ("porcentaje_duelos_defensivos", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("entradas_exitosas_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("intercepciones_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("recuperaciones_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("rating_defensa", "INT NOT NULL DEFAULT 0"),
+                ("duelos_ganados_p90", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("rating_fisico", "INT NOT NULL DEFAULT 0"),
+                ("distinciones_norm", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("balones_oro_norm", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("titulos_norm", "DECIMAL(6,2) DEFAULT 0.00"),
+                ("rating_palmares", "INT NOT NULL DEFAULT 0"),
+                ("precio", "DECIMAL(6,2) NOT NULL DEFAULT 0.00"),
+                ("rating_general", "INT NOT NULL DEFAULT 0"),
+                ("media_juego", "INT NOT NULL DEFAULT 0"),
+            ]
+            added_any_player_col = False
+            with engine.begin() as conn:
+                for col_name, col_def in player_definitions:
+                    if col_name not in player_cols:
+                        try:
+                            conn.execute(text(f"ALTER TABLE players ADD COLUMN {col_name} {col_def}"))
+                            added_any_player_col = True
+                        except Exception as add_err:
+                            logger.warning(f"No se pudo agregar columna {col_name} en players: {add_err}")
+
+            # Si agregamos columnas o si los datos de métricas están en 0, actualizamos desde players_seed.csv
+            if added_any_player_col:
+                csv_path = os.path.abspath(
+                    os.path.join(os.path.dirname(__file__), "..", "seed", "players_seed.csv")
+                )
+                if os.path.exists(csv_path):
+                    with open(csv_path, mode="r", encoding="utf-8") as f:
+                        reader = csv.DictReader(f)
+                        with engine.begin() as conn:
+                            for row in reader:
+                                pid = int(row["id"])
+                                conn.execute(
+                                    text("""
+                                        UPDATE players SET
+                                            partidos_oficiales = :partidos_oficiales,
+                                            minutos_jugados = :minutos_jugados,
+                                            vallas_invictas = :vallas_invictas,
+                                            goles_oficiales = :goles_oficiales,
+                                            remates_totales = :remates_totales,
+                                            asistencias_oficiales = :asistencias_oficiales,
+                                            pases_intentados = :pases_intentados,
+                                            pases_completados = :pases_completados,
+                                            pases_clave = :pases_clave,
+                                            regates_intentados = :regates_intentados,
+                                            regates_exitosos = :regates_exitosos,
+                                            recuperaciones = :recuperaciones,
+                                            intercepciones = :intercepciones,
+                                            entradas_exitosas = :entradas_exitosas,
+                                            duelos_defensivos_totales = :duelos_defensivos_totales,
+                                            duelos_defensivos_ganados = :duelos_defensivos_ganados,
+                                            ocasiones_creadas = :ocasiones_creadas,
+                                            goles_sin_penal = :goles_sin_penal,
+                                            distinciones_individuales = :distinciones_individuales,
+                                            balones_de_oro = :balones_de_oro,
+                                            titulos_totales = :titulos_totales,
+                                            goles_sin_penal_p90 = :goles_sin_penal_p90,
+                                            goles_p90 = :goles_p90,
+                                            conversion_goles = :conversion_goles,
+                                            rating_ataque = :rating_ataque,
+                                            asistencias_p90 = :asistencias_p90,
+                                            pases_clave_p90 = :pases_clave_p90,
+                                            ocasiones_creadas_p90 = :ocasiones_creadas_p90,
+                                            rating_creacion = :rating_creacion,
+                                            porcentaje_regates = :porcentaje_regates,
+                                            precision_pases = :precision_pases,
+                                            rating_tecnica = :rating_tecnica,
+                                            porcentaje_duelos_defensivos = :porcentaje_duelos_defensivos,
+                                            entradas_exitosas_p90 = :entradas_exitosas_p90,
+                                            intercepciones_p90 = :intercepciones_p90,
+                                            recuperaciones_p90 = :recuperaciones_p90,
+                                            rating_defensa = :rating_defensa,
+                                            duelos_ganados_p90 = :duelos_ganados_p90,
+                                            rating_fisico = :rating_fisico,
+                                            distinciones_norm = :distinciones_norm,
+                                            balones_oro_norm = :balones_oro_norm,
+                                            titulos_norm = :titulos_norm,
+                                            rating_palmares = :rating_palmares,
+                                            precio = :precio,
+                                            rating_general = :rating_general,
+                                            media_juego = :media_juego
+                                        WHERE id = :pid
+                                    """),
+                                    {
+                                        "pid": pid,
+                                        "partidos_oficiales": int(row["partidos_oficiales"] or 0),
+                                        "minutos_jugados": int(row["minutos_jugados"] or 0),
+                                        "vallas_invictas": int(row["vallas_invictas"] or 0),
+                                        "goles_oficiales": int(row["goles_oficiales"] or 0),
+                                        "remates_totales": int(row["remates_totales"] or 0),
+                                        "asistencias_oficiales": int(row["asistencias_oficiales"] or 0),
+                                        "pases_intentados": int(row["pases_intentados"] or 0),
+                                        "pases_completados": int(row["pases_completados"] or 0),
+                                        "pases_clave": int(row["pases_clave"] or 0),
+                                        "regates_intentados": int(row["regates_intentados"] or 0),
+                                        "regates_exitosos": int(row["regates_exitosos"] or 0),
+                                        "recuperaciones": int(row["recuperaciones"] or 0),
+                                        "intercepciones": int(row["intercepciones"] or 0),
+                                        "entradas_exitosas": int(row["entradas_exitosas"] or 0),
+                                        "duelos_defensivos_totales": int(row["duelos_defensivos_totales"] or 0),
+                                        "duelos_defensivos_ganados": int(row["duelos_defensivos_ganados"] or 0),
+                                        "ocasiones_creadas": int(row["ocasiones_creadas"] or 0),
+                                        "goles_sin_penal": int(row["goles_sin_penal"] or 0),
+                                        "distinciones_individuales": int(row["distinciones_individuales"] or 0),
+                                        "balones_de_oro": int(row["balones_de_oro"] or 0),
+                                        "titulos_totales": int(row["titulos_totales"] or 0),
+                                        "goles_sin_penal_p90": float(row["goles_sin_penal_p90"] or 0.0),
+                                        "goles_p90": float(row["goles_p90"] or 0.0),
+                                        "conversion_goles": float(row["conversion_goles"] or 0.0),
+                                        "rating_ataque": int(row["rating_ataque"] or 0),
+                                        "asistencias_p90": float(row["asistencias_p90"] or 0.0),
+                                        "pases_clave_p90": float(row["pases_clave_p90"] or 0.0),
+                                        "ocasiones_creadas_p90": float(row["ocasiones_creadas_p90"] or 0.0),
+                                        "rating_creacion": int(row["rating_creacion"] or 0),
+                                        "porcentaje_regates": float(row["porcentaje_regates"] or 0.0),
+                                        "precision_pases": float(row["precision_pases"] or 0.0),
+                                        "rating_tecnica": int(row["rating_tecnica"] or 0),
+                                        "porcentaje_duelos_defensivos": float(row["porcentaje_duelos_defensivos"] or 0.0),
+                                        "entradas_exitosas_p90": float(row["entradas_exitosas_p90"] or 0.0),
+                                        "intercepciones_p90": float(row["intercepciones_p90"] or 0.0),
+                                        "recuperaciones_p90": float(row["recuperaciones_p90"] or 0.0),
+                                        "rating_defensa": int(row["rating_defensa"] or 0),
+                                        "duelos_ganados_p90": float(row["duelos_ganados_p90"] or 0.0),
+                                        "rating_fisico": int(row["rating_fisico"] or 0),
+                                        "distinciones_norm": float(row["distinciones_norm"] or 0.0),
+                                        "balones_oro_norm": float(row["balones_oro_norm"] or 0.0),
+                                        "titulos_norm": float(row["titulos_norm"] or 0.0),
+                                        "rating_palmares": int(row["rating_palmares"] or 0),
+                                        "precio": float(row["precio"] or 0.0),
+                                        "rating_general": int(row["rating_general"] or 0),
+                                        "media_juego": int(row["media_juego"] or 0),
+                                    },
+                                )
+
         # 1. Asegurar nuevas columnas en 'users' sin borrar los usuarios ya registrados
         if "users" in existing_tables:
             user_cols = {c["name"] for c in insp.get_columns("users")}
@@ -152,32 +326,6 @@ def _ensure_optimized_schema():
                     if col_name not in p_cols:
                         conn.execute(text(f"ALTER TABLE partidos ADD COLUMN {col_name} {col_def}"))
 
-        # 2. Normalizar IDs en TiDB Cloud si existen saltos (ej: 4001..4003 o 30001..30002)
-        if engine.dialect.name == "mysql":
-            with engine.begin() as conn:
-                try:
-                    conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
-                    conn.execute(text("UPDATE users SET id = 2 WHERE id IN (4001, 30001)"))
-                    conn.execute(text("UPDATE users SET id = 3 WHERE id IN (4002, 30002)"))
-                    conn.execute(text("UPDATE users SET id = 4 WHERE id IN (4003, 30003)"))
-                    conn.execute(text("UPDATE plantillas SET user_id = 2 WHERE user_id IN (4001, 30001)"))
-                    conn.execute(text("UPDATE plantillas SET user_id = 3 WHERE user_id IN (4002, 30002)"))
-                    conn.execute(text("UPDATE plantillas SET user_id = 4 WHERE user_id IN (4003, 30003)"))
-                    conn.execute(text("UPDATE user_players SET user_id = 2 WHERE user_id IN (4001, 30001)"))
-                    conn.execute(text("UPDATE user_players SET user_id = 3 WHERE user_id IN (4002, 30002)"))
-                    conn.execute(text("UPDATE user_players SET user_id = 4 WHERE user_id IN (4003, 30003)"))
-                    conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
-                except Exception as norm_err:
-                    logger.debug(f"Aviso durante normalización de IDs TiDB: {norm_err}")
-                    conn.execute(text("UPDATE plantillas SET id = 2 WHERE id = 30001"))
-                    conn.execute(text("UPDATE plantillas SET id = 3 WHERE id = 60001"))
-                    conn.execute(text("UPDATE plantillas SET id = 4 WHERE id = 60002"))
-                    conn.execute(text("UPDATE plantilla_jugadores SET plantilla_id = 2 WHERE plantilla_id = 30001"))
-                    conn.execute(text("UPDATE plantilla_jugadores SET plantilla_id = 3 WHERE plantilla_id = 60001"))
-                    conn.execute(text("UPDATE plantilla_jugadores SET plantilla_id = 4 WHERE plantilla_id = 60002"))
-                    conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
-                except Exception as norm_err:
-                    logger.debug(f"Aviso durante normalización de IDs TiDB: {norm_err}")
     except Exception as mig_err:
         logger.warning(f"Aviso durante verificación de esquema optimizado: {mig_err}")
 

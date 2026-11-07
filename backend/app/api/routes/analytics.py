@@ -14,6 +14,10 @@ from app.models.player import Player
 from app.models.squad import UserPlayer
 from app.models.user import User
 
+import logging
+
+logger = logging.getLogger("fantasy_analytics")
+
 router = APIRouter()
 
 
@@ -79,78 +83,91 @@ def get_summary(
     db: Session = Depends(get_db),
 ):
     """Retorna resumen analítico de rendimiento, MVP del club y racha real de partidos desde MySQL."""
-    user = _resolve_user(request, db, user_id)
+    try:
+        user = _resolve_user(request, db, user_id)
 
-    recent_results = []
-    last_match_data = None
-    mvp_data = None
+        recent_results = []
+        last_match_data = None
+        mvp_data = None
 
-    if user:
-        partidos = (
-            db.query(Partido)
-            .filter(Partido.local_user_id == user.id)
-            .order_by(Partido.id.desc())
-            .limit(5)
-            .all()
-        )
-
-        for p in partidos:
-            if p.resultado == "local":
-                letter = "V"
-            elif p.resultado == "empate":
-                letter = "E"
-            else:
-                letter = "D"
-            recent_results.append(letter)
-
-        if partidos:
-            latest = partidos[0]
-            latest_letter = recent_results[0]
-            rival_name = latest.nombre_visitante_ia or "Leyendas Rival"
-            last_match_data = {
-                "id": latest.id,
-                "result": latest_letter,
-                "score": f"{latest.goles_local} – {latest.goles_visitante}",
-                "opponent": rival_name if rival_name.startswith("vs ") else f"vs {rival_name}",
-            }
-
-        # Buscar el jugador con mejor rendimiento en el club del usuario (user_players)
-        user_players = (
-            db.query(UserPlayer, Player)
-            .join(Player, Player.id == UserPlayer.player_id)
-            .filter(UserPlayer.user_id == user.id)
-            .all()
-        )
-        if user_players:
-            best_up, best_p = max(
-                user_players,
-                key=lambda item: (
-                    (item[0].mvps_club or 0) * 15
-                    + (item[0].goles_club or 0) * 5
-                    + float(item[0].rating_promedio or 0) * 2
-                    + (item[0].partidos_club or 0),
-                    item[1].media_juego or 0,
-                ),
+        if user:
+            partidos = (
+                db.query(Partido)
+                .filter(Partido.local_user_id == user.id)
+                .order_by(Partido.id.desc())
+                .limit(5)
+                .all()
             )
-            mvp_data = {
-                "id": best_p.id,
-                "name": best_p.nombre,
-                "position": best_p.posicion_base,
-                "matches": best_up.partidos_club or 0,
-                "goals": best_up.goles_club or 0,
-                "mvpAwards": best_up.mvps_club or 0,
-                "score": float(best_up.rating_promedio) if (best_up.partidos_club or 0) > 0 and best_up.rating_promedio else "-",
-                "image_filename": best_p.image_filename,
-            }
 
-    return {
-        "has_matches": len(recent_results) > 0,
-        "streak": {
-            "recentResults": recent_results,
-            "lastMatch": last_match_data,
-        },
-        "mvp": mvp_data,
-        "most_picked_legends": [],
-        "winrates_by_formation": {},
-    }
+            for p in partidos:
+                if p.resultado == "local":
+                    letter = "V"
+                elif p.resultado == "empate":
+                    letter = "E"
+                else:
+                    letter = "D"
+                recent_results.append(letter)
+
+            if partidos:
+                latest = partidos[0]
+                latest_letter = recent_results[0]
+                rival_name = latest.nombre_visitante_ia or "Leyendas Rival"
+                last_match_data = {
+                    "id": latest.id,
+                    "result": latest_letter,
+                    "score": f"{latest.goles_local} – {latest.goles_visitante}",
+                    "opponent": rival_name if rival_name.startswith("vs ") else f"vs {rival_name}",
+                }
+
+            # Buscar el jugador con mejor rendimiento en el club del usuario (user_players)
+            user_players = (
+                db.query(UserPlayer, Player)
+                .join(Player, Player.id == UserPlayer.player_id)
+                .filter(UserPlayer.user_id == user.id)
+                .all()
+            )
+            if user_players:
+                best_up, best_p = max(
+                    user_players,
+                    key=lambda item: (
+                        (item[0].mvps_club or 0) * 15
+                        + (item[0].goles_club or 0) * 5
+                        + float(item[0].rating_promedio or 0) * 2
+                        + (item[0].partidos_club or 0),
+                        item[1].media_juego or 0,
+                    ),
+                )
+                mvp_data = {
+                    "id": best_p.id,
+                    "name": best_p.nombre,
+                    "position": best_p.posicion_base,
+                    "matches": best_up.partidos_club or 0,
+                    "goals": best_up.goles_club or 0,
+                    "mvpAwards": best_up.mvps_club or 0,
+                    "score": float(best_up.rating_promedio) if (best_up.partidos_club or 0) > 0 and best_up.rating_promedio else "-",
+                    "image_filename": best_p.image_filename,
+                }
+
+        return {
+            "has_matches": len(recent_results) > 0,
+            "streak": {
+                "recentResults": recent_results,
+                "lastMatch": last_match_data,
+            },
+            "mvp": mvp_data,
+            "most_picked_legends": [],
+            "winrates_by_formation": {},
+        }
+    except Exception as e:
+        logger.error(f"Aviso en /analytics/summary: {e}", exc_info=True)
+        return {
+            "has_matches": False,
+            "streak": {
+                "recentResults": [],
+                "lastMatch": None,
+            },
+            "mvp": None,
+            "most_picked_legends": [],
+            "winrates_by_formation": {},
+        }
 
