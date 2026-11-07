@@ -720,6 +720,138 @@ function resolveMvpPlayerPhotoUrl(playerObj, playerName = '') {
 }
 
 /**
+ * Genera un texto resumen de estadísticas dinámico, realista y ajustado a la posición
+ * y rendimiento del MVP, eliminando cualquier valor estático hardcodeado (ej. '4 Regates exitosos').
+ */
+function generateMvpSummaryText({
+  name = '',
+  role = 'DEL',
+  goals = 0,
+  saves = 0,
+  isCleanSheet = false,
+  baseRating = 75,
+  isRival = false,
+  elapsedMinute = 90,
+  matchId = ''
+}) {
+  const normRole = String(role || 'DEL').toUpperCase();
+  const seedStr = `${name}_${matchId}_${normRole}`;
+  let hash = 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    hash = (hash * 31 + seedStr.charCodeAt(i)) & 0x7fffffff;
+  }
+  const factor = Math.min(1, Math.max(0.25, elapsedMinute / 90));
+
+  // 1. Hat-trick o más goles (>= 3)
+  if (goals >= 3) {
+    if (goals >= 4) {
+      return `${goals} Goles anotados • Exhibición histórica`;
+    }
+    const hatTricks = [
+      'Hat-trick legendario • Actuación perfecta',
+      '3 Goles anotados • MVP indiscutido',
+      '3 Goles anotados • Máxima efectividad ofensiva',
+      'Hat-trick decisivo • Noche estelar'
+    ];
+    return hatTricks[hash % hatTricks.length];
+  }
+
+  // 2. Doblete (2 goles)
+  if (goals === 2) {
+    if (normRole === 'POR') {
+      return '2 Goles históricos • Hazaña épica bajo los tres palos';
+    }
+    if (normRole === 'DEF') {
+      return '2 Goles anotados • Aporte ofensivo heroico';
+    }
+    if (normRole === 'MC') {
+      const mcBraces = [
+        '2 Goles anotados • Dominio total y pegada',
+        'Doblete clave • Llegada y control del medio'
+      ];
+      return mcBraces[hash % mcBraces.length];
+    }
+    const delBraces = [
+      'Doblete decisivo • Definición letal',
+      '2 Goles anotados • Desequilibrio constante',
+      'Doblete estelar • Figura indiscutida del ataque',
+      '2 Goles anotados • Imparable en el área'
+    ];
+    return delBraces[hash % delBraces.length];
+  }
+
+  // 3. Un gol anotado (1 gol)
+  if (goals === 1) {
+    if (normRole === 'POR') {
+      const gkSaves = Math.max(2, Math.round((saves || 3) * factor));
+      return `1 Gol histórico • ${gkSaves} Atajadas`;
+    }
+    if (normRole === 'DEF') {
+      const tackles = Math.max(2, Math.round((3 + (hash % 3)) * factor));
+      return isCleanSheet
+        ? '1 Gol anotado • Valla invicta y solidez'
+        : `1 Gol anotado • ${tackles} Intercepciones defensivas`;
+    }
+    if (normRole === 'MC') {
+      const keyPasses = Math.max(2, Math.round((3 + (hash % 4)) * factor));
+      const mcVariants = [
+        `1 Gol anotado • ${keyPasses} Pases clave`,
+        '1 Gol decisivo • Control del mediocampo',
+        `1 Gol anotado • ${keyPasses} Recuperaciones y visión`
+      ];
+      return mcVariants[hash % mcVariants.length];
+    }
+    // Delantero con 1 gol
+    const dribbles = Math.max(2, Math.round((2 + (hash % 4)) * factor));
+    const shotsOnTarget = Math.max(2, Math.round((3 + (hash % 3)) * factor));
+    const delVariants = [
+      `1 Gol anotado • ${shotsOnTarget} Tiros a puerta`,
+      `1 Gol decisivo • ${dribbles} Regates completados`,
+      '1 Gol anotado • Generación constante de peligro',
+      `1 Gol decisivo • ${shotsOnTarget} Disparos y desmarque`
+    ];
+    return delVariants[hash % delVariants.length];
+  }
+
+  // 4. Cero goles (0 goles)
+  if (normRole === 'POR') {
+    const minSaves = isCleanSheet ? 3 : 4;
+    const computedSaves = Math.max(minSaves, Math.round((saves || (minSaves + (hash % 3))) * factor));
+    return isCleanSheet
+      ? `${computedSaves} Atajadas • Valla invicta`
+      : `${computedSaves} Atajadas cruciales • Portería segura`;
+  }
+
+  if (normRole === 'DEF') {
+    const duels = Math.max(3, Math.round((4 + (hash % 4)) * factor));
+    return isCleanSheet
+      ? `Valla invicta • ${duels} Duelos defensivos ganados`
+      : `${duels} Quites limpios • Solidez en la zaga`;
+  }
+
+  if (normRole === 'MC') {
+    const keyPasses = Math.max(2, Math.round((3 + (hash % 4)) * factor));
+    const recoveries = Math.max(3, Math.round((4 + (hash % 4)) * factor));
+    const mcVariants = [
+      `${keyPasses} Pases clave • ${recoveries} Recuperaciones`,
+      'Director de orquesta • Visión y control de posesión',
+      `${keyPasses} Pases filtrados • Despliegue en el medio`
+    ];
+    return mcVariants[hash % mcVariants.length];
+  }
+
+  // DEL sin goles
+  const shots = Math.max(2, Math.round((3 + (hash % 3)) * factor));
+  const createdChances = Math.max(1, Math.round((2 + (hash % 3)) * factor));
+  const delVariants = [
+    `${shots} Disparos • ${createdChances} Ocasiones creadas`,
+    'Desequilibrio ofensivo • Presión constante arriba',
+    `${createdChances} Asistencias potenciales • Amenaza continua`
+  ];
+  return delVariants[hash % delVariants.length];
+}
+
+/**
  * Determina de forma canónica, unificada y 100% determinista la figura del encuentro (MVP).
  * Garantiza coincidencia absoluta e inquebrantable entre la pestaña de Estadísticas y el pop-up de Resultado.
  */
@@ -849,19 +981,19 @@ export function determineOfficialMatchMvp(match) {
 
   const ratingStr = ratingNum.toFixed(1);
 
-  // Resumen uniforme idéntico para pop-up y pestaña de estadísticas
-  let summary = '';
-  if (best.goals > 0) {
-    summary = `${best.goals} ${best.goals > 1 ? 'Goles anotados' : 'Gol anotado'} • 4 Regates exitosos`;
-  } else if (best.role === 'POR') {
-    summary = isCleanSheet ? 'Valla invicta y atajadas clave' : `${Math.max(1, best.saves)} Atajadas • Portería segura`;
-  } else if (best.role === 'MC') {
-    summary = 'Control del mediocampo y visión de juego';
-  } else if (best.role === 'DEF') {
-    summary = isCleanSheet ? 'Solidez defensiva y portería a cero' : 'Liderazgo y cortes defensivos';
-  } else {
-    summary = isRival ? 'Figura del triunfo rival' : 'Desmarque y presión ofensiva';
-  }
+  // Resumen dinámico y contextual según rendimiento y rol (idéntico para pop-up y estadísticas)
+  const matchId = match?.id || `${homeTeamName}_${awayTeamName}_${homeScore}_${awayScore}`;
+  const summary = generateMvpSummaryText({
+    name: best.name,
+    role: best.role,
+    goals: best.goals,
+    saves: best.saves,
+    isCleanSheet,
+    baseRating: best.baseRating,
+    isRival,
+    elapsedMinute: 90,
+    matchId
+  });
 
   const avatarUrl = resolveMvpPlayerPhotoUrl(best.player, best.name);
 
@@ -1007,23 +1139,27 @@ function updateLiveStatsMvpCard(match, events, homeScore, awayScore, savesHome, 
     }
   }
 
-  const dribblesOrPasses = Math.max(1, Math.round((elapsedMinute / 90) * 4));
-  let mvpSummary = '';
-  if (mvpGoals > 0) {
-    mvpSummary = `${mvpGoals} ${mvpGoals > 1 ? 'Goles' : 'Gol'} • ${dribblesOrPasses} Regates exitosos`;
-  } else if (mvpRole === 'POR') {
-    const gkSaves = mvpSide === 'home' ? savesHome : savesAway;
-    mvpSummary = `${Math.max(1, gkSaves)} Atajadas • Portería segura`;
-  } else {
-    mvpSummary = `${dribblesOrPasses} Pases clave • ${Math.max(1, dribblesOrPasses - 1)} Regates exitosos`;
-  }
+  const homeTeamName = match?.homeTeam?.name || 'Tu Equipo';
+  const awayTeamName = match?.awayTeam?.name || 'Equipo Rival';
+  const isHomeMvp = mvpSide !== 'away';
+  const isCleanSheet = isHomeMvp ? (awayScore === 0) : (homeScore === 0);
+  const liveMatchId = match?.id || `${homeTeamName}_${awayTeamName}_${homeScore}_${awayScore}`;
+
+  const mvpSummary = generateMvpSummaryText({
+    name: mvpName,
+    role: mvpRole,
+    goals: mvpGoals,
+    saves: mvpSide === 'home' ? savesHome : savesAway,
+    isCleanSheet,
+    baseRating: mvpPlayerObj?.rating_general || 75,
+    isRival: !isHomeMvp,
+    elapsedMinute,
+    matchId: liveMatchId
+  });
 
   const rawRating = Math.min(9.8, 7.3 + mvpGoals * 0.85 + (elapsedMinute / 90) * 0.6);
   const mvpRating = rawRating.toFixed(1);
 
-  const isHomeMvp = mvpSide !== 'away';
-  const homeTeamName = match?.homeTeam?.name || 'Tu Equipo';
-  const awayTeamName = match?.awayTeam?.name || 'Equipo Rival';
   const mvpTeamLabel = isHomeMvp ? homeTeamName : awayTeamName;
 
   // Diferenciar visualmente la tarjeta según el equipo del MVP (Local vs Rival)
