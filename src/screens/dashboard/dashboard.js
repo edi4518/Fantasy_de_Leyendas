@@ -1,8 +1,72 @@
 const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
 import { FORMATIONS_6V6 } from '../../domain/formation-rules.js';
-import { apiClient } from '../../services/api-client.js?v=50';
+import { apiClient, API_BASE_URL } from '../../services/api-client.js?v=50';
 import { squadService } from '../../services/squad-service.js?v=50';
 import { getPlayerRating, getPlayerPrice } from '../lineup/lineup.js?v=50';
+
+function normalizeManagerAvatarOrigin(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+  if (
+    trimmed.startsWith('data:image/') ||
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://')
+  ) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/uploads/')) {
+    const apiOrigin = API_BASE_URL.replace(/\/api\/?$/, '');
+    return `${apiOrigin}${trimmed}`;
+  }
+  return trimmed;
+}
+
+function resolveManagerAvatarUrl(managerData) {
+  let localAvatar = null;
+  let localUser = null;
+  let authToken = '';
+  try {
+    localAvatar = localStorage.getItem('user_avatar') || null;
+    const rawUser = localStorage.getItem('user');
+    if (rawUser) localUser = JSON.parse(rawUser);
+    authToken = localStorage.getItem('access_token') || localStorage.getItem('auth_token') || '';
+  } catch (_) {}
+
+  const localUserAvatar =
+    localUser?.avatar_url ||
+    localUser?.avatarUrl ||
+    localUser?.photo_url ||
+    localUser?.profile_picture ||
+    null;
+  const remoteAvatar =
+    managerData?.avatarUrl ||
+    managerData?.avatar_url ||
+    managerData?.photo_url ||
+    managerData?.profile_picture ||
+    null;
+
+  if (localAvatar && localAvatar.startsWith('data:image/')) {
+    return localAvatar;
+  }
+
+  if (authToken.includes('token_user_')) {
+    return (
+      normalizeManagerAvatarOrigin(remoteAvatar) ||
+      normalizeManagerAvatarOrigin(localAvatar) ||
+      normalizeManagerAvatarOrigin(localUserAvatar) ||
+      null
+    );
+  }
+
+  return (
+    normalizeManagerAvatarOrigin(localAvatar) ||
+    normalizeManagerAvatarOrigin(localUserAvatar) ||
+    normalizeManagerAvatarOrigin(remoteAvatar) ||
+    null
+  );
+}
 
 const DASHBOARD_PLAYER_IMAGE_ALIASES = {
   messi: 'lionel_messi.webp',
@@ -168,8 +232,37 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
     }
 
     const managerAvatarEl = document.getElementById('manager-avatar');
-    if (managerAvatarEl && data.manager?.avatarUrl) {
-      managerAvatarEl.innerHTML = `<img src="${data.manager.avatarUrl}" alt="${data.manager.name}" class="avatar-img">`;
+    if (managerAvatarEl) {
+      const defaultAvatarSvg = `
+        <svg class="avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      `;
+
+      if (data.manager?.avatarUrl) {
+        managerAvatarEl.innerHTML = `<img src="${data.manager.avatarUrl}" alt="Avatar de ${data.manager.name || 'Mánager'}" class="avatar-img" decoding="async" />`;
+        const avatarImgEl = managerAvatarEl.querySelector('img');
+        if (avatarImgEl) {
+          avatarImgEl.addEventListener(
+            'error',
+            () => {
+              let fallbackLocal = null;
+              try {
+                fallbackLocal = localStorage.getItem('user_avatar');
+              } catch (_) {}
+              if (fallbackLocal && avatarImgEl.src !== fallbackLocal) {
+                avatarImgEl.src = fallbackLocal;
+                return;
+              }
+              managerAvatarEl.innerHTML = defaultAvatarSvg;
+            },
+            { once: true }
+          );
+        }
+      } else {
+        managerAvatarEl.innerHTML = defaultAvatarSvg;
+      }
     }
 
     // 2. Presupuesto y Barra de Progreso
@@ -647,7 +740,8 @@ export async function fetchHomeData() {
       ...DEFAULT_HOME_DATA.manager,
       name: managerDisplayName,
       season: managerData?.season || DEFAULT_HOME_DATA.manager.season,
-      ranking: userRankingPosition
+      ranking: userRankingPosition,
+      avatarUrl: resolveManagerAvatarUrl(managerData)
     },
     budget: {
       total: 150.0,
@@ -940,8 +1034,14 @@ export function setupHomeEventListeners(router) {
   };
   window.addEventListener('fantasy:squad-updated', squadUpdateHandler);
   window.addEventListener('fantasy:player-stats-updated', squadUpdateHandler);
+  window.addEventListener('fantasy:profile-updated', squadUpdateHandler);
   window.addEventListener('storage', (e) => {
-    if (e.key === 'fantasy_active_squad' || e.key === 'fantasy_player_stats') {
+    if (
+      e.key === 'fantasy_active_squad' ||
+      e.key === 'fantasy_player_stats' ||
+      e.key === 'user_avatar' ||
+      e.key === 'user'
+    ) {
       squadUpdateHandler();
     }
   });

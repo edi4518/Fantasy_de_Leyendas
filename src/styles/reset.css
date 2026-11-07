@@ -56,6 +56,10 @@ svg {
   height: auto;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 /* 6. Normalización tipográfica en elementos de formulario */
 input,
 button,

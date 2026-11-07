@@ -143,6 +143,8 @@ def serialize_user(user: User) -> dict:
         "birthdate": user.fecha_nacimiento.strftime("%d / %m / %Y") if user.fecha_nacimiento else None,
         "profile_picture": user.photo_url,
         "photo_url": user.photo_url,
+        "avatar_url": user.photo_url,
+        "avatarUrl": user.photo_url,
         "presupuesto": float(user.presupuesto if user.presupuesto is not None else 150.0),
         "elo_rating": user.elo_rating if user.elo_rating is not None else 1000,
         "partidos_jugados": user.partidos_jugados or 0,
@@ -211,7 +213,7 @@ async def register(
         with open(disk_path, "wb") as buffer:
             shutil.copyfileobj(profile_picture.file, buffer)
 
-        picture_path = f"/{disk_path.replace(os.sep, '/')}"
+        picture_path = f"/uploads/avatars/{safe_filename}?t={int(datetime.utcnow().timestamp())}"
 
     # 4. Hasheo seguro de la contraseña y conversión de fecha
     hashed_pwd = hash_password(password)

@@ -4,7 +4,9 @@ Expone la API del catálogo de jugadores, motor de simulación de partidos,
 autenticación de mánagers y verificación de estado del servicio.
 """
 
+import base64
 import os
+import time
 import unicodedata
 from typing import List, Optional
 
@@ -79,15 +81,30 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 
 @app.middleware("http")
 async def configure_html_route_cache(request: Request, call_next):
-    """Mantiene sin caché únicamente el documento raíz de rutas SPA, respetando el caché inmutable en /src y /public."""
+    """Permite BFCache (Back/Forward Cache) en las vistas HTML de la SPA evitando 'no-store' y revalidando con ETag."""
     response = await call_next(request)
     path = request.url.path
-    if path in (
-        "/", "/index.html", "/onboarding", "/login", "/register", "/dashboard",
-        "/matchmaking", "/market", "/comparison", "/lineup", "/history",
-        "/ranking", "/profile", "/admin"
+    if (
+        path
+        in (
+            "/",
+            "/index.html",
+            "/onboarding",
+            "/login",
+            "/register",
+            "/dashboard",
+            "/matchmaking",
+            "/market",
+            "/comparison",
+            "/lineup",
+            "/history",
+            "/ranking",
+            "/profile",
+            "/admin",
+        )
+        or path.startswith("/match/")
     ):
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Cache-Control"] = "public, max-age=0, must-revalidate"
     return response
 
 
@@ -196,6 +213,7 @@ class UpdateProfileRequest(BaseModel):
     last_name: Optional[str] = None
     team_name: Optional[str] = None
     email: Optional[str] = None
+    avatar_url: Optional[str] = None
     preferences: Optional[dict] = None
 
 
@@ -206,7 +224,7 @@ def update_current_manager_profile(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """Actualiza el nombre, apellido y nombre del equipo del mánager en la tabla 'users' de MySQL."""
+    """Actualiza el nombre, apellido, nombre del equipo y avatar del mánager en la tabla 'users' de MySQL."""
     user = None
     auth_header = request.headers.get("Authorization", "")
     if "token_user_" in auth_header:
@@ -230,6 +248,25 @@ def update_current_manager_profile(
         user.team_name = payload.team_name.strip()
     if payload.email is not None and payload.email.strip():
         user.email = payload.email.strip().lower()
+    if payload.avatar_url is not None and payload.avatar_url.strip():
+        raw_avatar = payload.avatar_url.strip()
+        if raw_avatar.startswith("data:image/") and "," in raw_avatar:
+            try:
+                header, encoded_b64 = raw_avatar.split(",", 1)
+                ext = ".webp"
+                if "png" in header:
+                    ext = ".png"
+                elif "jpeg" in header or "jpg" in header:
+                    ext = ".jpg"
+                safe_filename = f"user_{user.id}_avatar{ext}"
+                disk_path = os.path.join(UPLOAD_DIR, safe_filename)
+                with open(disk_path, "wb") as avatar_file:
+                    avatar_file.write(base64.b64decode(encoded_b64))
+                user.photo_url = f"/uploads/avatars/{safe_filename}?t={int(time.time())}"
+            except Exception:
+                pass
+        elif len(raw_avatar) <= 255:
+            user.photo_url = raw_avatar
     if payload.preferences and isinstance(payload.preferences, dict):
         if "notifications" in payload.preferences:
             user.notif_activas = bool(payload.preferences["notifications"])
@@ -240,6 +277,7 @@ def update_current_manager_profile(
     db.commit()
     db.refresh(user)
 
+    base_origin = str(request.base_url).rstrip("/")
     return {
         "status": "updated",
         "id": user.id,
@@ -250,8 +288,8 @@ def update_current_manager_profile(
         "team_name": user.team_name,
         "email": user.email,
         "ranking": user.elo_rating if user.elo_rating is not None else 1000,
-        "presupuesto": float(user.presupuesto if user.presupuesto is not None else 100.0),
-        "avatarUrl": f"http://127.0.0.1:8000{user.photo_url}" if user.photo_url and user.photo_url.startswith("/") else user.photo_url,
+        "presupuesto": float(user.presupuesto if user.presupuesto is not None else 150.0),
+        "avatarUrl": f"{base_origin}{user.photo_url}" if user.photo_url and user.photo_url.startswith("/") else user.photo_url,
     }
 
 

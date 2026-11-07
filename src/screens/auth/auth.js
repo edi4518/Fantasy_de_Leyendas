@@ -4,9 +4,9 @@
  carga de foto de perfil y persistencia de sesión.
  */
 
-import { navigateTo } from "../../app/router.min.js?v=2";
+import { navigateTo } from "../../app/router.min.js?v=11";
 import { API_BASE_URL } from "../../services/api-client.js";
-import { authService } from "../../services/auth-service.js";
+import { authService } from "../../services/auth-service.js?v=2";
 import { squadService } from "../../services/squad-service.js";
 
 async function hydrateUserSquad() {
@@ -310,18 +310,19 @@ function initLogin(router) {
 
   if (togglePasswordBtn && passwordInput) {
     togglePasswordBtn.addEventListener('click', () => {
-      const isPassword = passwordInput.type === 'password';
-      passwordInput.type = isPassword ? 'text' : 'password';
+      const isShowingPassword = passwordInput.type === 'password';
+      passwordInput.type = isShowingPassword ? 'text' : 'password';
 
       if (eyeIconImg) {
-        eyeIconImg.src = isPassword ? ICON_EYE_OFF_PATH : ICON_EYE_PATH;
-        eyeIconImg.alt = isPassword ? 'Ocultar contraseña' : 'Ver contraseña';
+        eyeIconImg.src = isShowingPassword ? ICON_EYE_OFF_PATH : ICON_EYE_PATH;
+        eyeIconImg.alt = '';
       }
 
       togglePasswordBtn.setAttribute(
         'aria-label',
-        isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+        isShowingPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
       );
+      togglePasswordBtn.setAttribute('aria-pressed', String(isShowingPassword));
     });
   }
 
@@ -425,6 +426,20 @@ function initLogin(router) {
           localStorage.setItem('access_token', token);
           localStorage.setItem('hasSeenOnboarding', 'true');
           if (userData) {
+            const loginAvatar =
+              userData.avatarUrl ||
+              userData.avatar_url ||
+              userData.photo_url ||
+              userData.profile_picture ||
+              null;
+            if (loginAvatar) {
+              userData.avatar_url = loginAvatar;
+              try {
+                localStorage.setItem('user_avatar', loginAvatar);
+              } catch (_) {}
+            } else {
+              localStorage.removeItem('user_avatar');
+            }
             localStorage.setItem('user', JSON.stringify(userData));
           }
 
@@ -481,6 +496,35 @@ function initLogin(router) {
  2. LÓGICA DE REGISTRO (REGISTER)
  */
 
+/**
+ * Extrae de forma asíncrona un objeto Blob comprimido desde un elemento <canvas>.
+ * Envuelve canvas.toBlob en una Promesa para sincronizar el envío por fetch.
+ * @param {HTMLCanvasElement} canvas
+ * @param {string} mimeType
+ * @param {number} quality
+ * @returns {Promise<Blob | null>}
+ */
+function canvasToBlob(canvas, mimeType = 'image/jpeg', quality = 0.78) {
+  return new Promise((resolve, reject) => {
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      resolve(null);
+      return;
+    }
+
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('No se pudo comprimir la foto de perfil en el navegador.'));
+        }
+      },
+      mimeType,
+      quality
+    );
+  });
+}
+
 function initRegister(router) {
   const form = document.getElementById('register-form');
   const firstNameInput = document.getElementById('reg-first-name');
@@ -492,6 +536,10 @@ function initRegister(router) {
 
   const pictureInput = document.getElementById('profile-picture-input');
   const avatarPreview = document.getElementById('avatar-preview');
+  // Canvas offscreen en memoria (sin montar en el DOM) para redimensionar y exportar a Blob
+  const avatarCanvas = document.createElement('canvas');
+  let hasCanvasContent = false;
+  let avatarRenderPromise = null;
 
   const togglePasswordBtn = document.getElementById('reg-toggle-password-btn');
   const eyeIconImg = document.getElementById('reg-eye-icon-img');
@@ -500,7 +548,7 @@ function initRegister(router) {
 
   clearErrors();
 
-  // Preview de foto de perfil
+  // Preview y redimensionado en <canvas> de la foto de perfil
   if (pictureInput && avatarPreview) {
     avatarPreview.addEventListener('click', () => {
       pictureInput.click();
@@ -508,14 +556,33 @@ function initRegister(router) {
 
     pictureInput.addEventListener('change', () => {
       const file = pictureInput.files?.[0];
-      if (file) {
+      hasCanvasContent = false;
+      avatarCanvas.dataset.hasContent = 'false';
+
+      if (!file) {
+        avatarCanvas.width = 0;
+        avatarCanvas.height = 0;
+        avatarRenderPromise = null;
+        return;
+      }
+
+      avatarRenderPromise = new Promise((resolve) => {
         const reader = new FileReader();
+
+        reader.onerror = () => {
+          resolve(false);
+        };
+
         reader.onload = (e) => {
           const rawDataUrl = e.target.result;
           const img = new Image();
+
+          img.onerror = () => {
+            resolve(false);
+          };
+
           img.onload = () => {
             try {
-              const canvas = document.createElement('canvas');
               const maxDim = 256;
               let w = img.width || maxDim;
               let h = img.height || maxDim;
@@ -526,11 +593,17 @@ function initRegister(router) {
                 w = Math.round((w * maxDim) / h);
                 h = maxDim;
               }
-              canvas.width = w;
-              canvas.height = h;
-              const ctx = canvas.getContext('2d');
+
+              avatarCanvas.width = w;
+              avatarCanvas.height = h;
+              const ctx = avatarCanvas.getContext('2d');
+              ctx.clearRect(0, 0, w, h);
               ctx.drawImage(img, 0, 0, w, h);
-              const compressedUrl = canvas.toDataURL('image/jpeg', 0.78);
+
+              hasCanvasContent = true;
+              avatarCanvas.dataset.hasContent = 'true';
+
+              const compressedUrl = avatarCanvas.toDataURL('image/jpeg', 0.78);
               avatarPreview.innerHTML = `
                 <img 
                   src="${compressedUrl}" 
@@ -538,7 +611,10 @@ function initRegister(router) {
                   style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" 
                 />
               `;
+              resolve(true);
             } catch (_) {
+              hasCanvasContent = false;
+              avatarCanvas.dataset.hasContent = 'false';
               avatarPreview.innerHTML = `
                 <img 
                   src="${rawDataUrl}" 
@@ -546,12 +622,15 @@ function initRegister(router) {
                   style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" 
                 />
               `;
+              resolve(false);
             }
           };
+
           img.src = rawDataUrl;
         };
+
         reader.readAsDataURL(file);
-      }
+      });
     });
   }
 
@@ -571,18 +650,19 @@ function initRegister(router) {
   // Toggle de visibilidad de password
   if (togglePasswordBtn && passwordInput) {
     togglePasswordBtn.addEventListener('click', () => {
-      const isPassword = passwordInput.type === 'password';
-      passwordInput.type = isPassword ? 'text' : 'password';
+      const isShowingPassword = passwordInput.type === 'password';
+      passwordInput.type = isShowingPassword ? 'text' : 'password';
 
       if (eyeIconImg) {
-        eyeIconImg.src = isPassword ? ICON_EYE_OFF_PATH : ICON_EYE_PATH;
-        eyeIconImg.alt = isPassword ? 'Ocultar contraseña' : 'Ver contraseña';
+        eyeIconImg.src = isShowingPassword ? ICON_EYE_OFF_PATH : ICON_EYE_PATH;
+        eyeIconImg.alt = '';
       }
 
       togglePasswordBtn.setAttribute(
         'aria-label',
-        isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+        isShowingPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
       );
+      togglePasswordBtn.setAttribute('aria-pressed', String(isShowingPassword));
     });
   }
 
@@ -650,8 +730,27 @@ function initRegister(router) {
         formData.append('email', email);
         formData.append('password', password);
 
-        if (pictureInput?.files?.[0]) {
-          formData.append('profile_picture', pictureInput.files[0]);
+        // 1. Interceptar el <canvas>: verificar selección de imagen y que el canvas tenga contenido válido
+        const hasSelectedImage = Boolean(pictureInput?.files && pictureInput.files.length > 0);
+        if (hasSelectedImage && avatarRenderPromise) {
+          await avatarRenderPromise;
+        }
+
+        const isCanvasReady = Boolean(
+          hasSelectedImage &&
+          hasCanvasContent &&
+          avatarCanvas &&
+          avatarCanvas.dataset.hasContent === 'true' &&
+          avatarCanvas.width > 0 &&
+          avatarCanvas.height > 0
+        );
+
+        // 2, 3 & 4. Exportar asíncronamente a Blob ('image/jpeg', 0.78) y reemplazar el payload en FormData
+        if (isCanvasReady) {
+          const optimizedAvatarBlob = await canvasToBlob(avatarCanvas, 'image/jpeg', 0.78);
+          if (optimizedAvatarBlob) {
+            formData.append('profile_picture', optimizedAvatarBlob, 'avatar.jpg');
+          }
         }
 
         let token = 'auth_token_' + Date.now();
@@ -691,6 +790,19 @@ function initRegister(router) {
           localStorage.setItem('hasSeenOnboarding', 'true');
         } catch (_) {}
 
+        const previewImg = avatarPreview?.querySelector('img');
+        const localPreviewSrc =
+          previewImg && previewImg.src && !previewImg.src.includes('user-avatar.svg')
+            ? previewImg.src
+            : null;
+        const resolvedAvatar =
+          localPreviewSrc ||
+          dbUser?.avatarUrl ||
+          dbUser?.avatar_url ||
+          dbUser?.photo_url ||
+          dbUser?.profile_picture ||
+          null;
+
         const userData = {
           ...(dbUser || {}),
           id: dbUser?.id || null,
@@ -699,17 +811,20 @@ function initRegister(router) {
           first_name: dbUser?.first_name || firstName,
           last_name: dbUser?.last_name || lastName,
           email: dbUser?.email || email,
-          birthdate: dbUser?.birthdate || birthdate
+          birthdate: dbUser?.birthdate || birthdate,
+          avatar_url: dbUser?.avatar_url || dbUser?.photo_url || localPreviewSrc || null,
+          photo_url: dbUser?.photo_url || dbUser?.avatar_url || localPreviewSrc || null
         };
         try {
           localStorage.setItem('user', JSON.stringify(userData));
         } catch (_) {}
 
-        // Guardar avatar preview comprimido (sin bloquear jamás si el almacenamiento del móvil está lleno)
+        // Guardar avatar comprimido para visualización inmediata en Dashboard (.manager-avatar) y Perfil
         try {
-          const previewImg = avatarPreview?.querySelector('img');
-          if (previewImg && previewImg.src && !previewImg.src.includes('user-avatar.svg')) {
-            localStorage.setItem('user_avatar', previewImg.src);
+          if (resolvedAvatar) {
+            localStorage.setItem('user_avatar', resolvedAvatar);
+          } else {
+            localStorage.removeItem('user_avatar');
           }
         } catch (quotaErr) {
           console.warn('[Auth] Omitiendo caché local de avatar por límite de cuota del navegador:', quotaErr.message);

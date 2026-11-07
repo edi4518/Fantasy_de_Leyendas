@@ -6,8 +6,8 @@
  * @exports { initRouter, navigateTo, getCurrentRoute }
  */
 
-import { authService } from "../services/auth-service.js";
-import { renderNavigation, updateActiveNavItem } from "./navigation.js?v=2";
+import { authService } from "../services/auth-service.js?v=2";
+import { renderNavigation, updateActiveNavItem } from "./navigation.js?v=11";
 
 const routes = {
   "/": {
@@ -62,9 +62,14 @@ export function initRouter() {
 
   window.router = { navigate: navigateTo, current: getCurrentRoute };
 
-  // Manejo de eventos de retroceso/avance del navegador y cambio de hash
+  // Manejo de eventos de retroceso/avance del navegador, BFCache y cambio de hash
   window.addEventListener("popstate", handleLocation);
   window.addEventListener("hashchange", handleLocation);
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) {
+      handleLocation();
+    }
+  });
 
   // Delegación de clics globales para enlaces internos <a href="/ruta" data-link>
   document.body.addEventListener("click", (e) => {
@@ -83,9 +88,12 @@ export function initRouter() {
 }
 
 export function navigateTo(url) {
-  // Limpiar cualquier parámetro de prueba (?screen= o ?home=) de la URL al navegar
+  // Limpiar cualquier parámetro de prueba (?screen=, ?test= o ?home=) de la URL al navegar
   if (window.location.search) {
-    const cleanUrl = window.location.pathname + "#" + url;
+    const isIndexFile =
+      window.location.pathname.includes("index.html") ||
+      window.location.pathname.endsWith("/public/");
+    const cleanUrl = isIndexFile ? window.location.pathname + "#" + url : url;
     window.history.replaceState({}, "", cleanUrl);
     handleLocation();
   } else if (
@@ -232,9 +240,10 @@ async function handleLocation() {
   }
 
   const viewFile = route.subview || route.screen;
-  const viewUrl = route.screen === "onboarding"
-    ? `/src/screens/${route.screen}/${viewFile}.html?v=31`
-    : `/src/screens/${route.screen}/${viewFile}.html?v=${Date.now()}`;
+  const viewUrl =
+    route.screen === "onboarding" || route.screen === "auth"
+      ? `/src/screens/${route.screen}/${viewFile}.html?v=37`
+      : `/src/screens/${route.screen}/${viewFile}.html?v=${Date.now()}`;
 
   try {
     const [response] = await Promise.all([
@@ -300,11 +309,11 @@ async function loadScreenController(route) {
 
     case "auth": {
       try {
-        ensureGoogleIdentityScript();
-        const module = await import(`../screens/auth/auth.js?t=${Date.now()}`);
+        const module = await import("../screens/auth/auth.js?v=38");
         if (typeof module.initAuth === "function") {
           module.initAuth(route.subview, routerInstance);
         }
+        setTimeout(ensureGoogleIdentityScript, 0);
       } catch (err) {
         console.warn("[Router] Controlador auth.js no inicializado:", err);
       }
@@ -391,7 +400,7 @@ async function loadScreenController(route) {
 
     case "profile": {
       try {
-        const module = await import("../screens/profile/profile.js");
+        const module = await import(`../screens/profile/profile.js?t=${Date.now()}`);
         if (typeof module.initProfile === "function") {
           module.initProfile(routerInstance);
         } else if (typeof module.initProfileView === "function") {
@@ -488,9 +497,9 @@ function ensureScreenStylesheet(screenName) {
     return loadStylesheetOnce("/src/styles/screens/onboarding.css", "v=31");
   }
   return Promise.all([
-    loadStylesheetOnce("/src/styles/components.css", "v=27"),
+    loadStylesheetOnce("/src/styles/components.css", "v=28"),
     loadStylesheetOnce("/src/components/modal/modal.css", "v=19"),
-    loadStylesheetOnce(`/src/styles/screens/${screenName}.css`, "v=31"),
+    loadStylesheetOnce(`/src/styles/screens/${screenName}.css`, "v=35"),
   ]);
 }
 
