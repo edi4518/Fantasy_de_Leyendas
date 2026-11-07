@@ -209,6 +209,17 @@ export const matchService = {
     // 3. Registrar estadísticas acumuladas reales de los jugadores
     const statsResult = this.recordPlayerMatchStats(matchData);
 
+    // Invalidar caché del Dashboard para que el MVP y métricas reflejen este partido de inmediato
+    try {
+      if (typeof window !== 'undefined') {
+        if (typeof window.invalidateDashboardCache === 'function') {
+          window.invalidateDashboardCache();
+        }
+        sessionStorage.removeItem('fantasy_dashboard_cache');
+        sessionStorage.removeItem('fantasy_dashboard_cache_time');
+      }
+    } catch (_) {}
+
     // 4. Persistir el resultado oficial, MVP, estadísticas cara a cara, eventos y stamina en MySQL
     let persistencePromise = null;
     try {

@@ -527,6 +527,10 @@ export function invalidateDashboardCache() {
   } catch (_) {}
 }
 
+if (typeof window !== 'undefined') {
+  window.invalidateDashboardCache = invalidateDashboardCache;
+}
+
 /**
  * Sanea y valida la nota media de un jugador en la escala 1.0 a 10.0.
  * Corrige notas anómalas o corrompidas (por ejemplo menores a 4.0 como 0.2)
@@ -636,11 +640,28 @@ export function buildConsolidatedHomeData({
     topPlayer = [...playersWithMatches].sort((a, b) => {
       const sA = getPlayerStatRecord(a.name) || {};
       const sB = getPlayerStatRecord(b.name) || {};
-      const ratingA = sanitizePlayerRating(sA.avgRating, sA.matchesPlayed, sA.goals, getPlayerRating(a), sA.mvpAwards) || 6.5;
-      const ratingB = sanitizePlayerRating(sB.avgRating, sB.matchesPlayed, sB.goals, getPlayerRating(b), sB.mvpAwards) || 6.5;
-      const scoreA = (sA.mvpAwards || 0) * 15 + (sA.goals || 0) * 5 + ratingA * 2;
-      const scoreB = (sB.mvpAwards || 0) * 15 + (sB.goals || 0) * 5 + ratingB * 2;
-      return scoreB - scoreA;
+      const ratingA = sanitizePlayerRating(sA.avgRating, sA.matchesPlayed, sA.goals, getPlayerRating(a), sA.mvpAwards) || 0;
+      const ratingB = sanitizePlayerRating(sB.avgRating, sB.matchesPlayed, sB.goals, getPlayerRating(b), sB.mvpAwards) || 0;
+
+      // 1. Criterio prioritario del MVP: Mayor Nota Media (Rating real)
+      if (Math.abs(ratingB - ratingA) >= 0.05) {
+        return ratingB - ratingA;
+      }
+
+      // 2. Desempate 1: Más premios MVP acumulados
+      const mvpDiff = (sB.mvpAwards || 0) - (sA.mvpAwards || 0);
+      if (mvpDiff !== 0) return mvpDiff;
+
+      // 3. Desempate 2: Más goles anotados
+      const goalsDiff = (sB.goals || 0) - (sA.goals || 0);
+      if (goalsDiff !== 0) return goalsDiff;
+
+      // 4. Desempate 3: Más partidos disputados
+      const matchesDiff = (sB.matchesPlayed || 0) - (sA.matchesPlayed || 0);
+      if (matchesDiff !== 0) return matchesDiff;
+
+      // 5. Desempate 4: Rating base del futbolista
+      return getPlayerRating(b) - getPlayerRating(a);
     })[0];
     topStats = getPlayerStatRecord(topPlayer.name);
   } else {
@@ -757,15 +778,29 @@ export function buildConsolidatedHomeData({
  * Permite que el FCP y LCP de Lighthouse se resuelvan en < 0.5s sin esperar peticiones de red.
  */
 export function getOptimisticHomeData() {
+  let playerStats = {};
+  try {
+    const rawPlayerStats = localStorage.getItem('fantasy_player_stats');
+    if (rawPlayerStats) playerStats = healLocalPlayerStats(rawPlayerStats);
+  } catch (_) {}
+
+  // Verificar si la caché sigue sincronizada con los partidos acumulados reales
+  const maxLocalMatches = Math.max(0, ...Object.values(playerStats).map(s => s.matchesPlayed || 0));
   if (homeDataMemoryCache) {
-    return homeDataMemoryCache;
+    const cachedMatches = homeDataMemoryCache.mvp?.matches || 0;
+    if (cachedMatches >= maxLocalMatches) {
+      return homeDataMemoryCache;
+    }
   }
   try {
     const sessionCached = sessionStorage.getItem('fantasy_dashboard_cache');
     if (sessionCached) {
       const parsed = JSON.parse(sessionCached);
-      homeDataMemoryCache = parsed;
-      return parsed;
+      const cachedMatches = parsed.mvp?.matches || 0;
+      if (cachedMatches >= maxLocalMatches) {
+        homeDataMemoryCache = parsed;
+        return parsed;
+      }
     }
   } catch (_) {}
 
@@ -795,12 +830,6 @@ export function getOptimisticHomeData() {
     }
   } catch (_) {}
 
-  let playerStats = {};
-  try {
-    const rawPlayerStats = localStorage.getItem('fantasy_player_stats');
-    if (rawPlayerStats) playerStats = healLocalPlayerStats(rawPlayerStats);
-  } catch (_) {}
-
   return buildConsolidatedHomeData({
     savedUser,
     managerData: savedUser,
@@ -821,22 +850,43 @@ export function getOptimisticHomeData() {
  * - GET /api/squads/my-squad: Plantilla y jugadores actuales.
  * - Leaderboard unificado: Clasificación canónica sincronizada.
  *
+ * @param {Object} [options]
+ * @param {boolean} [options.force=false] - Forzar refresco omitiendo caché.
  * @returns {Promise<typeof DEFAULT_HOME_DATA>} Datos consolidados para renderizar.
  */
-export async function fetchHomeData() {
+export async function fetchHomeData({ force = false } = {}) {
   // 0. Comprobar caché en memoria o sessionStorage (60 segundos)
   const now = Date.now();
-  if (homeDataMemoryCache && (now - homeDataCacheTimestamp < DASHBOARD_CACHE_TTL_MS)) {
-    return homeDataMemoryCache;
-  }
-  try {
-    const sessionCached = sessionStorage.getItem('fantasy_dashboard_cache');
-    const sessionTime = Number(sessionStorage.getItem('fantasy_dashboard_cache_time') || 0);
-    if (sessionCached && (now - sessionTime < DASHBOARD_CACHE_TTL_MS)) {
-      homeDataMemoryCache = JSON.parse(sessionCached);
-      homeDataCacheTimestamp = sessionTime;
-      return homeDataMemoryCache;
+  if (!force) {
+    let localMatches = 0;
+    try {
+      const raw = localStorage.getItem('fantasy_player_stats');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        localMatches = Math.max(0, ...Object.values(parsed).map(s => s.matchesPlayed || 0));
+      }
+    } catch (_) {}
+
+    if (homeDataMemoryCache && (now - homeDataCacheTimestamp < DASHBOARD_CACHE_TTL_MS)) {
+      const cachedMatches = homeDataMemoryCache.mvp?.matches || 0;
+      if (cachedMatches >= localMatches) {
+        return homeDataMemoryCache;
+      }
     }
+    try {
+      const sessionCached = sessionStorage.getItem('fantasy_dashboard_cache');
+      const sessionTime = Number(sessionStorage.getItem('fantasy_dashboard_cache_time') || 0);
+      if (sessionCached && (now - sessionTime < DASHBOARD_CACHE_TTL_MS)) {
+        const parsed = JSON.parse(sessionCached);
+        const cachedMatches = parsed.mvp?.matches || 0;
+        if (cachedMatches >= localMatches) {
+          homeDataMemoryCache = parsed;
+          homeDataCacheTimestamp = sessionTime;
+          return homeDataMemoryCache;
+        }
+      }
+    } catch (_) {}
+  }
   } catch (_) {}
 
   let savedUser = null;
@@ -1204,7 +1254,8 @@ export function setupHomeEventListeners(router) {
   // 4. Escucha de sincronización reactiva cuando la alineación cambia
   const squadUpdateHandler = async () => {
     try {
-      const liveData = await fetchHomeData();
+      invalidateDashboardCache();
+      const liveData = await fetchHomeData({ force: true });
       renderHome(liveData);
       if (statsModal && !statsModal.hasAttribute('hidden')) {
         renderStatsModalContent();
