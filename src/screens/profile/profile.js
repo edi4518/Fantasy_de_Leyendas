@@ -7,7 +7,7 @@
  * @exports { initProfile, initProfileView, fetchProfileData, renderProfile, resizeAndCompressImage, DEFAULT_PROFILE_DATA }
  */
 
-import { authService } from '../../services/auth-service.js?v=2';
+import { authService } from '../../services/auth-service.js';
 import { apiClient } from '../../services/api-client.js';
 
 /**

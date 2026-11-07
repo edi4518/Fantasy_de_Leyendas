@@ -5,10 +5,10 @@
  * Sincronizado con formaciones reales de usuario, modal de resultados y flujo con "Buscar Rival" (autoplay).
  */
 
-import { openMatchResultModal, getInitials } from '../../components/modal/modal.js?v=7';
-import { simulateMatchEngine, FORMATIONS_6V6 } from '../../domain/simulation-engine.js?v=6';
-import { getRandomCpuTeam } from '../../domain/cpu-teams.js?v=6';
-import { matchService } from '../../services/match-service.js?v=6';
+import { openMatchResultModal, getInitials } from '../../components/modal/modal.js';
+import { simulateMatchEngine, FORMATIONS_6V6 } from '../../domain/simulation-engine.js';
+import { getRandomCpuTeam } from '../../domain/cpu-teams.js';
+import { matchService } from '../../services/match-service.js';
 
 
 export const DEFAULT_AWAY_SQUAD = {

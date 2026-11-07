@@ -5,7 +5,7 @@
  */
 
 import { apiClient } from '../../services/api-client.js';
-import { getUnifiedLeaderboard, getUserRankInfo, LEAGUE_BENCHMARK_MANAGERS } from '../../services/ranking-service.js?v=50';
+import { getUnifiedLeaderboard, getUserRankInfo, LEAGUE_BENCHMARK_MANAGERS } from '../../services/ranking-service.js';
 
 export const MOCK_RANKING = LEAGUE_BENCHMARK_MANAGERS;
 

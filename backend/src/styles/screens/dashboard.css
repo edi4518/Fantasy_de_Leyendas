@@ -780,7 +780,7 @@ nav.bottom-nav,
 
 .player-slot--por .player-slot__role,
 .player-slot:has([data-position="POR"]) .player-slot__role {
-  color: #CA8A04;
+  color: #854d0e; /* WCAG 2.1 AA contraste >= 4.5:1 sobre fondo claro #f8f9fa */
 }
 
 /* === Color posicional: DEF (Azul) === */
@@ -827,7 +827,7 @@ nav.bottom-nav,
 .player-slot--mc .player-slot__role,
 .player-slot:has([data-position="MC"]) .player-slot__role,
 .player-slot:has([data-position="MED"]) .player-slot__role {
-  color: #059669;
+  color: #065f46; /* WCAG 2.1 AA contraste >= 4.5:1 sobre fondo claro #f8f9fa */
 }
 
 /* === Color posicional: DEL (Rojo / Rosa) === */

@@ -1,9 +1,9 @@
 const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
 import { FORMATIONS_6V6 } from '../../domain/formation-rules.js';
-import { apiClient, API_BASE_URL } from '../../services/api-client.js?v=50';
-import { squadService } from '../../services/squad-service.js?v=50';
-import { getPlayerRating, getPlayerPrice } from '../lineup/lineup.js?v=50';
-import { getUnifiedLeaderboard, getUserRankInfo } from '../../services/ranking-service.js?v=50';
+import { apiClient, API_BASE_URL } from '../../services/api-client.js';
+import { squadService } from '../../services/squad-service.js';
+import { getPlayerRating, getPlayerPrice } from '../lineup/lineup.js';
+import { getUnifiedLeaderboard, getUserRankInfo } from '../../services/ranking-service.js';
 
 function normalizeManagerAvatarOrigin(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return null;
@@ -216,6 +216,10 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
     const managerNameEl = document.getElementById('manager-name');
     if (managerNameEl && data.manager?.name) {
       managerNameEl.textContent = data.manager.name;
+    }
+    const profileLink = document.getElementById('manager-profile-link') || document.querySelector('.manager-profile');
+    if (profileLink && data.manager?.name) {
+      profileLink.setAttribute('aria-label', `${data.manager.name} - Editar perfil del mánager`);
     }
 
     const managerSeasonEl = document.getElementById('manager-season');
@@ -509,23 +513,45 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
 
 export const renderDashboard = renderHome;
 
+// Caché en memoria y sessionStorage para optimizar renderizado y navegaciones SPA (TTL: 60s)
+let homeDataMemoryCache = null;
+let homeDataCacheTimestamp = 0;
+const DASHBOARD_CACHE_TTL_MS = 60 * 1000;
+
+export function invalidateDashboardCache() {
+  homeDataMemoryCache = null;
+  homeDataCacheTimestamp = 0;
+  try {
+    sessionStorage.removeItem('fantasy_dashboard_cache');
+    sessionStorage.removeItem('fantasy_dashboard_cache_time');
+  } catch (_) {}
+}
+
 /**
  * Consulta los endpoints de backend FastAPI para obtener los datos consolidados.
- * Endpoints configurados:
+ * Endpoints configurados (ejecución simultánea paralela vía Promise.allSettled):
  * - GET /api/me: Perfil y club del mánager autenticado.
  * - GET /api/analytics/summary: Métricas de rendimiento, valoración y racha de partidos.
+ * - GET /api/squads/my-squad: Plantilla y jugadores actuales.
+ * - Leaderboard unificado: Clasificación canónica sincronizada.
  *
  * @returns {Promise<typeof DEFAULT_HOME_DATA>} Datos consolidados para renderizar.
  */
 export async function fetchHomeData() {
-  const token = localStorage.getItem('access_token') || localStorage.getItem('auth_token');
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-  };
-
-  let managerData = null;
-  let analyticsData = null;
+  // 0. Comprobar caché en memoria o sessionStorage (60 segundos)
+  const now = Date.now();
+  if (homeDataMemoryCache && (now - homeDataCacheTimestamp < DASHBOARD_CACHE_TTL_MS)) {
+    return homeDataMemoryCache;
+  }
+  try {
+    const sessionCached = sessionStorage.getItem('fantasy_dashboard_cache');
+    const sessionTime = Number(sessionStorage.getItem('fantasy_dashboard_cache_time') || 0);
+    if (sessionCached && (now - sessionTime < DASHBOARD_CACHE_TTL_MS)) {
+      homeDataMemoryCache = JSON.parse(sessionCached);
+      homeDataCacheTimestamp = sessionTime;
+      return homeDataMemoryCache;
+    }
+  } catch (_) {}
 
   let savedUser = null;
   try {
@@ -533,21 +559,22 @@ export async function fetchHomeData() {
     if (rawUser) savedUser = JSON.parse(rawUser);
   } catch (_) {}
 
-  // 1. Fetch Perfil del Mánager (/api/me) a través del cliente oficial de FastAPI
-  try {
-    managerData = await apiClient.get('/me');
-  } catch (err) {
-    console.info('[Dashboard] Modo offline o backend no disponible para /api/me:', err.message);
-  }
+  // 1. Ejecución paralela simultánea con Promise.allSettled para eliminar cuellos de botella secuenciales
+  const [meResult, analyticsResult, squadResult, leaderboardResult] = await Promise.allSettled([
+    apiClient.get('/me'),
+    apiClient.get('/analytics/summary'),
+    squadService.getMySquad(),
+    getUnifiedLeaderboard()
+  ]);
 
-  // 2. Fetch Resumen Analítico (/api/analytics/summary)
-  try {
-    analyticsData = await apiClient.get('/analytics/summary');
-  } catch (err) {
-    console.info('[Dashboard] Modo offline o backend no disponible para analíticas:', err.message);
-  }
+  const managerData = meResult.status === 'fulfilled' ? meResult.value : null;
+  const analyticsData = analyticsResult.status === 'fulfilled' ? analyticsResult.value : null;
+  const remoteRes = squadResult.status === 'fulfilled' ? squadResult.value : null;
+  const unifiedLeaderboard = leaderboardResult.status === 'fulfilled' && Array.isArray(leaderboardResult.value)
+    ? leaderboardResult.value
+    : [];
 
-  // 3. Fusión con persistencia de partidos locales
+  // 2. Fusión con persistencia de partidos locales
   let localStats = null;
   let localLastMatch = null;
   try {
@@ -584,9 +611,8 @@ export async function fetchHomeData() {
     console.debug('[Dashboard] Error leyendo plantilla activa:', e);
   }
 
-  // Si en localStorage no hay jugadores o queremos sincronizar estadísticas desde MySQL:
+  // Si en localStorage no hay jugadores o queremos sincronizar estadísticas desde MySQL (usamos remoteRes ya resuelto en paralelo):
   try {
-    const remoteRes = await squadService.getMySquad();
     const remotePlayers = Array.isArray(remoteRes?.players) ? remoteRes.players : [];
     const remoteHasPlayers = remotePlayers.some(Boolean);
     const localHasPlayers = Array.isArray(activeSquad?.players) && activeSquad.players.some(Boolean);
@@ -594,8 +620,8 @@ export async function fetchHomeData() {
     if (remoteHasPlayers || !localHasPlayers) {
       if (remoteHasPlayers) {
         activeSquad = {
-          name: remoteRes.name || managerData?.team_name || 'Tu Equipo',
-          formation: remoteRes.formation || '1-2-2-1',
+          name: remoteRes?.name || managerData?.team_name || 'Tu Equipo',
+          formation: remoteRes?.formation || '1-2-2-1',
           players: remotePlayers
         };
         localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
@@ -722,7 +748,6 @@ export async function fetchHomeData() {
   // Resolver puesto de clasificación de forma 100% sincronizada con Ranking Global
   let userRankingPosition = '-';
   try {
-    const unifiedLeaderboard = await getUnifiedLeaderboard();
     const currentTeamName = localStorage.getItem('team_name') || savedUser?.team_name || managerData?.team_name;
     const dbUserMatch = unifiedLeaderboard.find(u =>
       (savedUser?.id && u.userId && Number(u.userId) === Number(savedUser.id)) ||
@@ -808,6 +833,14 @@ export async function fetchHomeData() {
       lastMatch
     }
   };
+
+  // Guardar en caché en memoria y sessionStorage (TTL 60s) para navegaciones instantáneas en SPA
+  homeDataMemoryCache = consolidatedData;
+  homeDataCacheTimestamp = Date.now();
+  try {
+    sessionStorage.setItem('fantasy_dashboard_cache', JSON.stringify(consolidatedData));
+    sessionStorage.setItem('fantasy_dashboard_cache_time', String(homeDataCacheTimestamp));
+  } catch (_) {}
 
   return consolidatedData;
 }

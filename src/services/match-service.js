@@ -6,7 +6,7 @@ import {
   aplicarPenalizacionFatiga,
   MODIFICADORES_POSICION,
   STAMINA_CONFIG
-} from './stamina-service.js?v=1';
+} from './stamina-service.js';
 /**
  * @file match-service.js
  * @description Servicio modular para simulación de partidos, persistencia de resultados,

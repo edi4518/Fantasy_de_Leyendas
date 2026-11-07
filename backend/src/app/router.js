@@ -6,8 +6,8 @@
  * @exports { initRouter, navigateTo, getCurrentRoute }
  */
 
-import { authService } from "../services/auth-service.js?v=2";
-import { renderNavigation, updateActiveNavItem } from "./navigation.js?v=13";
+import { authService } from "../services/auth-service.js";
+import { renderNavigation, updateActiveNavItem } from "./navigation.js";
 
 const routes = {
   "/": {
@@ -237,16 +237,14 @@ async function handleLocation() {
   window.scrollTo(0, 0);
 
   const isFirstPaint = !appContent.innerHTML.trim();
-  if (!isFirstPaint) {
-    appContent.style.opacity = "0";
-    appContent.style.transition = "opacity 0.15s ease";
+  if (isFirstPaint) {
+    // Pintado inmediato de estructura esqueleto para garantizar FCP < 1.0s
+    appContent.innerHTML = getSkeletonHTML(route.screen);
+    appContent.style.opacity = "1";
   }
 
   const viewFile = route.subview || route.screen;
-  const viewUrl =
-    route.screen === "onboarding" || route.screen === "auth"
-      ? `/src/screens/${route.screen}/${viewFile}.html?v=38`
-      : `/src/screens/${route.screen}/${viewFile}.html?v=${Date.now()}`;
+  const viewUrl = `/src/screens/${route.screen}/${viewFile}.html`;
 
   try {
     const [response] = await Promise.all([
@@ -258,24 +256,51 @@ async function handleLocation() {
     }
     const html = await response.text();
 
-    if (isFirstPaint) {
-      appContent.innerHTML = html;
-      appContent.scrollTop = 0;
-      appContent.style.opacity = "1";
-      await loadScreenController(route);
-    } else {
-      setTimeout(async () => {
-        appContent.innerHTML = html;
-        appContent.scrollTop = 0;
-        appContent.style.opacity = "1";
-        await loadScreenController(route);
-      }, 100);
-    }
+    appContent.innerHTML = html;
+    appContent.scrollTop = 0;
+    appContent.style.opacity = "1";
+    await loadScreenController(route);
   } catch (error) {
     console.error("[Router] Error cargando vista:", error);
     appContent.innerHTML = `<p class="error-message">Error al cargar la pantalla.</p>`;
     appContent.style.opacity = "1";
   }
+}
+
+/**
+ * Plantilla ligera de Skeleton Loader para First Contentful Paint instantáneo
+ */
+function getSkeletonHTML(screenName) {
+  return `
+    <div class="skeleton-view-container" aria-hidden="true" style="width: 100%; max-width: 440px; margin: 0 auto; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px;">
+      <style>
+        @keyframes skPulse {
+          0%, 100% { opacity: 0.85; transform: scale(1); }
+          50% { opacity: 0.45; transform: scale(0.998); }
+        }
+        .sk-elem {
+          background: linear-gradient(90deg, #E2E8F0 0%, #EDF2F7 50%, #E2E8F0 100%);
+          background-size: 200% 100%;
+          border-radius: 12px;
+          animation: skPulse 1.2s ease-in-out infinite;
+        }
+      </style>
+      <div style="display: flex; justify-content: space-between; align-items: center; min-height: 54px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="sk-elem" style="width: 44px; height: 44px; border-radius: 50%;"></div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <div class="sk-elem" style="width: 120px; height: 16px;"></div>
+            <div class="sk-elem" style="width: 75px; height: 12px;"></div>
+          </div>
+        </div>
+        <div class="sk-elem" style="width: 48px; height: 32px; border-radius: 8px;"></div>
+      </div>
+      <div class="sk-elem" style="width: 100%; height: 130px; border-radius: 16px;"></div>
+      <div class="sk-elem" style="width: 100%; height: 80px; border-radius: 16px;"></div>
+      <div class="sk-elem" style="width: 100%; height: 120px; border-radius: 16px;"></div>
+      <div class="sk-elem" style="width: 100%; height: 48px; border-radius: 14px; margin-top: 4px;"></div>
+    </div>
+  `;
 }
 
 /**
@@ -290,7 +315,7 @@ async function loadScreenController(route) {
   switch (route.screen) {
     case "onboarding": {
       try {
-        const module = await import("../screens/onboarding/onboarding.js?v=31");
+        const module = await import("../screens/onboarding/onboarding.js");
         if (typeof module.initOnboarding === "function") {
           module.initOnboarding(routerInstance);
         }
@@ -302,7 +327,7 @@ async function loadScreenController(route) {
 
     case "ranking": {
       try {
-        const module = await import(`../screens/ranking/ranking.js?t=${Date.now()}`);
+        const module = await import("../screens/ranking/ranking.js");
         if (typeof module.initRanking === "function") {
           module.initRanking(routerInstance);
         }
@@ -314,7 +339,7 @@ async function loadScreenController(route) {
 
     case "auth": {
       try {
-        const module = await import("../screens/auth/auth.js?v=40");
+        const module = await import("../screens/auth/auth.js");
         if (typeof module.initAuth === "function") {
           module.initAuth(route.subview, routerInstance);
         }
@@ -329,7 +354,7 @@ async function loadScreenController(route) {
 
     case "dashboard": {
       try {
-        const module = await import(`../screens/dashboard/dashboard.js?t=${Date.now()}`);
+        const module = await import("../screens/dashboard/dashboard.js");
         if (typeof module.initDashboard === "function") {
           module.initDashboard(routerInstance);
         } else if (typeof module.initHomeView === "function") {
@@ -343,7 +368,7 @@ async function loadScreenController(route) {
 
     case "history": {
       try {
-        const module = await import(`../screens/history/history.js?t=${Date.now()}`);
+        const module = await import("../screens/history/history.js");
         if (typeof module.initHistory === "function") {
           module.initHistory(routerInstance);
         } else if (typeof module.initHistoryView === "function") {
@@ -357,7 +382,7 @@ async function loadScreenController(route) {
 
     case "market": {
       try {
-        const module = await import(`/src/screens/market/market.js?t=${Date.now()}`);
+        const module = await import("/src/screens/market/market.js");
         if (typeof module.renderMarketScreen === "function") {
           module.renderMarketScreen(appContent, routerInstance);
         } else {
@@ -371,7 +396,7 @@ async function loadScreenController(route) {
 
     case "comparison": {
       try {
-        const module = await import(`../screens/comparison/comparison.js?t=${Date.now()}`);
+        const module = await import("../screens/comparison/comparison.js");
         // Extraemos parámetros de la URL si los hay (ej: ?ids=1,2,3) tanto de search como de hash
         const hashQuery = window.location.hash.includes("?")
           ? window.location.hash.split("?")[1]
@@ -395,7 +420,7 @@ async function loadScreenController(route) {
 
     case "admin": {
       try {
-        const module = await import(`../screens/admin/players-admin.js?t=${Date.now()}`);
+        const module = await import("../screens/admin/players-admin.js");
         if (typeof module.renderPlayersAdminScreen === "function") {
           module.renderPlayersAdminScreen(appContent, routerInstance);
         }
@@ -407,7 +432,7 @@ async function loadScreenController(route) {
 
     case "profile": {
       try {
-        const module = await import(`../screens/profile/profile.js?t=${Date.now()}`);
+        const module = await import("../screens/profile/profile.js");
         if (typeof module.initProfile === "function") {
           module.initProfile(routerInstance);
         } else if (typeof module.initProfileView === "function") {
@@ -421,7 +446,7 @@ async function loadScreenController(route) {
 
     case "matchmaking": {
       try {
-        const module = await import(`../screens/matchmaking/matchmaking.js?t=${Date.now()}`);
+        const module = await import("../screens/matchmaking/matchmaking.js");
         if (typeof module.initMatchmaking === "function") {
           module.initMatchmaking(routerInstance);
         }
@@ -433,7 +458,7 @@ async function loadScreenController(route) {
 
     case "lineup": {
       try {
-        const module = await import(`../screens/lineup/lineup.js?t=${Date.now()}`);
+        const module = await import("../screens/lineup/lineup.js");
         if (typeof module.initLineup === "function") {
           module.initLineup(routerInstance);
         }
@@ -445,7 +470,7 @@ async function loadScreenController(route) {
 
     case "match": {
       try {
-        const module = await import(`../screens/match/match.js?t=${Date.now()}`);
+        const module = await import("../screens/match/match.js");
         if (typeof module.initMatch === "function") {
           module.initMatch(routerInstance);
         } else if (typeof module.initMatchDetailView === "function") {

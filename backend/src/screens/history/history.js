@@ -1,5 +1,5 @@
 import { apiClient } from '../../services/api-client.js';
-import { fetchMatchDetail } from '../match/match.js?v=16';
+import { fetchMatchDetail } from '../match/match.js';
 /**
  * @file history.js
  * @description Controlador modular para la vista de Historial de Partidos de Fantasy de Leyendas.

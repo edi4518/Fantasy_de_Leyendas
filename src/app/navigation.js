@@ -7,7 +7,7 @@
  * @exports { renderNavigation, updateActiveNavItem }
  */
 
-import { navigateTo, getCurrentRoute } from './router.min.js?v=13';
+import { navigateTo, getCurrentRoute } from './router.js';
 
 export function renderNavigation() {
   const navContainer = document.getElementById('app-navigation');

@@ -7,7 +7,7 @@
  * @exports { renderComparisonScreen }
  */
 
-import { playerService } from '../../services/player-service.js?v=50';
+import { playerService } from '../../services/player-service.js';
 
 const PALETTE = [
   { main: '#2d6a4f', bg: 'rgba(45, 106, 79, 0.2)', cardBg: '#eef7f2', cardBorder: 'rgba(45, 106, 79, 0.28)' },   // Verde
@@ -36,7 +36,7 @@ export async function renderComparisonScreen(container, router, params = {}) {
   // Si el contenedor aún no tiene el template HTML de comparison.html, cargarlo
   if (!targetContainer.querySelector('.comparison-screen')) {
     try {
-      const response = await fetch(`/src/screens/comparison/comparison.html?v=${Date.now()}`);
+      const response = await fetch('/src/screens/comparison/comparison.html');
       if (response.ok) {
         targetContainer.innerHTML = await response.text();
       }

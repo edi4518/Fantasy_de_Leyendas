@@ -1145,3 +1145,17 @@
   font-weight: 700 !important;
   color: #266046 !important;
 }
+
+/* ==========================================================================
+   21. ACCESIBILIDAD Y CONTRASTE WCAG 2.1 AA (Player Slot Roles)
+   ========================================================================== */
+.player-slot--por .player-slot__role,
+.player-slot:has([data-position="POR"]) .player-slot__role {
+  color: #854d0e; /* Contraste >= 4.5:1 sobre fondo #f8f9fa */
+}
+
+.player-slot--mc .player-slot__role,
+.player-slot:has([data-position="MC"]) .player-slot__role,
+.player-slot:has([data-position="MED"]) .player-slot__role {
+  color: #065f46; /* Contraste >= 4.5:1 sobre fondo #f8f9fa */
+}

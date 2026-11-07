@@ -4,9 +4,9 @@
  carga de foto de perfil y persistencia de sesión.
  */
 
-import { navigateTo } from "../../app/router.min.js?v=13";
+import { navigateTo } from "../../app/router.js";
 import { API_BASE_URL } from "../../services/api-client.js";
-import { authService } from "../../services/auth-service.js?v=2";
+import { authService } from "../../services/auth-service.js";
 import { squadService } from "../../services/squad-service.js";
 
 async function hydrateUserSquad() {

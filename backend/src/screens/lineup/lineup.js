@@ -1,4 +1,4 @@
-import { playerService } from '../../services/player-service.js?v=50';
+import { playerService } from '../../services/player-service.js';
 
 const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
 

@@ -9,15 +9,22 @@
   <meta name="theme-color" content="#2D6A4F" />
   <title>Fantasy de Leyendas</title>
 
-  <!-- Google Fonts: Plus Jakarta Sans -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-    rel="stylesheet" />
-
-  <!-- PWA Manifest & Icons -->
+  <!-- Favicon y PWA Icons -->
+  <link rel="icon" type="image/png" href="/favicon.ico" />
+  <link rel="shortcut icon" href="/favicon.ico" />
   <link rel="manifest" href="/public/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/public/icons/icon-192.png" />
+
+  <!-- Google Fonts: Plus Jakarta Sans (solo pesos indispensables 400, 600, 700 con display=swap) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Preload de módulos críticos para romper la cascada de dependencias (Modulepreload) -->
+  <link rel="modulepreload" href="/src/app/main.js" />
+  <link rel="modulepreload" href="/src/app/router.js" />
+  <link rel="modulepreload" href="/src/services/api-client.js" />
+  <link rel="modulepreload" href="/src/screens/dashboard/dashboard.js" />
 
   <!-- Google Identity Services (OAuth 2.0) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -80,7 +87,7 @@
   <script src="/src/assets/libs/lottie.min.js"></script>
 
   <!-- Script principal de inicio (Vanilla ES Modules) -->
-  <script type="module" src="/src/app/main.js?v=50"></script>
+  <script type="module" src="/src/app/main.js"></script>
 </body>
 
 </html>
