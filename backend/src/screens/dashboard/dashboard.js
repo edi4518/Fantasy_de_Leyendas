@@ -526,7 +526,6 @@ export async function fetchHomeData() {
 
   let managerData = null;
   let analyticsData = null;
-  let userRankingPosition = 1;
 
   let savedUser = null;
   try {
