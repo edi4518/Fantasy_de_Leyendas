@@ -110,39 +110,65 @@ def _ensure_optimized_schema():
                     if col_name not in plantilla_cols:
                         conn.execute(text(f"ALTER TABLE plantillas ADD COLUMN {col_name} {col_def}"))
 
-        # 2. Si aún no existe 'user_players' o 'partidos' tiene el esquema viejo (sin 'local_user_id'),
-        # recrear las tablas relacionales de plantillas y partidos para aplicar el nuevo modelo completo.
-        needs_recreate = "user_players" not in existing_tables
-        if not needs_recreate and "partidos" in existing_tables:
-            partido_cols = {c["name"] for c in insp.get_columns("partidos")}
-            if "local_user_id" not in partido_cols or "mvp_nombre" not in partido_cols:
-                needs_recreate = True
-        if not needs_recreate and "plantilla_jugadores" in existing_tables:
-            pj_cols = {c["name"] for c in insp.get_columns("plantilla_jugadores")}
-            if "user_player_id" not in pj_cols:
-                needs_recreate = True
-
-        if needs_recreate:
+        # 1.2 Asegurar columnas en 'user_players' (energia, stats de club)
+        if "user_players" in existing_tables:
+            up_cols = {c["name"] for c in insp.get_columns("user_players")}
+            new_up_columns = [
+                ("energia", "TINYINT UNSIGNED NOT NULL DEFAULT 100"),
+                ("partidos_club", "SMALLINT UNSIGNED NOT NULL DEFAULT 0"),
+                ("goles_club", "SMALLINT UNSIGNED NOT NULL DEFAULT 0"),
+                ("vallas_invictas_club", "SMALLINT UNSIGNED NOT NULL DEFAULT 0"),
+                ("mvps_club", "SMALLINT UNSIGNED NOT NULL DEFAULT 0"),
+                ("rating_promedio", "DECIMAL(4,2) NOT NULL DEFAULT 0.00"),
+                ("adquirido_en", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+            ]
             with engine.begin() as conn:
-                if engine.dialect.name == "mysql":
-                    conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
-                for tbl in ["eventos_partido", "partidos", "plantilla_jugadores", "plantillas", "user_players"]:
-                    if tbl in existing_tables:
-                        conn.execute(text(f"DROP TABLE IF EXISTS {tbl}"))
-                if engine.dialect.name == "mysql":
-                    conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+                for col_name, col_def in new_up_columns:
+                    if col_name not in up_cols:
+                        conn.execute(text(f"ALTER TABLE user_players ADD COLUMN {col_name} {col_def}"))
 
-        # 3. TiDB Cloud: Normalizar IDs históricos si existen 30001 o 30002
+        # 1.3 Asegurar columnas en 'partidos' (MVP y estadísticas completas)
+        if "partidos" in existing_tables:
+            p_cols = {c["name"] for c in insp.get_columns("partidos")}
+            new_p_columns = [
+                ("mvp_nombre", "VARCHAR(120) NULL"),
+                ("mvp_rol", "VARCHAR(10) NULL"),
+                ("mvp_rating", "FLOAT NULL"),
+                ("mvp_equipo", "VARCHAR(15) NULL DEFAULT 'local'"),
+                ("posesion_local", "INT NOT NULL DEFAULT 50"),
+                ("posesion_visitante", "INT NOT NULL DEFAULT 50"),
+                ("tiros_local", "INT NOT NULL DEFAULT 0"),
+                ("tiros_visitante", "INT NOT NULL DEFAULT 0"),
+                ("atajadas_local", "INT NOT NULL DEFAULT 0"),
+                ("atajadas_visitante", "INT NOT NULL DEFAULT 0"),
+                ("amarillas_local", "INT NOT NULL DEFAULT 0"),
+                ("amarillas_visitante", "INT NOT NULL DEFAULT 0"),
+                ("rojas_local", "INT NOT NULL DEFAULT 0"),
+                ("rojas_visitante", "INT NOT NULL DEFAULT 0"),
+                ("seed_simulacion", "INT NULL"),
+            ]
+            with engine.begin() as conn:
+                for col_name, col_def in new_p_columns:
+                    if col_name not in p_cols:
+                        conn.execute(text(f"ALTER TABLE partidos ADD COLUMN {col_name} {col_def}"))
+
+        # 2. Normalizar IDs en TiDB Cloud si existen saltos (ej: 4001..4003 o 30001..30002)
         if engine.dialect.name == "mysql":
             with engine.begin() as conn:
                 try:
                     conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
-                    conn.execute(text("UPDATE users SET id = 3 WHERE id = 30001"))
-                    conn.execute(text("UPDATE users SET id = 4 WHERE id = 30002"))
-                    conn.execute(text("UPDATE plantillas SET user_id = 3 WHERE user_id = 30001"))
-                    conn.execute(text("UPDATE plantillas SET user_id = 4 WHERE user_id = 30002"))
-                    conn.execute(text("UPDATE user_players SET user_id = 3 WHERE user_id = 30001"))
-                    conn.execute(text("UPDATE user_players SET user_id = 4 WHERE user_id = 30002"))
+                    conn.execute(text("UPDATE users SET id = 2 WHERE id IN (4001, 30001)"))
+                    conn.execute(text("UPDATE users SET id = 3 WHERE id IN (4002, 30002)"))
+                    conn.execute(text("UPDATE users SET id = 4 WHERE id IN (4003, 30003)"))
+                    conn.execute(text("UPDATE plantillas SET user_id = 2 WHERE user_id IN (4001, 30001)"))
+                    conn.execute(text("UPDATE plantillas SET user_id = 3 WHERE user_id IN (4002, 30002)"))
+                    conn.execute(text("UPDATE plantillas SET user_id = 4 WHERE user_id IN (4003, 30003)"))
+                    conn.execute(text("UPDATE user_players SET user_id = 2 WHERE user_id IN (4001, 30001)"))
+                    conn.execute(text("UPDATE user_players SET user_id = 3 WHERE user_id IN (4002, 30002)"))
+                    conn.execute(text("UPDATE user_players SET user_id = 4 WHERE user_id IN (4003, 30003)"))
+                    conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+                except Exception as norm_err:
+                    logger.debug(f"Aviso durante normalización de IDs TiDB: {norm_err}")
                     conn.execute(text("UPDATE plantillas SET id = 2 WHERE id = 30001"))
                     conn.execute(text("UPDATE plantillas SET id = 3 WHERE id = 60001"))
                     conn.execute(text("UPDATE plantillas SET id = 4 WHERE id = 60002"))

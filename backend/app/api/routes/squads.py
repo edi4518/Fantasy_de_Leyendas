@@ -6,6 +6,7 @@ Rutas de gestión de plantillas y club: persistencia en 'user_players' (Inventar
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -16,6 +17,35 @@ from app.models.user import User
 router = APIRouter()
 
 MAX_SALARY_CAP = 150.0
+
+
+def _ensure_squad_columns(db: Session):
+    """Garantiza que las columnas de stamina y estadísticas en user_players y plantillas existan en TiDB."""
+    for col_name, col_def in [
+        ("energia", "TINYINT UNSIGNED NOT NULL DEFAULT 100"),
+        ("partidos_club", "SMALLINT UNSIGNED NOT NULL DEFAULT 0"),
+        ("goles_club", "SMALLINT UNSIGNED NOT NULL DEFAULT 0"),
+        ("vallas_invictas_club", "SMALLINT UNSIGNED NOT NULL DEFAULT 0"),
+        ("mvps_club", "SMALLINT UNSIGNED NOT NULL DEFAULT 0"),
+        ("rating_promedio", "DECIMAL(4,2) NOT NULL DEFAULT 0.00"),
+        ("adquirido_en", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+    ]:
+        try:
+            db.execute(text(f"ALTER TABLE user_players ADD COLUMN {col_name} {col_def}"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+    for col_name, col_def in [
+        ("es_activa", "BOOLEAN DEFAULT TRUE"),
+        ("created_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+        ("updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
+    ]:
+        try:
+            db.execute(text(f"ALTER TABLE plantillas ADD COLUMN {col_name} {col_def}"))
+            db.commit()
+        except Exception:
+            db.rollback()
 
 
 class SaveSquadRequest(BaseModel):
@@ -143,6 +173,7 @@ def get_my_squad(
     db: Session = Depends(get_db),
 ):
     """Recupera la plantilla activa del mánager desde 'plantillas', 'plantilla_jugadores' y 'user_players'."""
+    _ensure_squad_columns(db)
     user = _resolve_user(request, db, user_id)
     if not user:
         return {"squad": None}
@@ -168,6 +199,7 @@ def save_squad(
 ):
     """Sincroniza el inventario del club ('user_players'), guarda la alineación táctica ('plantillas' + 'plantilla_jugadores')
     y actualiza el presupuesto del mánager en 'users'."""
+    _ensure_squad_columns(db)
     user = _resolve_user(request, db, payload.user_id)
     if not user:
         raise HTTPException(

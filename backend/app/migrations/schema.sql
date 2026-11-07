@@ -40,7 +40,7 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_user_email (email),
     INDEX idx_user_elo (elo_rating DESC)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_ID_CACHE = 1;
 
 -- -----------------------------------------------------------------------------
 -- 2. CATÁLOGO DE 80 LEYENDAS (Atributos de juego + Métricas históricas para Comparativa)
@@ -107,7 +107,7 @@ CREATE TABLE players (
     INDEX idx_posicion (posicion_base),
     INDEX idx_media (media_juego DESC),
     INDEX idx_precio (precio)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_ID_CACHE = 1;
 
 -- -----------------------------------------------------------------------------
 -- 3. CLUB / INVENTARIO DE JUGADORES FICHADOS POR USUARIO (Con Stamina y Stats en el Club)
@@ -132,7 +132,7 @@ CREATE TABLE user_players (
     FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE RESTRICT,
     UNIQUE KEY uk_user_player (user_id, player_id),
     INDEX idx_user_club (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_ID_CACHE = 1;
 
 -- -----------------------------------------------------------------------------
 -- 4. ALINEACIONES TÁCTICAS (Configuraciones de cada mánager)
@@ -149,7 +149,7 @@ CREATE TABLE plantillas (
 
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_plantilla_user (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_ID_CACHE = 1;
 
 -- -----------------------------------------------------------------------------
 -- 5. JUGADORES EN LA ALINEACIÓN (6 Titulares y 4 Suplentes vinculados a user_players)
@@ -168,7 +168,7 @@ CREATE TABLE plantilla_jugadores (
     FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE RESTRICT,
     UNIQUE KEY uk_plantilla_posicion (plantilla_id, posicion_cancha),
     UNIQUE KEY uk_plantilla_user_player (plantilla_id, user_player_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_ID_CACHE = 1;
 
 -- -----------------------------------------------------------------------------
 -- 6. PARTIDOS (Soporta PvP y vs IA + Estadísticas Detalladas y MVP para Popup Historial)
@@ -218,7 +218,7 @@ CREATE TABLE partidos (
     FOREIGN KEY (plantilla_visitante_id) REFERENCES plantillas(id) ON DELETE SET NULL,
     INDEX idx_partidos_local (local_user_id),
     INDEX idx_partidos_visitante (visitante_user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_ID_CACHE = 1;
 
 -- -----------------------------------------------------------------------------
 -- 7. EVENTOS DEL MINUTO A MINUTO (Timeline del partido en vivo)
@@ -238,15 +238,6 @@ CREATE TABLE eventos_partido (
     FOREIGN KEY (partido_id) REFERENCES partidos(id) ON DELETE CASCADE,
     FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE SET NULL,
     INDEX idx_evento_minuto (partido_id, minuto)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_ID_CACHE = 1;
 
--- -----------------------------------------------------------------------------
--- 8. COMPATIBILIDAD CON TiDB CLOUD (Secuencia estricta sin saltos de 30.000)
--- -----------------------------------------------------------------------------
-ALTER TABLE users AUTO_ID_CACHE = 1;
-ALTER TABLE plantillas AUTO_ID_CACHE = 1;
-ALTER TABLE plantilla_jugadores AUTO_ID_CACHE = 1;
-ALTER TABLE user_players AUTO_ID_CACHE = 1;
-ALTER TABLE partidos AUTO_ID_CACHE = 1;
-ALTER TABLE eventos_partido AUTO_ID_CACHE = 1;
-ALTER TABLE players AUTO_ID_CACHE = 1;
+
