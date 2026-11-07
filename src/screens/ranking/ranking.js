@@ -5,17 +5,9 @@
  */
 
 import { apiClient } from '../../services/api-client.js';
+import { getUnifiedLeaderboard, getUserRankInfo, LEAGUE_BENCHMARK_MANAGERS } from '../../services/ranking-service.js?v=50';
 
-// 1. Datos base de la liga (combinados con los mánagers reales de MySQL)
-const MOCK_RANKING = [
-  { rank: 1, name: 'David Villa', points: 1520, trend: 'equal' },
-  { rank: 2, name: 'Alex Mercer', points: 1480, trend: 'equal' },
-  { rank: 3, name: 'Carlos Sainz', points: 1395, trend: 'equal' },
-  { rank: 4, name: 'Lucas Moreno', points: 1250, trend: 'up' },
-  { rank: 5, name: 'Martín Silva', points: 1180, trend: 'down' },
-  { rank: 6, name: 'Alonso Ramos', points: 1105, trend: 'neutral' },
-  { rank: 7, name: 'Daniel Craig', points: 1040, trend: 'up' },
-];
+export const MOCK_RANKING = LEAGUE_BENCHMARK_MANAGERS;
 
 const CURRENT_USER_MOCK = {
   rank: 8,
@@ -64,50 +56,32 @@ async function ensureListAndManagerIntegrity() {
   const container = document.querySelector('.ranking-screen');
   if (!container) return;
 
-  // 1. Consultar mánagers reales en MySQL (/api/ranking/leaderboard y /api/me)
-  let dbLeaderboard = [];
-  let meData = null;
-  try {
-    const [lbRes, meRes] = await Promise.all([
-      apiClient.get('/ranking/leaderboard').catch(() => null),
-      apiClient.get('/me').catch(() => null)
-    ]);
-    if (lbRes && Array.isArray(lbRes.leaderboard)) {
-      dbLeaderboard = lbRes.leaderboard;
-    }
-    if (meRes && meRes.team_name) {
-      meData = meRes;
-    }
-  } catch (_) {}
+  // 1. Obtener la tabla unificada de la liga y resolver datos del usuario
+  const combinedEntries = await getUnifiedLeaderboard();
 
   const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const teamName = meData?.team_name || savedUser.team_name || CURRENT_USER_MOCK.teamName;
-  const userPoints = Number(meData?.ranking ?? savedUser.elo_rating ?? CURRENT_USER_MOCK.points);
+  const teamName = localStorage.getItem('team_name') || savedUser.team_name || CURRENT_USER_MOCK.teamName;
 
-  // Combinar competidores de la liga con mánagers reales de MySQL y ordenar por puntos ELO
-  const combinedEntries = [
-    ...MOCK_RANKING.map(m => ({ name: m.name, points: m.points, trend: m.trend, isDbUser: false })),
-    ...dbLeaderboard.map(u => ({
-      name: `${u.manager_name} (${u.team_name})`,
-      points: Number(u.elo_rating ?? 1000),
-      trend: 'up',
-      isDbUser: true,
-      userId: u.user_id,
-      teamName: u.team_name
-    }))
-  ].sort((a, b) => b.points - a.points);
-
-  // Asignar posición real tras ordenar
-  combinedEntries.forEach((entry, idx) => {
-    entry.rank = idx + 1;
-  });
+  let rawStats = null;
+  try {
+    const raw = localStorage.getItem('fantasy_user_stats');
+    if (raw) rawStats = JSON.parse(raw);
+  } catch (_) {}
 
   const myEntry = combinedEntries.find(e =>
-    (meData?.id && e.userId === meData.id) ||
-    (savedUser?.id && e.userId === Number(savedUser.id)) ||
-    (e.teamName && e.teamName === teamName)
+    (savedUser?.id && e.userId && Number(e.userId) === Number(savedUser.id)) ||
+    (savedUser?.email && e.email && e.email.toLowerCase() === savedUser.email.toLowerCase()) ||
+    (e.teamName && e.teamName.toLowerCase() === teamName.toLowerCase())
   );
-  const userRank = myEntry ? myEntry.rank : (combinedEntries.filter(e => e.points > userPoints).length + 1);
+
+  const hasPlayed = Boolean(
+    (myEntry && myEntry.has_played) ||
+    (rawStats && rawStats.matchesPlayed > 0)
+  );
+
+  const rankInfo = getUserRankInfo(combinedEntries, savedUser, teamName, hasPlayed);
+  const userRankText = rankInfo.displayRank;
+  const userPoints = Number(rankInfo.points ?? savedUser.elo_rating ?? CURRENT_USER_MOCK.points);
 
   // 2. Verificar o crear la lista #ranking-list
   let listEl = document.getElementById('ranking-list');
@@ -137,9 +111,11 @@ async function ensureListAndManagerIntegrity() {
       trendClass = 'trend-down';
     }
 
+    const rankDisplay = item.has_played ? item.rank : '-';
+
     return `
       <li class="ranking-item">
-        <span class="item-rank">${item.rank}</span>
+        <span class="item-rank">${rankDisplay}</span>
         <div class="item-avatar">
           <svg class="avatar-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round"
@@ -166,7 +142,7 @@ async function ensureListAndManagerIntegrity() {
   userCard.innerHTML = `
     <div class="user-position-box">
       <span class="user-position-label">POSICIÓN</span>
-      <span class="user-rank" id="user-rank-val">#${userRank}</span>
+      <span class="user-rank" id="user-rank-val">${userRankText}</span>
     </div>
     <div class="user-avatar-badge">
       <svg class="avatar-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">

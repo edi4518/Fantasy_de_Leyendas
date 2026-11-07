@@ -3,6 +3,7 @@ import { FORMATIONS_6V6 } from '../../domain/formation-rules.js';
 import { apiClient, API_BASE_URL } from '../../services/api-client.js?v=50';
 import { squadService } from '../../services/squad-service.js?v=50';
 import { getPlayerRating, getPlayerPrice } from '../lineup/lineup.js?v=50';
+import { getUnifiedLeaderboard, getUserRankInfo } from '../../services/ranking-service.js?v=50';
 
 function normalizeManagerAvatarOrigin(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return null;
@@ -162,7 +163,7 @@ export const DEFAULT_HOME_DATA = {
   manager: {
     name: 'Nombre del Mánager',
     season: 'Temporada 24 / 25',
-    ranking: 1,
+    ranking: '-',
     avatarUrl: null
   },
   budget: {
@@ -224,10 +225,11 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
 
     const rankingValueEl = document.getElementById('ranking-value');
     if (rankingValueEl) {
-      if (data.manager?.ranking !== undefined && data.manager?.ranking !== null) {
-        rankingValueEl.textContent = `#${data.manager.ranking}`;
+      if (data.manager?.ranking !== undefined && data.manager?.ranking !== null && data.manager?.ranking !== '-') {
+        const valStr = String(data.manager.ranking);
+        rankingValueEl.textContent = valStr.startsWith('#') ? valStr : `#${valStr}`;
       } else {
-        rankingValueEl.textContent = '#1';
+        rankingValueEl.textContent = '-';
       }
     }
 
@@ -539,26 +541,6 @@ export async function fetchHomeData() {
     console.info('[Dashboard] Modo offline o backend no disponible para /api/me:', err.message);
   }
 
-  // 1.1 Obtener posición real en el ranking general desde /ranking/leaderboard
-  try {
-    const lbRes = await apiClient.get('/ranking/leaderboard').catch(() => null);
-    if (lbRes && Array.isArray(lbRes.leaderboard) && lbRes.leaderboard.length > 0) {
-      const teamName = localStorage.getItem('team_name') || savedUser?.team_name;
-      const foundIdx = lbRes.leaderboard.findIndex(u =>
-        (savedUser?.id && Number(u.user_id) === Number(savedUser.id)) ||
-        (savedUser?.email && u.email && u.email.toLowerCase() === savedUser.email.toLowerCase()) ||
-        (teamName && u.team_name && u.team_name.toLowerCase() === teamName.toLowerCase())
-      );
-      if (foundIdx !== -1) {
-        userRankingPosition = lbRes.leaderboard[foundIdx].position || (foundIdx + 1);
-      } else {
-        userRankingPosition = lbRes.leaderboard.length + 1;
-      }
-    }
-  } catch (err) {
-    console.debug('[Dashboard] Error al consultar ranking leaderboard:', err);
-  }
-
   // 2. Fetch Resumen Analítico (/api/analytics/summary)
   try {
     analyticsData = await apiClient.get('/analytics/summary');
@@ -712,12 +694,16 @@ export async function fetchHomeData() {
   const managerDisplayName = savedUser?.name || (savedUser?.first_name ? `${savedUser.first_name} ${savedUser.last_name || ''}`.trim() : null) || managerData?.username || managerData?.name || DEFAULT_HOME_DATA.manager.name;
 
   const hasDbMatches = Boolean(analyticsData?.has_matches && Array.isArray(analyticsData?.streak?.recentResults) && analyticsData.streak.recentResults.length > 0);
-  const hasLocalMatches = Boolean(Array.isArray(localStats?.streak) && localStats.streak.length > 0);
+  const hasLocalMatches = Boolean(
+    (Array.isArray(localStats?.streak) && localStats.streak.length > 0) ||
+    (localStats?.matchesPlayed && localStats.matchesPlayed > 0) ||
+    Boolean(localLastMatch)
+  );
 
   let recentResults = [];
   if (hasDbMatches) {
     recentResults = analyticsData.streak.recentResults.slice(0, 5);
-  } else if (hasLocalMatches) {
+  } else if (hasLocalMatches && Array.isArray(localStats?.streak)) {
     recentResults = localStats.streak.slice(0, 5);
   }
 
@@ -732,6 +718,23 @@ export async function fetchHomeData() {
       scoreText: `${resLetter} ${localLastMatch.score || '0 – 0'}`,
       opponent: localLastMatch.rival ? (localLastMatch.rival.startsWith('vs ') ? localLastMatch.rival : `vs ${localLastMatch.rival}`) : 'vs Rival'
     };
+  }
+
+  // Resolver puesto de clasificación de forma 100% sincronizada con Ranking Global
+  let userRankingPosition = '-';
+  try {
+    const unifiedLeaderboard = await getUnifiedLeaderboard();
+    const currentTeamName = localStorage.getItem('team_name') || savedUser?.team_name || managerData?.team_name;
+    const dbUserMatch = unifiedLeaderboard.find(u =>
+      (savedUser?.id && u.userId && Number(u.userId) === Number(savedUser.id)) ||
+      (savedUser?.email && u.email && u.email.toLowerCase() === savedUser.email.toLowerCase()) ||
+      (currentTeamName && u.team_name && u.team_name.toLowerCase() === currentTeamName.toLowerCase())
+    );
+    const hasPlayedMatches = hasDbMatches || hasLocalMatches || Boolean(dbUserMatch?.has_played);
+    const rankInfo = getUserRankInfo(unifiedLeaderboard, savedUser, currentTeamName, hasPlayedMatches);
+    userRankingPosition = rankInfo.displayRank;
+  } catch (err) {
+    console.debug('[Dashboard] Error al calcular ranking unificado:', err);
   }
 
   const consolidatedData = {

@@ -18,6 +18,7 @@ def get_leaderboard(db: Session = Depends(get_db)):
     # Ordenar en Python para evitar errores de MySQL/TiDB (1690 BIGINT UNSIGNED out of range en resta)
     users.sort(
         key=lambda u: (
+            1 if (u.partidos_jugados or 0) > 0 else 0,
             u.elo_rating if u.elo_rating is not None else 1000,
             (u.goles_favor or 0) - (u.goles_contra or 0),
             u.victorias or 0,
@@ -34,6 +35,7 @@ def get_leaderboard(db: Session = Depends(get_db)):
             "team_name": u.team_name,
             "elo_rating": u.elo_rating if u.elo_rating is not None else 1000,
             "partidos_jugados": u.partidos_jugados or 0,
+            "has_played": bool((u.partidos_jugados or 0) > 0),
             "victorias": u.victorias or 0,
             "empates": u.empates or 0,
             "derrotas": u.derrotas or 0,
