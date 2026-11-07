@@ -10,8 +10,23 @@ from typing import List, Optional
 
 from fastapi import FastAPI, Depends, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.staticfiles import StaticFiles as BaseStaticFiles
+
+
+class StaticFiles(BaseStaticFiles):
+    """Extiende StaticFiles de FastAPI/Starlette para inyectar encabezados personalizados (ej. Cache-Control)."""
+
+    def __init__(self, *args, headers: Optional[dict] = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.custom_headers = headers or {}
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        for key, value in self.custom_headers.items():
+            response.headers[key] = value
+        return response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -59,16 +74,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 
 @app.middleware("http")
-async def disable_static_js_cache(request: Request, call_next):
-    """Evita que el navegador guarde en caché versiones antiguas de módulos JS o index.html."""
+async def configure_html_route_cache(request: Request, call_next):
+    """Mantiene sin caché únicamente el documento raíz de rutas SPA, respetando el caché inmutable en /src y /public."""
     response = await call_next(request)
     path = request.url.path
-    if path == "/" or path.endswith(".js") or path.endswith(".html") or path in (
-        "/onboarding", "/login", "/register", "/dashboard", "/matchmaking",
-        "/market", "/comparison", "/lineup", "/history", "/ranking", "/profile", "/admin"
+    if path in (
+        "/", "/index.html", "/onboarding", "/login", "/register", "/dashboard",
+        "/matchmaking", "/market", "/comparison", "/lineup", "/history",
+        "/ranking", "/profile", "/admin"
     ):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
@@ -331,17 +348,35 @@ else:
 
 FRONTEND_INDEX_HTML = os.path.join(FRONTEND_PUBLIC_DIR, "index.html")
 
+IMMUTABLE_CACHE_HEADERS = {"Cache-Control": "public, max-age=31536000, immutable"}
+
 if os.path.isdir(FRONTEND_SRC_DIR):
-    app.mount("/src", StaticFiles(directory=FRONTEND_SRC_DIR), name="frontend_src")
+    app.mount(
+        "/src",
+        StaticFiles(directory=FRONTEND_SRC_DIR, html=True, headers=IMMUTABLE_CACHE_HEADERS),
+        name="src",
+    )
 
 if os.path.isdir(FRONTEND_PUBLIC_DIR):
-    app.mount("/public", StaticFiles(directory=FRONTEND_PUBLIC_DIR), name="frontend_public")
+    app.mount(
+        "/public",
+        StaticFiles(directory=FRONTEND_PUBLIC_DIR, html=True, headers=IMMUTABLE_CACHE_HEADERS),
+        name="public",
+    )
     icons_dir = os.path.join(FRONTEND_PUBLIC_DIR, "icons")
     if os.path.isdir(icons_dir):
-        app.mount("/icons", StaticFiles(directory=icons_dir), name="frontend_icons")
+        app.mount(
+            "/icons",
+            StaticFiles(directory=icons_dir, html=True, headers=IMMUTABLE_CACHE_HEADERS),
+            name="frontend_icons",
+        )
     images_dir = os.path.join(FRONTEND_PUBLIC_DIR, "images")
     if os.path.isdir(images_dir):
-        app.mount("/images", StaticFiles(directory=images_dir), name="frontend_images")
+        app.mount(
+            "/images",
+            StaticFiles(directory=images_dir, html=True, headers=IMMUTABLE_CACHE_HEADERS),
+            name="frontend_images",
+        )
 
 
 @app.get("/manifest.webmanifest", include_in_schema=False)
