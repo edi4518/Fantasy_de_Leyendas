@@ -425,6 +425,9 @@ def serve_manifest():
     return JSONResponse(status_code=404, content={"detail": "Not found"})
 
 
+SPA_HTML_CACHE_HEADERS = {"Cache-Control": "public, max-age=0, must-revalidate"}
+
+
 @app.get("/", include_in_schema=False)
 @app.get("/index.html", include_in_schema=False)
 @app.get("/onboarding", include_in_schema=False)
@@ -441,11 +444,11 @@ def serve_manifest():
 @app.get("/admin", include_in_schema=False)
 @app.get("/match/{subpath:path}", include_in_schema=False)
 def serve_spa_index():
-    """Sirve el index.html de la PWA en la raíz y en todas las rutas del router SPA."""
+    """Sirve el index.html de la PWA en la raíz y en todas las rutas del router SPA habilitando BFCache (sin no-store)."""
     if os.path.isfile(FRONTEND_INDEX_HTML):
-        return FileResponse(FRONTEND_INDEX_HTML, media_type="text/html")
+        return FileResponse(FRONTEND_INDEX_HTML, media_type="text/html", headers=SPA_HTML_CACHE_HEADERS)
     root_index = os.path.join(PROJECT_ROOT, "index.html")
     if os.path.isfile(root_index):
-        return FileResponse(root_index, media_type="text/html")
+        return FileResponse(root_index, media_type="text/html", headers=SPA_HTML_CACHE_HEADERS)
     return JSONResponse(status_code=200, content={"status": "Fantasy de Leyendas API Online"})
 

@@ -119,7 +119,8 @@ b {
 /* 6. Utilidades de Accesibilidad */
 
 /* Ocultación visual para lectores de pantalla */
-.sr-only {
+.sr-only,
+.visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -128,6 +129,7 @@ b {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
+  border: 0;
   border-width: var(--border-width-none);
 }
 

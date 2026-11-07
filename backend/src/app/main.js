@@ -7,7 +7,7 @@
  * @exports bootstrapApp
  */
 
-import { initRouter } from './router.min.js?v=11';
+import { initRouter } from './router.min.js?v=13';
 import { renderNavigation } from './navigation.js';
 import { authService } from '../services/auth-service.js?v=2';
 
