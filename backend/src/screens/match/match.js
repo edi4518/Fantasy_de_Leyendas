@@ -31,21 +31,15 @@ export const DEFAULT_AWAY_SQUAD = {
 
 export const DEFAULT_MATCH_DATA = {
   id: 1,
-  status: 'FINAL',
-  homeTeam: { id: 101, name: 'Tu Equipo', score: 2, formation: '1-2-2-1' },
-  awayTeam: { id: 102, name: 'Equipo Rival', score: 1, formation: '1-1-3-1' },
-  liveAction: { team: 'Tu Equipo', status: 'ATAQUE PELIGROSO' },
-  events: [
-    { minute: 72, side: 'home', type: 'goal', player: 'L. Messi', detail: '(Gol)' },
-    { minute: 64, side: 'away', type: 'red-card', player: 'P. Maldini', detail: '(Tarjeta Roja)' },
-    { minute: 45, isPeriodBreak: true, label: 'DESCANSO' },
-    { minute: 28, side: 'away', type: 'goal', player: 'Pelé', detail: '(Gol)' },
-    { minute: 15, side: 'home', type: 'goal', player: 'Z. Zidane', detail: '(Gol)' }
-  ],
+  status: 'PREVIA',
+  homeTeam: { id: 101, name: 'Tu Equipo', score: 0, formation: '1-2-2-1' },
+  awayTeam: { id: 102, name: 'Equipo Rival', score: 0, formation: '1-2-2-1' },
+  liveAction: { team: 'Preparando partido', status: 'CALENTAMIENTO' },
+  events: [],
   stats: {
-    possession: { home: 55, away: 45, label: 'Posesión' },
-    shots: { home: 7, away: 4, label: 'Tiros a Puerta' },
-    fouls: { home: 12, away: 8, label: 'Faltas' }
+    possession: { home: 50, away: 50, label: 'Posesión' },
+    shots: { home: 0, away: 0, label: 'Tiros a Puerta' },
+    fouls: { home: 0, away: 0, label: 'Faltas' }
   },
   lineups: {
     home: [
@@ -1093,7 +1087,7 @@ export async function startLiveMatchPlayback() {
   const liveBtn = document.getElementById('btn-live-sim');
   if (liveBtn) liveBtn.classList.add('is-running');
 
-  // 1. Obtener la plantilla real del usuario y un rival CPU aleatorio de los 20 equipos del sistema
+  // 1. Obtener la plantilla real del usuario y un rival CPU aleatorio de los equipos del sistema
   currentFullMatch = null;
   const homeSquad = getUserSquad();
   let awaySquad = null;
@@ -1108,6 +1102,25 @@ export async function startLiveMatchPlayback() {
     awaySquad = getRandomCpuTeam() || DEFAULT_AWAY_SQUAD;
   }
   console.info(`[Match] Simulación en vivo contra CPU: ${homeSquad.name} vs ${awaySquad.name} (Formación: ${awaySquad.formation})`);
+
+  // Renderizar de inmediato 0-0 y los nombres reales para evitar parpadeos con valores anteriores
+  renderMatchDetails({
+    status: 'PREVIA',
+    isLive: false,
+    homeTeam: { name: homeSquad.name, score: 0, formation: homeSquad.formation },
+    awayTeam: { name: awaySquad.name, score: 0, formation: awaySquad.formation },
+    liveAction: { team: homeSquad.name, status: 'CALENTAMIENTO' },
+    events: [],
+    stats: {
+      possession: { home: 50, away: 50, label: 'Posesión' },
+      shots: { home: 0, away: 0, label: 'Tiros a Puerta' },
+      fouls: { home: 0, away: 0, label: 'Faltas' }
+    },
+    lineups: {
+      home: (homeSquad.players || []).slice(0, 6).filter(Boolean),
+      away: (awaySquad.players || []).slice(0, 6).filter(Boolean)
+    }
+  });
 
   // 2. Simulación (Backend con fallback local offline)
   currentFullMatch = await matchService.simulateMatch(homeSquad, awaySquad);
