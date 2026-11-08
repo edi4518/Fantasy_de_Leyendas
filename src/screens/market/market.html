@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="/src/styles/screens/market.css?v=226">
 <div class="market-screen" data-purpose="market-screen-container">
-  <!-- BEGIN: MainHeader -->
+  <!-- BEGIN: MainHeader (Sección superior fija: Título, Presupuesto, Buscador y Filtros) -->
   <header class="market-header" data-purpose="market-header">
     <div class="market-header-inner">
       <div class="market-title-wrap">
@@ -20,11 +20,7 @@
         </span>
       </div>
     </div>
-  </header>
-  <!-- END: MainHeader -->
 
-  <!-- BEGIN: MainContent -->
-  <main class="market-content" data-purpose="market-content">
     <!-- Search Bar -->
     <div class="market-search-box" data-purpose="search-box">
       <div class="search-icon-wrap">
@@ -54,7 +50,11 @@
         DEL
       </button>
     </nav>
+  </header>
+  <!-- END: MainHeader -->
 
+  <!-- BEGIN: MainContent (Área de jugadores con scrolleo libre) -->
+  <main class="market-content" data-purpose="market-content">
     <!-- Tray de Seleccionados con (+) -->
     <section id="selected-players-tray" class="selected-players-tray" data-purpose="selected-players-tray" hidden>
       <div class="tray-header">

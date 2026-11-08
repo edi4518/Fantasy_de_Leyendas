@@ -26,11 +26,16 @@
    ============================================================================= */
 
 .market-header {
-  padding: 1.25rem 1.25rem 0.85rem;
+  padding: 1.15rem 1.25rem 0.85rem;
   background-color: #FFFFFF;
   border-bottom: 1px solid #DEE2E6;
-  position: relative;
-  z-index: 10;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.04);
 }
 
 .market-header-inner {
@@ -151,21 +156,13 @@
   box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.15);
 }
 
-/* Filtros por Posición (Pills fijas sticky en el scroleo al frente de todo) */
+/* Filtros por Posición (Pills fijas integradas en la cabecera) */
 .market-position-filters {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.45rem;
-  overflow-x: auto;
-  position: sticky;
-  top: 0;
-  z-index: 60;
-  background-color: #FFFFFF;
-  padding: 0.75rem 1.25rem;
-  margin: -0.25rem -1.25rem 0.25rem -1.25rem;
-  border-bottom: 1px solid #E2E8F0;
-  box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  width: 100%;
 }
 
 .filter-pill {
