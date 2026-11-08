@@ -227,11 +227,15 @@ async function handleLocation() {
   const appHeader = document.getElementById("app-header");
   const appNav = document.getElementById("app-navigation");
   if (appHeader) appHeader.style.display = route.fullScreen ? "none" : "";
-  if (appNav) appNav.style.display = route.fullScreen ? "none" : "";
+  if (appNav) {
+    appNav.style.display = route.fullScreen ? "none" : "";
+    appNav.toggleAttribute("hidden", Boolean(route.fullScreen));
+  }
 
   // Contenedor principal
   const appContent = document.getElementById("app-content");
   if (!appContent) return;
+  appContent.style.paddingBottom = route.fullScreen ? "0px" : "";
 
   appContent.scrollTop = 0;
   window.scrollTo(0, 0);

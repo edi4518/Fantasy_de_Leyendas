@@ -1046,8 +1046,9 @@
 }
 
 .tactical-modal__safe-bottom {
-  height: 1.25rem;
+  height: calc(1.25rem + env(safe-area-inset-bottom, 12px));
   width: 100%;
+  flex-shrink: 0;
 }
 
 /* =============================================================================
@@ -1061,19 +1062,41 @@
   transform: translateX(-50%) translateY(100%);
   width: 100%;
   max-width: 440px;
+  max-height: 85vh;
+  max-height: 85dvh;
   background: #ffffff;
   border-radius: 28px 28px 0 0;
   box-shadow: none;
   display: flex;
   flex-direction: column;
-  z-index: 1002;
+  z-index: 2000;
   transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .player-action-sheet.is-open {
   transform: translateX(-50%) translateY(0);
   box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+}
+
+/* Elevar el contenedor principal por encima de la barra de navegación inferior en iOS/móvil cuando un bottom-sheet está abierto */
+body.has-lineup-modal-open #app-content,
+body.has-lineup-modal-open .app-main,
+.app-layout:has(.player-action-sheet.is-open) .app-main,
+.app-layout:has(.tactical-modal-sheet.is-open) .app-main {
+  z-index: 1500 !important;
+}
+
+body.has-lineup-modal-open #app-navigation,
+body.has-lineup-modal-open .app-navigation,
+body.has-lineup-modal-open .bottom-nav,
+.app-layout:has(.player-action-sheet.is-open) .app-navigation,
+.app-layout:has(.player-action-sheet.is-open) .bottom-nav,
+.app-layout:has(.tactical-modal-sheet.is-open) .app-navigation,
+.app-layout:has(.tactical-modal-sheet.is-open) .bottom-nav {
+  z-index: 1 !important;
+  pointer-events: none !important;
 }
 
 .player-action-sheet__header {
@@ -1170,10 +1193,16 @@
 }
 
 .player-action-sheet__body {
-  padding: 1rem 1.25rem 1.75rem;
+  padding: 1rem 1.25rem calc(1.75rem + env(safe-area-inset-bottom, 16px));
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(85vh - 140px);
+  max-height: calc(85dvh - 140px);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .player-action-sheet__btn {

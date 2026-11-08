@@ -52,8 +52,12 @@ export const authService = {
       'fantasy_player_stats',
       'fantasy_match_history',
       'fantasy_processed_match_ids',
+      'fantasy_user_stats',
     ];
     sessionKeys.forEach((key) => localStorage.removeItem(key));
+    try {
+      ['fantasy_dashboard_cache', 'fantasy_dashboard_cache_time', 'fantasy_selected_rival'].forEach((key) => sessionStorage.removeItem(key));
+    } catch (_) {}
     localStorage.setItem('hasSeenOnboarding', 'true');
 
     try {

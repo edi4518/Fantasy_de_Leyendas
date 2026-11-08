@@ -5,8 +5,6 @@
 
 import { apiClient, API_BASE_URL } from './api-client.js';
 
-const SUPABASE_STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
-const DEFAULT_AVATAR = '/public/images/default-avatar.png';
 
 export const playerService = {
   async getAllPlayers() {
@@ -39,38 +37,3 @@ export const playerService = {
     return await responseAlt.json();
   },
 };
-
-/**
- * Normaliza nombres a slug limpio (sin acentos ni espacios).
- */
-export function slugify(text) {
-  if (!text) return '';
-  return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]/g, '_')
-    .replace(/_+/g, '_');
-}
-
-/**
- * Retorna la URL de la imagen en Supabase apuntando a .webp
- */
-export function getPlayerPhoto(player) {
-  if (!player) return DEFAULT_AVATAR;
-
-  let filename = '';
-  if (typeof player === 'object') {
-    if (player.image_filename) {
-      return `${SUPABASE_STORAGE_URL}${player.image_filename}`;
-    }
-    filename = slugify(player.name || player.nombre);
-  } else if (typeof player === 'string') {
-    filename = slugify(player);
-  } else {
-    filename = String(player);
-  }
-
-  return `${SUPABASE_STORAGE_URL}${filename}.webp`;
-}

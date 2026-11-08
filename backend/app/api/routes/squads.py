@@ -31,6 +31,7 @@ class SaveSquadRequest(BaseModel):
     players: List[Optional[Dict[str, Any]]] = []
     name: Optional[str] = None
     user_id: Optional[int] = None
+    allow_empty: bool = False
 
 
 def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int] = None) -> Optional[User]:
@@ -287,7 +288,7 @@ def save_squad(
     # Salvaguarda: Si el cliente envía una plantilla vacía (0 jugadores válidos) pero el usuario ya tiene
     # futbolistas comprados en la base de datos, NO destruir el inventario del usuario.
     # Esto previene que un cliente nuevo desincronizado borre accidentalmente el club.
-    if not valid_entries and existing_user_players:
+    if not valid_entries and existing_user_players and not payload.allow_empty:
         return {
             "status": "ignored",
             "message": "Se preservó la plantilla existente en la base de datos (se ignoró payload vacío accidental).",
