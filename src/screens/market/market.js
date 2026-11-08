@@ -64,6 +64,23 @@ async function initMarketController(container, router) {
   const btnToggleSquad = container.querySelector('#btn-toggle-squad');
   const toggleSquadLabel = container.querySelector('#toggle-squad-label');
 
+  // Elementos del Modal Bottom-Sheet de Estadísticas Individuales
+  const modalBackdrop = container.querySelector('#market-player-modal-backdrop');
+  const modalSheet = container.querySelector('#market-player-modal-sheet');
+  const btnCloseModal = container.querySelector('#btn-close-player-modal');
+  const modalAvatarContainer = container.querySelector('#market-modal-avatar-container');
+  const modalPlayerName = container.querySelector('#market-modal-player-name');
+  const modalRating = container.querySelector('#market-modal-rating');
+  const modalRoleBadge = container.querySelector('#market-modal-role-badge');
+  const modalRoleDesc = container.querySelector('#market-modal-role-desc');
+  const modalPrice = container.querySelector('#market-modal-price');
+  const modalRadarLegend = container.querySelector('#market-modal-radar-legend');
+  const modalBenchmarkTitle = container.querySelector('#market-modal-benchmark-title');
+  const modalBenchmarkList = container.querySelector('#market-modal-benchmark-list');
+  const radarCanvas = container.querySelector('#marketPlayerRadarChart');
+
+  let marketRadarChartInstance = null;
+
   if (!listAvailable) return;
 
   let catalog = [];
@@ -191,16 +208,283 @@ async function initMarketController(container, router) {
     });
   }
 
-  // Delegación de eventos para eliminar futbolistas de la bandeja
+  // Delegación de eventos en el contenedor
   container.addEventListener('click', (e) => {
+    // 1. Eliminar futbolistas de la bandeja
     const removeBtn = e.target.closest('.btn-remove-tray');
     if (removeBtn) {
       e.preventDefault();
       e.stopPropagation();
       const id = removeBtn.getAttribute('data-id') || removeBtn.dataset.id;
       removeSelectedPlayer(id);
+      return;
+    }
+
+    // 2. Click en avatar, nombre o info izquierda del jugador -> Abrir modal de estadísticas
+    const playerRowLeft = e.target.closest('.player-row-left');
+    if (playerRowLeft) {
+      const rowItem = playerRowLeft.closest('.player-row-item');
+      if (rowItem && rowItem.dataset.id) {
+        const playerId = parseInt(rowItem.dataset.id, 10);
+        if (playerId) {
+          openPlayerStatsModal(playerId);
+        }
+      }
     }
   });
+
+  // Eventos para cerrar el Modal Bottom-Sheet de Estadísticas
+  if (btnCloseModal) {
+    btnCloseModal.addEventListener('click', (e) => {
+      e.preventDefault();
+      closePlayerStatsModal();
+    });
+  }
+
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener('click', () => {
+      closePlayerStatsModal();
+    });
+  }
+
+  const handleEscKey = (e) => {
+    if (e.key === 'Escape' && modalSheet && !modalSheet.hidden) {
+      closePlayerStatsModal();
+    }
+  };
+  window.addEventListener('keydown', handleEscKey);
+
+  /**
+   * Abre el Modal Bottom-Sheet con el Radar Táctico y Benchmark Estadístico del Jugador
+   */
+  async function openPlayerStatsModal(playerId) {
+    const idNum = Number(playerId);
+    let player = (catalog || []).find((p) => Number(p.id) === idNum);
+    if (!player) {
+      player = (activeSquad.players || []).find((p) => p && Number(p.id) === idNum);
+    }
+    if (!player) return;
+
+    if (!window.Chart) {
+      await loadChartJs();
+    }
+
+    const positionLabel = player.posicion_base || player.role || 'MC';
+    const posClass = `player-slot--${positionLabel.toLowerCase()}`;
+    const detailLabel = player.posicion_detalle || POSITION_NAMES[positionLabel] || positionLabel;
+    const rating = player.media_juego || player.rating_general || 75;
+    const price = Number(player.precio || 10).toFixed(1).replace('.0', '');
+    const rawImage = player.image_filename || player.avatarUrl || player.photo_url || player.image_url || player.imagen;
+    const playerImage = rawImage
+      ? (rawImage.startsWith('http://') || rawImage.startsWith('https://') ? rawImage : `${STORAGE_URL}${rawImage}`)
+      : null;
+    const initials = (player.nombre || player.name || 'PL')
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .slice(0, 2);
+
+    // Cabecera del modal
+    if (modalAvatarContainer) {
+      modalAvatarContainer.className = `market-player-sheet__avatar player-slot__avatar ${posClass}`;
+      modalAvatarContainer.dataset.position = positionLabel;
+      modalAvatarContainer.innerHTML = playerImage
+        ? `<img src="${playerImage}" alt="${player.nombre || player.name}" class="player-slot__img" onerror="this.outerHTML='<span class=\\'comp-avatar-initials\\'>${initials}</span>'" />`
+        : `<span class="comp-avatar-initials">${initials}</span>`;
+    }
+
+    if (modalPlayerName) {
+      modalPlayerName.textContent = player.nombre || player.name || 'Jugador';
+    }
+
+    if (modalRating) {
+      modalRating.textContent = rating;
+      modalRating.className = `player-rating-star ${getRatingTierClass(rating)}`;
+    }
+
+    if (modalRoleBadge) {
+      modalRoleBadge.textContent = positionLabel;
+      modalRoleBadge.className = `player-role-badge player-role-badge--${positionLabel.toLowerCase()}`;
+    }
+
+    if (modalRoleDesc) {
+      modalRoleDesc.textContent = detailLabel;
+    }
+
+    if (modalPrice) {
+      modalPrice.textContent = `${price}M €`;
+    }
+
+    // Renderizar Radar Táctico Hexagonal
+    renderSinglePlayerRadar(player);
+
+    // Renderizar Benchmark Estadístico Posicional
+    renderSinglePlayerBenchmarks(player);
+
+    // Mostrar modal con animación slide-up
+    if (modalBackdrop && modalSheet) {
+      modalBackdrop.classList.remove('is-closing');
+      modalSheet.classList.remove('is-closing');
+      modalBackdrop.hidden = false;
+      modalSheet.hidden = false;
+    }
+  }
+
+  /**
+   * Cierra el modal con animación suave hacia abajo (slide-down)
+   */
+  function closePlayerStatsModal() {
+    if (!modalBackdrop || !modalSheet || modalSheet.hidden) return;
+    modalBackdrop.classList.add('is-closing');
+    modalSheet.classList.add('is-closing');
+    setTimeout(() => {
+      modalBackdrop.hidden = true;
+      modalSheet.hidden = true;
+      modalBackdrop.classList.remove('is-closing');
+      modalSheet.classList.remove('is-closing');
+      if (marketRadarChartInstance) {
+        marketRadarChartInstance.destroy();
+        marketRadarChartInstance = null;
+      }
+    }, 220);
+  }
+
+  /**
+   * Renderiza el gráfico de radar hexagonal (Chart.js)
+   */
+  function renderSinglePlayerRadar(player) {
+    if (!radarCanvas || !window.Chart) return;
+
+    if (marketRadarChartInstance) {
+      marketRadarChartInstance.destroy();
+      marketRadarChartInstance = null;
+    }
+
+    const pName = player.nombre || player.name || 'Jugador';
+
+    if (modalRadarLegend) {
+      modalRadarLegend.innerHTML = `
+        <div class="comp-legend-item" style="--player-color: #2D6A4F;">
+          <span class="comp-legend-dot"></span>
+          <span class="comp-legend-name">${pName}</span>
+        </div>
+      `;
+    }
+
+    marketRadarChartInstance = new window.Chart(radarCanvas, {
+      type: 'radar',
+      data: {
+        labels: ['ATAQUE', 'CREACIÓN', 'TÉCNICA', 'DEFENSA', 'FÍSICO', 'PALMARÉS'],
+        datasets: [{
+          label: pName,
+          data: [
+            player.rating_ataque ?? 50,
+            player.rating_creacion ?? 50,
+            player.rating_tecnica ?? 50,
+            player.rating_defensa ?? 50,
+            player.rating_fisico ?? 50,
+            player.rating_palmares ?? 50
+          ],
+          backgroundColor: 'rgba(45, 106, 79, 0.2)',
+          borderColor: '#2D6A4F',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#2D6A4F'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          r: {
+            min: 0,
+            max: 100,
+            ticks: { display: false, stepSize: 20 },
+            grid: { color: '#e2e8f0' },
+            angleLines: { color: '#cbd5e1' }
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Renderiza los benchmarks estadísticos correspondientes a la posición del jugador
+   */
+  function renderSinglePlayerBenchmarks(player) {
+    if (!modalBenchmarkList) return;
+
+    const primaryPos = (player.posicion_base || player.role || 'DEL').toUpperCase();
+    let metrics = [];
+    let posName = 'DELANTEROS';
+
+    if (primaryPos.includes('POR')) {
+      posName = 'ARQUEROS';
+      metrics = [
+        { title: 'VALLAS INVICTAS', key: 'vallas_invictas', badge: 'MÁXIMO', unit: '' },
+        { title: 'RECUPERACIONES / 90 MIN', key: 'recuperaciones_p90', badge: 'TOP', unit: '' },
+        { title: 'NOTA MEDIA', key: 'media_juego', badge: 'LÍDER', unit: '' },
+        { title: 'RATING DEFENSA', key: 'rating_defensa', badge: 'ÉLITE', unit: '' },
+        { title: 'RATING FÍSICO', key: 'rating_fisico', badge: 'TOP', unit: '' }
+      ];
+    } else if (primaryPos.includes('DEF')) {
+      posName = 'DEFENSORES';
+      metrics = [
+        { title: 'ENTRADAS / 90 MIN', key: 'entradas_exitosas_p90', badge: 'MÁXIMO', unit: '' },
+        { title: 'INTERCEPCIONES / 90 MIN', key: 'intercepciones_p90', badge: 'TOP', unit: '' },
+        { title: '% DUELOS DEFENSIVOS', key: 'porcentaje_duelos_defensivos', badge: 'ÉLITE', unit: '%' },
+        { title: 'RECUPERACIONES / 90 MIN', key: 'recuperaciones_p90', badge: 'MÁXIMO', unit: '' },
+        { title: 'PUNTOS TOTALES', key: 'media_juego', badge: 'LÍDER', unit: '' }
+      ];
+    } else if (primaryPos.includes('MC') || primaryPos.includes('MED')) {
+      posName = 'MEDIOCENTROS';
+      metrics = [
+        { title: 'PASES CLAVE / 90 MIN', key: 'pases_clave_p90', badge: 'RÉCORD', unit: '' },
+        { title: 'PRECISIÓN DE PASE', key: 'precision_pases', badge: 'ÉLITE', unit: '%' },
+        { title: 'ASISTENCIAS / 90 MIN', key: 'asistencias_p90', badge: 'TOP', unit: '' },
+        { title: 'GOLES / PARTIDO', key: 'goles_p90', badge: 'MÁXIMO', unit: '' },
+        { title: 'PUNTOS TOTALES', key: 'media_juego', badge: 'LÍDER', unit: '' }
+      ];
+    } else {
+      posName = 'DELANTEROS';
+      metrics = [
+        { title: 'GOLES / PARTIDO', key: 'goles_p90', badge: 'MÁXIMO', unit: '' },
+        { title: 'OCASIONES CREADAS / 90 MIN', key: 'ocasiones_creadas_p90', badge: 'RÉCORD', unit: '' },
+        { title: '% REGATES EXITOSOS', key: 'porcentaje_regates', badge: 'TOP', unit: '%' },
+        { title: 'CONVERSIÓN DE GOLES', key: 'conversion_goles', badge: 'ÉLITE', unit: '%' },
+        { title: 'PUNTOS TOTALES', key: 'media_juego', badge: 'LÍDER', unit: '' }
+      ];
+    }
+
+    if (modalBenchmarkTitle) {
+      modalBenchmarkTitle.textContent = `[BENCHMARK ESTADÍSTICO — ${posName}]`;
+    }
+
+    const pName = player.nombre || player.name || 'Jugador';
+    const leaderName = pName.split(' ')[0];
+
+    modalBenchmarkList.innerHTML = metrics.map((m) => {
+      const val = Number(player[m.key]) || 0;
+      return `
+        <div class="comp-bench-card">
+          <div class="comp-bench-header">
+            <span class="comp-bench-title">${m.title}</span>
+            <span class="comp-bench-badge">
+              ${m.badge}: ${leaderName} (${val}${m.unit})
+            </span>
+          </div>
+          <div class="comp-bench-row" style="--player-color: #2D6A4F; --bar-width: 100%;">
+            <span class="comp-bench-name">${pName}</span>
+            <div class="comp-bench-bar-track">
+              <div class="comp-bench-bar-fill"></div>
+            </div>
+            <span class="comp-bench-val">${val}${m.unit}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 
   // =============================================================================
   // MÉTODOS DE RENDERIZADO
@@ -890,4 +1174,16 @@ function persistActiveSquad(squad, { allowEmpty = false } = {}) {
   } catch (err) {
     console.debug('[Market] Error al persistir plantilla activa:', err);
   }
+}
+
+function loadChartJs() {
+  if (typeof window !== 'undefined' && window.Chart) {
+    return Promise.resolve(window.Chart);
+  }
+  return new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    script.onload = () => resolve(window.Chart);
+    document.head.appendChild(script);
+  });
 }
