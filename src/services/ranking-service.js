@@ -7,9 +7,6 @@
 
 import { apiClient } from './api-client.js';
 
-// Lista vacía por compatibilidad en caso de importación legada
-export const LEAGUE_BENCHMARK_MANAGERS = [];
-
 /**
  * Obtiene la tabla unificada de clasificación de la liga basada 100% en los mánagers reales
  * registrados en la base de datos (con cálculo dinámico de tendencia y posición).

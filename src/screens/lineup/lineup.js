@@ -118,23 +118,6 @@ export function getPlayerPrice(player) {
 
 import { FORMATIONS_6V6, isValidFormation } from '../../domain/formation-rules.js';
 import { getPositionPenalty } from '../../domain/simulation-engine.js';
-export const DEFAULT_HOME_SQUAD = {
-  name: 'Tu Equipo',
-  formation: '1-2-2-1',
-  players: [
-    { id: 3, name: 'Iker Casillas', nombre: 'Iker Casillas', role: 'POR', posicion_base: 'POR', posicion_detalle: 'Arquero', media_juego: 54, rating_general: 54, precio: 9.6, rating_ataque: 0, rating_defensa: 39, rating_creacion: 3, rating_tecnica: 76, rating_fisico: 89, rating_palmares: 26, image_filename: 'iker_casillas.webp', energia: 100 },
-    { id: 22, name: 'Paolo Maldini', nombre: 'Paolo Maldini', role: 'DEF', posicion_base: 'DEF', posicion_detalle: 'Lateral', media_juego: 67, rating_general: 67, precio: 14.3, rating_ataque: 11, rating_defensa: 70, rating_creacion: 16, rating_tecnica: 77, rating_fisico: 96, rating_palmares: 28, image_filename: 'paolo_maldini.webp', energia: 100 },
-    { id: 23, name: 'Franco Baresi', nombre: 'Franco Baresi', role: 'DEF', posicion_base: 'DEF', posicion_detalle: 'Central', media_juego: 66, rating_general: 66, precio: 14.3, rating_ataque: 13, rating_defensa: 84, rating_creacion: 12, rating_tecnica: 81, rating_fisico: 84, rating_palmares: 19, image_filename: 'franco_baresi.webp', energia: 100 },
-    { id: 53, name: 'Frank Rijkaard', nombre: 'Frank Rijkaard', role: 'MC', posicion_base: 'MC', posicion_detalle: 'Pivote', media_juego: 68, rating_general: 68, precio: 14.2, rating_ataque: 27, rating_defensa: 68, rating_creacion: 36, rating_tecnica: 63, rating_fisico: 78, rating_palmares: 21, image_filename: 'frank_rijkaard.webp', energia: 100 },
-    { id: 59, name: 'Sergio Busquets', nombre: 'Sergio Busquets', role: 'MC', posicion_base: 'MC', posicion_detalle: 'Pivote', media_juego: 67, rating_general: 67, precio: 14.5, rating_ataque: 6, rating_defensa: 57, rating_creacion: 33, rating_tecnica: 77, rating_fisico: 85, rating_palmares: 36, image_filename: 'sergio_busquets.webp', energia: 100 },
-    { id: 80, name: 'Gabriel Batistuta', nombre: 'Gabriel Batistuta', role: 'DEL', posicion_base: 'DEL', posicion_detalle: 'Centro', media_juego: 63, rating_general: 63, precio: 12.9, rating_ataque: 65, rating_defensa: 23, rating_creacion: 22, rating_tecnica: 53, rating_fisico: 78, rating_palmares: 15, image_filename: 'gabriel_batistuta.webp', energia: 100 },
-    // 4 Suplentes reglamentarios oficiales (incluyendo arquero suplente Walter Zenga)
-    { id: 64, name: 'Ronaldo Nazario', nombre: 'Ronaldo Nazario', role: 'DEL', posicion_base: 'DEL', posicion_detalle: 'Centro', media_juego: 67, rating_general: 67, precio: 14.3, rating_ataque: 62, rating_defensa: 24, rating_creacion: 33, rating_tecnica: 50, rating_fisico: 75, rating_palmares: 35, image_filename: 'ronaldo_nazario.webp', energia: 100 },
-    { id: 48, name: 'Lothar Matthaus', nombre: 'Lothar Matthaus', role: 'MC', posicion_base: 'MC', posicion_detalle: 'Box-to-Box', media_juego: 69, rating_general: 69, precio: 14.5, rating_ataque: 30, rating_defensa: 54, rating_creacion: 32, rating_tecnica: 56, rating_fisico: 93, rating_palmares: 31, image_filename: 'lothar_matthaus.webp', energia: 100 },
-    { id: 28, name: 'Bobby Moore', nombre: 'Bobby Moore', role: 'DEF', posicion_base: 'DEF', posicion_detalle: 'Central', media_juego: 60, rating_general: 60, precio: 11.0, rating_ataque: 16, rating_defensa: 68, rating_creacion: 13, rating_tecnica: 69, rating_fisico: 84, rating_palmares: 6, image_filename: 'bobby_moore.webp', energia: 100 },
-    { id: 17, name: 'Walter Zenga', nombre: 'Walter Zenga', role: 'POR', posicion_base: 'POR', posicion_detalle: 'Arquero', media_juego: 40, rating_general: 40, precio: 3.4, rating_ataque: 0, rating_defensa: 39, rating_creacion: 4, rating_tecnica: 30, rating_fisico: 77, rating_palmares: 4, image_filename: 'walter_zenga.webp', energia: 100 }
-  ]
-};
 import { squadService } from '../../services/squad-service.js';
 
 // Estado local de la pantalla
@@ -148,7 +131,7 @@ let activeActionSlotIndex = null;
 /**
  * Persiste la alineación activa en localStorage y dispara el evento de sincronización global
  */
-export function persistActiveSquad() {
+export function persistActiveSquad({ allowEmpty = false } = {}) {
   if (!activeSquad) return;
   try {
     localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
@@ -161,7 +144,8 @@ export function persistActiveSquad() {
 
     // Salvaguarda: NUNCA enviar al backend una plantilla vacía para evitar destruir inventario en BD
     const hasAnyRealPlayer = Array.isArray(activeSquad.players) && activeSquad.players.some(Boolean);
-    if (!hasAnyRealPlayer) {
+    // Solo se sincroniza una plantilla vacía si fue el propio usuario quien vendió a todos (allowEmpty)
+    if (!hasAnyRealPlayer && !allowEmpty) {
       console.debug('[Lineup] Sincronización con backend omitida (plantilla sin jugadores).');
       return;
     }
@@ -170,7 +154,8 @@ export function persistActiveSquad() {
       formation: activeSquad.formation || '1-2-2-1',
       players: activeSquad.players || [],
       name: activeSquad.name || undefined,
-      user_id: currentUserId
+      user_id: currentUserId,
+      allow_empty: allowEmpty
     }).catch((err) => {
       console.debug('[Lineup] Sincronización automática con backend omitida:', err.message);
     });
@@ -686,6 +671,20 @@ function removePlayerToBench(slotIndex) {
   openPlayerActionModal(slotIndex);
 }
 
+function setLineupModalLayerActive(isActive) {
+  if (typeof document === 'undefined') return;
+  document.body.classList.toggle('has-lineup-modal-open', Boolean(isActive));
+  const appContent = document.getElementById('app-content');
+  const appNav = document.getElementById('app-navigation');
+  if (appContent) {
+    appContent.style.zIndex = isActive ? '1500' : '';
+  }
+  if (appNav) {
+    appNav.style.zIndex = isActive ? '1' : '';
+    appNav.style.pointerEvents = isActive ? 'none' : '';
+  }
+}
+
 /**
  * Abre el menú para Vender, Mover al Banquillo o Intercambiar al jugador
  */
@@ -793,6 +792,7 @@ function openPlayerActionModal(slotIndex) {
   }
 
   if (backdrop && sheet) {
+    setLineupModalLayerActive(true);
     backdrop.removeAttribute('hidden');
     sheet.removeAttribute('hidden');
     requestAnimationFrame(() => {
@@ -817,6 +817,7 @@ function closePlayerActionModal() {
     if (backdrop) backdrop.setAttribute('hidden', '');
     if (sheet) sheet.setAttribute('hidden', '');
     if (emptySheet) emptySheet.setAttribute('hidden', '');
+    setLineupModalLayerActive(false);
     activeActionSlotIndex = null;
   }, 280);
 }
@@ -885,6 +886,7 @@ function openEmptySlotModal(slotIndex, router) {
   }
 
   if (backdrop && emptySheet) {
+    setLineupModalLayerActive(true);
     backdrop.removeAttribute('hidden');
     emptySheet.removeAttribute('hidden');
     requestAnimationFrame(() => {
@@ -960,33 +962,12 @@ function setupActionModalEvents(router) {
       activeSquad.players[activeActionSlotIndex] = null;
       selectedSlot = null;
 
-      // Persistir de inmediato
-      persistActiveSquad();
+      // Persistir de inmediato (si era el último jugador, se vacía también el backend)
+      persistActiveSquad({ allowEmpty: true });
 
       closePlayerActionModal();
       renderScreen();
       showToast(`¡${playerName} vendido al mercado! Puesto libre para fichar una nueva leyenda.`);
-    });
-  }
-
-  // 4. Restaurar leyenda equilibrada para este puesto vacío
-  const restoreSlotBtn = document.getElementById('btn-empty-restore-default');
-  if (restoreSlotBtn) {
-    restoreSlotBtn.addEventListener('click', () => {
-      if (activeActionSlotIndex === null) return;
-      const fallback = DEFAULT_HOME_SQUAD.players[activeActionSlotIndex] || {
-        name: `Leyenda ${activeActionSlotIndex + 1}`,
-        role: activeActionSlotIndex === 0 ? 'POR' : (activeActionSlotIndex < 3 ? 'DEF' : (activeActionSlotIndex < 5 ? 'MC' : 'DEL')),
-        rating_general: 88,
-        rating_ataque: 80,
-        rating_defensa: 80,
-        precio: 10.0
-      };
-      activeSquad.players[activeActionSlotIndex] = { ...fallback };
-      persistActiveSquad();
-      closePlayerActionModal();
-      renderScreen();
-      showToast(`¡${fallback.name} incorporado a tu plantilla en esta posición!`);
     });
   }
 
@@ -1351,6 +1332,7 @@ function openTacticalModal() {
   });
 
   // Mostrar con animación de abajo hacia arriba
+  setLineupModalLayerActive(true);
   modalBackdrop.removeAttribute('hidden');
   modalSheet.removeAttribute('hidden');
 
@@ -1372,6 +1354,7 @@ function closeTacticalModal() {
   setTimeout(() => {
     modalBackdrop.setAttribute('hidden', '');
     modalSheet.setAttribute('hidden', '');
+    setLineupModalLayerActive(false);
   }, 280);
 }
 

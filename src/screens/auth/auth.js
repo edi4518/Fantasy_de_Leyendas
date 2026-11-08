@@ -309,7 +309,9 @@ function initLogin(router) {
   clearErrorState();
 
   if (togglePasswordBtn && passwordInput) {
-    togglePasswordBtn.addEventListener('click', () => {
+    // onclick (en vez de addEventListener) evita listeners duplicados si la pantalla se inicializa más de una vez
+    togglePasswordBtn.onclick = (event) => {
+      event.preventDefault();
       const isShowingPassword = passwordInput.type === 'password';
       passwordInput.type = isShowingPassword ? 'text' : 'password';
 
@@ -323,7 +325,7 @@ function initLogin(router) {
         isShowingPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
       );
       togglePasswordBtn.setAttribute('aria-pressed', String(isShowingPassword));
-    });
+    };
   }
 
   emailInput?.addEventListener('input', () => {
@@ -649,7 +651,9 @@ function initRegister(router) {
 
   // Toggle de visibilidad de password
   if (togglePasswordBtn && passwordInput) {
-    togglePasswordBtn.addEventListener('click', () => {
+    // onclick (en vez de addEventListener) evita listeners duplicados si la pantalla se inicializa más de una vez
+    togglePasswordBtn.onclick = (event) => {
+      event.preventDefault();
       const isShowingPassword = passwordInput.type === 'password';
       passwordInput.type = isShowingPassword ? 'text' : 'password';
 
@@ -663,7 +667,7 @@ function initRegister(router) {
         isShowingPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
       );
       togglePasswordBtn.setAttribute('aria-pressed', String(isShowingPassword));
-    });
+    };
   }
 
   [firstNameInput, lastNameInput, teamNameInput, birthdateInput, emailInput, passwordInput].forEach(input => {

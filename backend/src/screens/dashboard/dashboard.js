@@ -469,7 +469,7 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
     } else {
       if (streakResultBadge) {
         streakResultBadge.textContent = '-';
-        streakResultBadge.className = 'text-draw';
+        streakResultBadge.className = 'text-empty';
       }
       if (streakResultScore) {
         streakResultScore.textContent = '0 – 0';
@@ -481,30 +481,17 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
 
     const streakCirclesContainer = document.getElementById('streak-circles-container');
     if (streakCirclesContainer && Array.isArray(data.streak?.recentResults)) {
-      if (data.streak.recentResults.length === 0) {
-        streakCirclesContainer.innerHTML = [1, 2, 3, 4, 5]
-          .map(() => `<span class="streak-circle streak-circle--draw" title="Sin partido disputado">-</span>`)
-          .join('');
-      } else {
-        streakCirclesContainer.innerHTML = data.streak.recentResults
-          .slice(0, 5)
-          .map((result) => {
-            const normalized = (result || 'V').toUpperCase();
-            let modifier = 'streak-circle--win';
-            let title = 'Victoria';
-
-            if (normalized === 'D') {
-              modifier = 'streak-circle--loss';
-              title = 'Derrota';
-            } else if (normalized === 'E') {
-              modifier = 'streak-circle--draw';
-              title = 'Empate';
-            }
-
-            return `<span class="streak-circle ${modifier}" title="${title} (${normalized})">${normalized}</span>`;
-          })
-          .join('');
-      }
+      // Siempre 5 círculos: V (verde), E (naranja), D (rojo) y "-" gris para los partidos aún no jugados
+      const slots = data.streak.recentResults.slice(0, 5).map((r) => String(r || '').toUpperCase());
+      while (slots.length < 5) slots.push('-');
+      streakCirclesContainer.innerHTML = slots
+        .map((normalized) => {
+          if (normalized === 'V') return `<span class="streak-circle streak-circle--win" title="Victoria (V)">V</span>`;
+          if (normalized === 'D') return `<span class="streak-circle streak-circle--loss" title="Derrota (D)">D</span>`;
+          if (normalized === 'E') return `<span class="streak-circle streak-circle--draw" title="Empate (E)">E</span>`;
+          return `<span class="streak-circle streak-circle--empty" title="Sin partido disputado">-</span>`;
+        })
+        .join('');
     }
   } catch (error) {
     console.error('[Dashboard] Error al renderizar la vista Home:', error);
@@ -586,6 +573,37 @@ export function healLocalPlayerStats(rawStats) {
  * Helper sincrónico puro que fusiona el estado (local o remoto) en la estructura
  * canónica estándar DEFAULT_HOME_DATA para renderizar instantáneamente el Dashboard.
  */
+/**
+ * Convierte un registro del historial (mismo formato que usa la pantalla Historial) en V / E / D.
+ */
+function getHistoryResultLetter(item) {
+  if (!item) return null;
+  let home = item.home_score ?? item.homeScore ?? (typeof item.homeTeam === 'object' ? item.homeTeam?.score : undefined);
+  let away = item.away_score ?? item.awayScore ?? (typeof item.awayTeam === 'object' ? item.awayTeam?.score : undefined);
+  if ((home === undefined || away === undefined) && typeof item.score === 'string') {
+    const parts = item.score.split(/[-–]/).map((s) => parseInt(s.trim(), 10));
+    home = parts[0];
+    away = parts[1];
+  }
+  home = Number(home);
+  away = Number(away);
+  if (Number.isNaN(home) || Number.isNaN(away)) return null;
+  return home > away ? 'V' : (home < away ? 'D' : 'E');
+}
+
+/**
+ * Lee el historial local con el mismo criterio que la pantalla Historial.
+ */
+function readLocalMatchHistory() {
+  try {
+    const raw = localStorage.getItem('fantasy_match_history');
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
 export function buildConsolidatedHomeData({
   managerData = null,
   savedUser = null,
@@ -594,6 +612,7 @@ export function buildConsolidatedHomeData({
   analyticsData = null,
   localStats = null,
   localLastMatch = null,
+  historyList = null,
   userRankingPosition = '-'
 } = {}) {
   const currentSquad = activeSquad && Array.isArray(activeSquad.players)
@@ -698,6 +717,30 @@ export function buildConsolidatedHomeData({
     };
   }
 
+  // La racha se deriva SIEMPRE del historial de partidos (misma fuente que la pantalla Historial),
+  // ignorando estadísticas locales que podrían pertenecer a otra sesión o estar desincronizadas.
+  if (Array.isArray(historyList)) {
+    const letters = historyList.slice(0, 5).map(getHistoryResultLetter).filter(Boolean);
+    recentResults = letters;
+    const latest = historyList[0];
+    const latestLetter = letters[0];
+    if (latest && latestLetter) {
+      const rivalName = latest.rival || latest.opponent || latest.opponent_name || latest.away_team_name
+        || (typeof latest.awayTeam === 'object' ? latest.awayTeam?.name : latest.awayTeam) || 'Rival';
+      const hs = latest.home_score ?? latest.homeScore ?? (typeof latest.homeTeam === 'object' ? latest.homeTeam?.score : undefined);
+      const as = latest.away_score ?? latest.awayScore ?? (typeof latest.awayTeam === 'object' ? latest.awayTeam?.score : undefined);
+      const scoreText = (hs !== undefined && as !== undefined) ? `${hs} – ${as}` : String(latest.score || '0 – 0').replace('-', '–');
+      lastMatch = {
+        result: latestLetter,
+        score: scoreText,
+        scoreText: `${latestLetter} ${scoreText}`,
+        opponent: String(rivalName).startsWith('vs ') ? rivalName : `vs ${rivalName}`
+      };
+    } else {
+      lastMatch = null;
+    }
+  }
+
   return {
     ...DEFAULT_HOME_DATA,
     manager: {
@@ -786,6 +829,18 @@ export function getOptimisticHomeData() {
 
   // Verificar si la caché sigue sincronizada con los partidos acumulados reales
   const maxLocalMatches = Math.max(0, ...Object.values(playerStats).map(s => s.matchesPlayed || 0));
+
+  // La caché también debe coincidir con la cantidad real de jugadores en la plantilla local
+  // (si el usuario vendió jugadores, no se debe mostrar un MVP/equipo viejo)
+  let localPlayersCount = 0;
+  try {
+    const rawLocalSquad = localStorage.getItem('fantasy_active_squad');
+    const parsedLocalSquad = rawLocalSquad ? JSON.parse(rawLocalSquad) : null;
+    localPlayersCount = Array.isArray(parsedLocalSquad?.players) ? parsedLocalSquad.players.filter(Boolean).length : 0;
+  } catch (_) {}
+  const isCacheSquadInSync = (cached) => !cached || Number(cached.totalPlayers ?? localPlayersCount) === localPlayersCount;
+  if (homeDataMemoryCache && !isCacheSquadInSync(homeDataMemoryCache)) homeDataMemoryCache = null;
+
   if (homeDataMemoryCache) {
     const cachedMatches = homeDataMemoryCache.mvp?.matches || 0;
     if (cachedMatches >= maxLocalMatches) {
@@ -797,7 +852,7 @@ export function getOptimisticHomeData() {
     if (sessionCached) {
       const parsed = JSON.parse(sessionCached);
       const cachedMatches = parsed.mvp?.matches || 0;
-      if (cachedMatches >= maxLocalMatches) {
+      if (cachedMatches >= maxLocalMatches && isCacheSquadInSync(parsed)) {
         homeDataMemoryCache = parsed;
         return parsed;
       }
@@ -838,6 +893,7 @@ export function getOptimisticHomeData() {
     analyticsData: null,
     localStats,
     localLastMatch,
+    historyList: readLocalMatchHistory(),
     userRankingPosition: savedUser?.ranking || savedUser?.rank ? `#${savedUser.ranking || savedUser.rank}` : '-'
   });
 }
@@ -867,9 +923,16 @@ export async function fetchHomeData({ force = false } = {}) {
       }
     } catch (_) {}
 
+    let localSquadCount = 0;
+    try {
+      const rawSq = JSON.parse(localStorage.getItem('fantasy_active_squad') || 'null');
+      localSquadCount = Array.isArray(rawSq?.players) ? rawSq.players.filter(Boolean).length : 0;
+    } catch (_) {}
+    const squadInSync = (c) => Number(c?.totalPlayers ?? localSquadCount) === localSquadCount;
+
     if (homeDataMemoryCache && (now - homeDataCacheTimestamp < DASHBOARD_CACHE_TTL_MS)) {
       const cachedMatches = homeDataMemoryCache.mvp?.matches || 0;
-      if (cachedMatches >= localMatches) {
+      if (cachedMatches >= localMatches && squadInSync(homeDataMemoryCache)) {
         return homeDataMemoryCache;
       }
     }
@@ -879,7 +942,7 @@ export async function fetchHomeData({ force = false } = {}) {
       if (sessionCached && (now - sessionTime < DASHBOARD_CACHE_TTL_MS)) {
         const parsed = JSON.parse(sessionCached);
         const cachedMatches = parsed.mvp?.matches || 0;
-        if (cachedMatches >= localMatches) {
+        if (cachedMatches >= localMatches && squadInSync(parsed)) {
           homeDataMemoryCache = parsed;
           homeDataCacheTimestamp = sessionTime;
           return homeDataMemoryCache;
@@ -895,12 +958,21 @@ export async function fetchHomeData({ force = false } = {}) {
   } catch (_) {}
 
   // 1. Ejecución paralela simultánea con Promise.allSettled para eliminar cuellos de botella secuenciales
-  const [meResult, analyticsResult, squadResult, leaderboardResult] = await Promise.allSettled([
+  const [meResult, analyticsResult, squadResult, leaderboardResult, historyResult] = await Promise.allSettled([
     apiClient.get('/me'),
     apiClient.get('/analytics/summary'),
     squadService.getMySquad(),
-    getUnifiedLeaderboard()
+    getUnifiedLeaderboard(),
+    apiClient.get('/matches/history?limit=5')
   ]);
+
+  // Mismo criterio que la pantalla Historial: backend si tiene partidos; si no, historial local; si no, vacío
+  let historyList = readLocalMatchHistory();
+  if (historyResult.status === 'fulfilled') {
+    const rawRemote = historyResult.value;
+    const remoteList = Array.isArray(rawRemote) ? rawRemote : (rawRemote?.history || []);
+    if (Array.isArray(remoteList) && remoteList.length > 0) historyList = remoteList;
+  }
 
   const managerData = meResult.status === 'fulfilled' ? meResult.value : null;
   const analyticsData = analyticsResult.status === 'fulfilled' ? analyticsResult.value : null;
@@ -1019,6 +1091,7 @@ export async function fetchHomeData({ force = false } = {}) {
   }
 
   const consolidatedData = buildConsolidatedHomeData({
+    historyList,
     managerData,
     savedUser,
     activeSquad,

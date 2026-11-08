@@ -2083,10 +2083,14 @@ export async function fetchMatchDetail(matchId) {
  */
 export async function initMatchDetailView() {
   const appNav = document.getElementById('app-navigation');
-  if (appNav) appNav.style.display = 'none';
+  if (appNav) {
+    appNav.style.display = 'none';
+    appNav.setAttribute('hidden', '');
+  }
 
   const appContent = document.getElementById('app-content');
   if (appContent) {
+    appContent.style.paddingBottom = '0px';
     appContent.scrollTop = 0;
   }
   window.scrollTo(0, 0);
@@ -2189,4 +2193,3 @@ export async function initMatchDetailView() {
 // En entorno SPA, la inicialización es gobernada por router.js al inyectar live-match.html
 
 export const initMatch = initMatchDetailView;
-export function startMatchSimulation(matchData = DEFAULT_MATCH_DATA) { renderMatchDetails(matchData); }

@@ -35,7 +35,13 @@ export async function initMatchmaking(router) {
     return;
   }
 
-  // 2. Obtener un rival real de los usuarios registrados en el backend
+  // 2. Estado inicial: solo datos propios; el rival queda en "buscando" sin datos ficticios
+  const homeStats = calculateTeamMetrics(homeSquad);
+  renderSearchingState(homeSquad, homeStats);
+  setupStartButton(router);
+  const searchStartedAt = Date.now();
+
+  // 3. Obtener un rival real de los usuarios registrados en el backend
   let awaySquad = null;
   try {
     const userRaw = localStorage.getItem('user') || localStorage.getItem('fantasy_logged_user');
@@ -70,34 +76,27 @@ export async function initMatchmaking(router) {
 
   // Fallback si aún no hay otros usuarios registrados con alineación completa
   if (!awaySquad) {
-    const fallbackCpu = getRandomCpuTeam();
-    awaySquad = fallbackCpu || {
-      name: 'Milan Clásico',
-      formation: '1-2-1-2',
-      players: DEFAULT_HOME_SQUAD.players.map(p => ({ ...p }))
-    };
+    awaySquad = getRandomCpuTeam();
   }
 
   // Guardar en sessionStorage para que el Live Match dispute el encuentro exactamente con este rival
   sessionStorage.setItem('fantasy_selected_rival', JSON.stringify(awaySquad));
   sessionStorage.setItem('fantasy_match_autoplay', 'true');
 
-  // 3. Calcular estadísticas reales de ambas plantillas
-  const homeStats = calculateTeamMetrics(homeSquad);
+  // 4. Garantizar un tiempo mínimo de búsqueda para que la animación sea perceptible
+  const MIN_SEARCH_MS = 900;
+  const elapsed = Date.now() - searchStartedAt;
+  if (elapsed < MIN_SEARCH_MS) {
+    await new Promise(resolve => { matchmakingTimer = setTimeout(resolve, MIN_SEARCH_MS - elapsed); });
+  }
+  if (navigationExecuted || !document.getElementById('btn-start-match')) return;
+
+  // 5. Rival encontrado: recién ahora se revelan sus datos
   const awayStats = calculateTeamMetrics(awaySquad);
-
-  // 4. Renderizar cabecera y versus (soporta tanto IDs del template v1 como v2)
-// 4. Renderizar cabecera y versus conectando con la base de datos
   await renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats);
-  // 5. Renderizar comparativa táctica divergente
   renderTacticalComparison(homeStats, awayStats, homeSquad, awaySquad);
-
-  // 6. Iniciar secuencia de escaneo, frenar spinner y activar el botón
-  startMatchmakingSequence(awaySquad, router);
+  revealRivalFound(awaySquad);
 }
-
-// Alias de retrocompatibilidad
-export const initMatchmakingScreen = initMatchmaking;
 
 /**
  * Obtiene la plantilla del usuario desde localStorage con fallback
@@ -369,56 +368,74 @@ function renderTacticalComparison(homeStats, awayStats, homeSquad, awaySquad) {
 }
 
 /**
- * Ejecuta la secuencia progresiva de matchmaking, detiene el spinner y activa el botón
+ * Pinta los datos propios y deja todo lo del rival en estado neutro de búsqueda
  */
-function startMatchmakingSequence(awaySquad, router) {
-  const spinnerEl = document.querySelector('.pulse-spinner');
+function renderSearchingState(homeSquad, homeStats) {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('user-name', homeSquad.name || 'Tu Equipo');
+  set('user-ovr', `${homeStats.ovr} OVR`);
+  const userMap = { rating: homeStats.ovr, ataque: homeStats.ataque, creacion: homeStats.creacion, defensa: homeStats.defensa, fisico: homeStats.fisico };
+  Object.entries(userMap).forEach(([k, v]) => {
+    set(`stat-user-${k}`, v);
+    const bar = document.getElementById(`bar-user-${k}`);
+    if (bar) bar.style.width = `${Math.min(100, Math.max(10, v))}%`;
+    set(`stat-rival-${k}`, '--');
+    const rbar = document.getElementById(`bar-rival-${k}`);
+    if (rbar) rbar.style.width = '0%';
+  });
+
+  set('rival-ovr', '-- OVR');
+  set('rival-name', 'Buscando...');
+  set('rival-owner', 'Esperando rival');
+  set('rival-rank', '★ Rank: -');
+  document.getElementById('team-rival')?.classList.add('is-searching');
+
+  const box = document.getElementById('tactical-insight-box');
+  if (box) {
+    box.classList.remove('is-favorable', 'is-warning');
+    box.classList.add('is-neutral');
+  }
+  const insight = document.getElementById('insight-text');
+  if (insight) insight.textContent = 'Analizando emparejamiento táctico...';
+
+  document.querySelector('.pulse-spinner')?.classList.remove('is-stopped');
+  set('status-title', 'Buscando rival en Liga de Leyendas...');
+  set('status-desc', 'Escaneando plantillas registradas...');
   const progressBar = document.getElementById('matchmaking-progress-bar');
-  const titleEl = document.getElementById('status-title') || document.getElementById('countdown-text');
-  const subEl = document.querySelector('.match-found-desc') || document.getElementById('countdown-subtitle');
-  const btnStart = document.getElementById('btn-start-match');
-
-  // Estado inicial de búsqueda
-  if (spinnerEl) spinnerEl.classList.remove('is-stopped');
   if (progressBar) progressBar.style.width = '25%';
-  if (btnStart) {
+}
+
+function setupStartButton(router) {
+  const btnStart = document.getElementById('btn-start-match');
+  if (!btnStart) return;
+  btnStart.disabled = true;
+  btnStart.innerHTML = `<span>BUSCANDO RIVAL...</span>`;
+  btnStart.onclick = (e) => {
+    e.preventDefault();
+    if (btnStart.disabled) return;
     btnStart.disabled = true;
-    btnStart.style.opacity = '0.75';
-    btnStart.innerHTML = `<span>BUSCANDO RIVAL...</span>`;
-  }
+    btnStart.innerHTML = `<span>INICIANDO PARTIDO...</span>`;
+    redirectToLiveMatch(router);
+  };
+}
 
-  // Configurar evento de clic en el botón de empezar partido
+/**
+ * Confirma el rival: detiene el spinner, actualiza el estado y habilita el botón
+ */
+function revealRivalFound(awaySquad) {
+  document.getElementById('team-rival')?.classList.remove('is-searching');
+  document.querySelector('.pulse-spinner')?.classList.add('is-stopped');
+  const progressBar = document.getElementById('matchmaking-progress-bar');
+  if (progressBar) progressBar.style.width = '100%';
+  const title = document.getElementById('status-title');
+  if (title) title.textContent = `¡Rival encontrado: ${awaySquad.name}!`;
+  const desc = document.getElementById('status-desc');
+  if (desc) desc.textContent = 'Alineaciones confirmadas. Pulsa abajo para dar el pitido inicial.';
+  const btnStart = document.getElementById('btn-start-match');
   if (btnStart) {
-    btnStart.onclick = (e) => {
-      e.preventDefault();
-      if (btnStart.disabled) return;
-      btnStart.disabled = true;
-      btnStart.innerHTML = `<span>INICIANDO PARTIDO...</span>`;
-      redirectToLiveMatch(router);
-    };
+    btnStart.disabled = false;
+    btnStart.innerHTML = `<span>¡EMPEZAR PARTIDO!</span> <span class="arrow-icon">▶</span>`;
   }
-
-  // Secuencia (900ms): Detener spinner, confirmar rival y habilitar botón
-  matchmakingTimer = setTimeout(() => {
-    // 1. Detener el giro del spinner
-    if (spinnerEl) spinnerEl.classList.add('is-stopped');
-    if (progressBar) progressBar.style.width = '100%';
-
-    // 2. Textos confirmados
-    if (titleEl) {
-      titleEl.textContent = `¡Rival encontrado: ${awaySquad.name}!`;
-    }
-    if (subEl) {
-      subEl.textContent = 'Alineaciones confirmadas. Pulsa abajo para dar el pitido inicial.';
-    }
-
-    // 3. Activar botón de inicio
-    if (btnStart) {
-      btnStart.disabled = false;
-      btnStart.style.opacity = '1';
-      btnStart.innerHTML = `<span>¡EMPEZAR PARTIDO!</span> <span class="arrow-icon">▶</span>`;
-    }
-  }, 900);
 }
 
 /**

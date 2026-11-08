@@ -9,7 +9,7 @@
 
 import { playerService } from '../../services/player-service.js';
 import { squadService } from '../../services/squad-service.js';
-import { DEFAULT_HOME_SQUAD, getRatingTierClass } from '../lineup/lineup.js';
+import { getRatingTierClass } from '../lineup/lineup.js';
 
 const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/public/players/';
 
@@ -543,7 +543,7 @@ async function initMarketController(container, router) {
     const player = activeSquad.players[playerIndex];
     showSellConfirmModal(player, () => {
       activeSquad.players[playerIndex] = null;
-      persistActiveSquad(activeSquad);
+      persistActiveSquad(activeSquad, { allowEmpty: true });
 
       selectedForAction.delete(playerId);
       renderAllViews();
@@ -859,7 +859,7 @@ function ensureTenSlots(squad) {
   }
 }
 
-function persistActiveSquad(squad) {
+function persistActiveSquad(squad, { allowEmpty = false } = {}) {
   try {
     localStorage.setItem('fantasy_active_squad', JSON.stringify(squad));
     window.dispatchEvent(new CustomEvent('fantasy:squad-updated', { detail: squad }));
@@ -871,7 +871,7 @@ function persistActiveSquad(squad) {
 
     // Salvaguarda: NUNCA enviar al backend una plantilla vacía para evitar destruir inventario en BD
     const hasAnyRealPlayer = Array.isArray(squad.players) && squad.players.some(Boolean);
-    if (!hasAnyRealPlayer) {
+    if (!hasAnyRealPlayer && !allowEmpty) {
       console.debug('[Market] Sincronización con backend omitida (plantilla sin futbolistas).');
       return;
     }
@@ -880,7 +880,8 @@ function persistActiveSquad(squad) {
       formation: squad.formation || '1-2-2-1',
       players: squad.players || [],
       name: squad.name || undefined,
-      user_id: currentUserId
+      user_id: currentUserId,
+      allow_empty: allowEmpty
     }).catch((err) => {
       console.debug('[Market] Sincronización de plantilla con backend omitida:', err.message);
     });
