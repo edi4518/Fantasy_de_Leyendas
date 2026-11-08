@@ -80,7 +80,10 @@ export function calcularCambioEnergia(jugador, minutosJugados = 0) {
 
   // C) Balance Neto
   const cambioNeto = Number((recuperacion - desgaste).toFixed(1));
-  const energiaActual = typeof jugador?.energia === 'number' ? jugador.energia : 100;
+  const rawEnergia = jugador?.energia ?? jugador?.stamina;
+  const energiaActual = (rawEnergia !== undefined && rawEnergia !== null && !isNaN(Number(rawEnergia)))
+    ? Math.max(0, Math.min(100, Number(rawEnergia)))
+    : 100;
   const energiaFinal = Number(Math.max(0, Math.min(100, energiaActual + cambioNeto)).toFixed(1));
 
   return {

@@ -236,6 +236,12 @@ export function applyFatigue(players = [], minute = 60) {
 export function makeSingleSubstitution(starters = [], inPlayer = null) {
   if (!inPlayer) return { activeStarters: starters, subInfo: null };
 
+  const inEnergy = typeof inPlayer.energia === 'number' ? inPlayer.energia : (Number(inPlayer.energia) || 100);
+  if (inEnergy <= 0) {
+    // Un jugador con 0% de energía no puede ingresar al campo; debe descansar en el banquillo
+    return { activeStarters: starters, subInfo: null };
+  }
+
   const candidates = starters
     .filter((p) => p.assignedRole !== 'POR' && !p.isSubFresh)
     .sort((a, b) => {
@@ -357,105 +363,135 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
     let isSubAction = false;
 
     // Cambio 1 Local (Ciclo 12 ~54')
-    if (cycle === 12 && homeBenchIndex < homeBench.length) {
-      const res = makeSingleSubstitution(homeStarters, homeBench[homeBenchIndex++]);
-      homeStarters = res.activeStarters;
-      if (res.subInfo) {
-        subEventThisCycle = {
-          minute: minute - 1,
-          side: 'home',
-          type: 'substitution',
-          player: res.subInfo.in,
-          playerIn: res.subInfo.in,
-          playerOut: res.subInfo.out,
-          detail: `(Entra por ${res.subInfo.out})`
-        };
-        isSubAction = true;
+    if (cycle === 12) {
+      while (homeBenchIndex < homeBench.length && (Number(homeBench[homeBenchIndex]?.energia ?? 100) <= 0)) {
+        homeBenchIndex++; // Saltar suplentes que tienen 0% de energía para que descansen
+      }
+      if (homeBenchIndex < homeBench.length) {
+        const res = makeSingleSubstitution(homeStarters, homeBench[homeBenchIndex++]);
+        homeStarters = res.activeStarters;
+        if (res.subInfo) {
+          subEventThisCycle = {
+            minute: minute - 1,
+            side: 'home',
+            type: 'substitution',
+            player: res.subInfo.in,
+            playerIn: res.subInfo.in,
+            playerOut: res.subInfo.out,
+            detail: `(Entra por ${res.subInfo.out})`
+          };
+          isSubAction = true;
+        }
       }
     }
     // Cambio 1 Visitante (Ciclo 13 ~59')
-    else if (cycle === 13 && awayBenchIndex < awayBench.length) {
-      const res = makeSingleSubstitution(awayStarters, awayBench[awayBenchIndex++]);
-      awayStarters = res.activeStarters;
-      if (res.subInfo) {
-        subEventThisCycle = {
-          minute: minute - 1,
-          side: 'away',
-          type: 'substitution',
-          player: res.subInfo.in,
-          playerIn: res.subInfo.in,
-          playerOut: res.subInfo.out,
-          detail: `(Entra por ${res.subInfo.out})`
-        };
-        isSubAction = true;
+    else if (cycle === 13) {
+      while (awayBenchIndex < awayBench.length && (Number(awayBench[awayBenchIndex]?.energia ?? 100) <= 0)) {
+        awayBenchIndex++;
+      }
+      if (awayBenchIndex < awayBench.length) {
+        const res = makeSingleSubstitution(awayStarters, awayBench[awayBenchIndex++]);
+        awayStarters = res.activeStarters;
+        if (res.subInfo) {
+          subEventThisCycle = {
+            minute: minute - 1,
+            side: 'away',
+            type: 'substitution',
+            player: res.subInfo.in,
+            playerIn: res.subInfo.in,
+            playerOut: res.subInfo.out,
+            detail: `(Entra por ${res.subInfo.out})`
+          };
+          isSubAction = true;
+        }
       }
     }
     // Cambio 2 Local (Ciclo 15 ~68')
-    else if (cycle === 15 && homeBenchIndex < homeBench.length) {
-      const res = makeSingleSubstitution(homeStarters, homeBench[homeBenchIndex++]);
-      homeStarters = res.activeStarters;
-      if (res.subInfo) {
-        subEventThisCycle = {
-          minute: minute - 1,
-          side: 'home',
-          type: 'substitution',
-          player: res.subInfo.in,
-          playerIn: res.subInfo.in,
-          playerOut: res.subInfo.out,
-          detail: `(Entra por ${res.subInfo.out})`
-        };
-        isSubAction = true;
+    else if (cycle === 15) {
+      while (homeBenchIndex < homeBench.length && (Number(homeBench[homeBenchIndex]?.energia ?? 100) <= 0)) {
+        homeBenchIndex++;
+      }
+      if (homeBenchIndex < homeBench.length) {
+        const res = makeSingleSubstitution(homeStarters, homeBench[homeBenchIndex++]);
+        homeStarters = res.activeStarters;
+        if (res.subInfo) {
+          subEventThisCycle = {
+            minute: minute - 1,
+            side: 'home',
+            type: 'substitution',
+            player: res.subInfo.in,
+            playerIn: res.subInfo.in,
+            playerOut: res.subInfo.out,
+            detail: `(Entra por ${res.subInfo.out})`
+          };
+          isSubAction = true;
+        }
       }
     }
     // Cambio 2 Visitante (Ciclo 16 ~72')
-    else if (cycle === 16 && awayBenchIndex < awayBench.length) {
-      const res = makeSingleSubstitution(awayStarters, awayBench[awayBenchIndex++]);
-      awayStarters = res.activeStarters;
-      if (res.subInfo) {
-        subEventThisCycle = {
-          minute: minute - 1,
-          side: 'away',
-          type: 'substitution',
-          player: res.subInfo.in,
-          playerIn: res.subInfo.in,
-          playerOut: res.subInfo.out,
-          detail: `(Entra por ${res.subInfo.out})`
-        };
-        isSubAction = true;
+    else if (cycle === 16) {
+      while (awayBenchIndex < awayBench.length && (Number(awayBench[awayBenchIndex]?.energia ?? 100) <= 0)) {
+        awayBenchIndex++;
+      }
+      if (awayBenchIndex < awayBench.length) {
+        const res = makeSingleSubstitution(awayStarters, awayBench[awayBenchIndex++]);
+        awayStarters = res.activeStarters;
+        if (res.subInfo) {
+          subEventThisCycle = {
+            minute: minute - 1,
+            side: 'away',
+            type: 'substitution',
+            player: res.subInfo.in,
+            playerIn: res.subInfo.in,
+            playerOut: res.subInfo.out,
+            detail: `(Entra por ${res.subInfo.out})`
+          };
+          isSubAction = true;
+        }
       }
     }
     // Cambio 3 Local (Ciclo 17 ~77')
-    else if (cycle === 17 && homeBenchIndex < homeBench.length) {
-      const res = makeSingleSubstitution(homeStarters, homeBench[homeBenchIndex++]);
-      homeStarters = res.activeStarters;
-      if (res.subInfo) {
-        subEventThisCycle = {
-          minute: minute - 1,
-          side: 'home',
-          type: 'substitution',
-          player: res.subInfo.in,
-          playerIn: res.subInfo.in,
-          playerOut: res.subInfo.out,
-          detail: `(Entra por ${res.subInfo.out})`
-        };
-        isSubAction = true;
+    else if (cycle === 17) {
+      while (homeBenchIndex < homeBench.length && (Number(homeBench[homeBenchIndex]?.energia ?? 100) <= 0)) {
+        homeBenchIndex++;
+      }
+      if (homeBenchIndex < homeBench.length) {
+        const res = makeSingleSubstitution(homeStarters, homeBench[homeBenchIndex++]);
+        homeStarters = res.activeStarters;
+        if (res.subInfo) {
+          subEventThisCycle = {
+            minute: minute - 1,
+            side: 'home',
+            type: 'substitution',
+            player: res.subInfo.in,
+            playerIn: res.subInfo.in,
+            playerOut: res.subInfo.out,
+            detail: `(Entra por ${res.subInfo.out})`
+          };
+          isSubAction = true;
+        }
       }
     }
     // Cambio 3 Visitante (Ciclo 18 ~81')
-    else if (cycle === 18 && awayBenchIndex < awayBench.length) {
-      const res = makeSingleSubstitution(awayStarters, awayBench[awayBenchIndex++]);
-      awayStarters = res.activeStarters;
-      if (res.subInfo) {
-        subEventThisCycle = {
-          minute: minute - 1,
-          side: 'away',
-          type: 'substitution',
-          player: res.subInfo.in,
-          playerIn: res.subInfo.in,
-          playerOut: res.subInfo.out,
-          detail: `(Entra por ${res.subInfo.out})`
-        };
-        isSubAction = true;
+    else if (cycle === 18) {
+      while (awayBenchIndex < awayBench.length && (Number(awayBench[awayBenchIndex]?.energia ?? 100) <= 0)) {
+        awayBenchIndex++;
+      }
+      if (awayBenchIndex < awayBench.length) {
+        const res = makeSingleSubstitution(awayStarters, awayBench[awayBenchIndex++]);
+        awayStarters = res.activeStarters;
+        if (res.subInfo) {
+          subEventThisCycle = {
+            minute: minute - 1,
+            side: 'away',
+            type: 'substitution',
+            player: res.subInfo.in,
+            playerIn: res.subInfo.in,
+            playerOut: res.subInfo.out,
+            detail: `(Entra por ${res.subInfo.out})`
+          };
+          isSubAction = true;
+        }
       }
     }
 

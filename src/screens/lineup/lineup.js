@@ -211,7 +211,12 @@ export async function syncSquadWithDatabase() {
             const rp = remoteSquad.players.find(r => r && (r.id === lp.id || (r.name && lp.name && r.name.toLowerCase() === lp.name.toLowerCase())));
             if (rp && rp.energia !== undefined && rp.energia !== null && !isNaN(Number(rp.energia))) {
               const remoteEnergy = Math.max(0, Math.min(100, Math.round(Number(rp.energia))));
-              if (lp.energia !== remoteEnergy) {
+              const localEnergy = getPlayerEnergy(lp);
+              // Proteger recuperación de descanso: no degradar a 0 si el jugador acaba de recuperar energía localmente
+              if (remoteEnergy === 0 && localEnergy > 0) {
+                return lp;
+              }
+              if (localEnergy !== remoteEnergy) {
                 energySyncUpdated = true;
                 return { ...lp, energia: remoteEnergy };
               }
