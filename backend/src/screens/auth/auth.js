@@ -19,7 +19,7 @@ async function hydrateUserSquad() {
         players: squadData.players
       }));
     }
-  } catch (_) {}
+  } catch (_) { }
 }
 
 const ICON_EYE_PATH = '/src/assets/icons/eye-open.svg';
@@ -403,7 +403,7 @@ function initLogin(router) {
             try {
               userData = JSON.parse(savedUserStr);
               loggedIn = true;
-            } catch (_) {}
+            } catch (_) { }
           }
           if (!loggedIn) {
             userData = { name: email.split('@')[0], email: email, team_name: 'Mi Equipo FC' };
@@ -438,7 +438,7 @@ function initLogin(router) {
               userData.avatar_url = loginAvatar;
               try {
                 localStorage.setItem('user_avatar', loginAvatar);
-              } catch (_) {}
+              } catch (_) { }
             } else {
               localStorage.removeItem('user_avatar');
             }
@@ -792,7 +792,7 @@ function initRegister(router) {
           localStorage.setItem('auth_token', token);
           localStorage.setItem('access_token', token);
           localStorage.setItem('hasSeenOnboarding', 'true');
-        } catch (_) {}
+        } catch (_) { }
 
         const previewImg = avatarPreview?.querySelector('img');
         const localPreviewSrc =
@@ -821,7 +821,7 @@ function initRegister(router) {
         };
         try {
           localStorage.setItem('user', JSON.stringify(userData));
-        } catch (_) {}
+        } catch (_) { }
 
         // Guardar avatar comprimido para visualización inmediata en Dashboard (.manager-avatar) y Perfil
         try {
@@ -836,9 +836,9 @@ function initRegister(router) {
 
         // Redirección SPA inmediata a Ranking / Inicio
         if (router && typeof router.navigate === 'function') {
-          router.navigate('/ranking');
+          router.navigate('/dashboard');
         } else {
-          window.history.pushState({}, '', '/ranking');
+          window.history.pushState({}, '', '/dashboard');
           window.dispatchEvent(new PopStateEvent('popstate'));
         }
       } catch (err) {

@@ -32,22 +32,22 @@ const routes = {
     authRequired: false,
     fullScreen: true,
   },
-  "/dashboard": { screen: "dashboard", authRequired: false },
+  "/dashboard": { screen: "dashboard", authRequired: true },
   "/matchmaking": {
     screen: "matchmaking",
     subview: "matchmaking",
-    authRequired: false,
+    authRequired: true,
     fullScreen: true
   },
-  "/market": { screen: "market", authRequired: false },
-  "/comparison": { screen: "comparison", authRequired: false },
-  "/lineup": { screen: "lineup", authRequired: false },
-  "/match/live": { screen: "match", subview: "live-match", authRequired: false, fullScreen: true },
-  "/match/result": { screen: "match", subview: "match-result", authRequired: false, fullScreen: true },
-  "/history": { screen: "history", authRequired: false },
+  "/market": { screen: "market", authRequired: true },
+  "/comparison": { screen: "comparison", authRequired: true },
+  "/lineup": { screen: "lineup", authRequired: true },
+  "/match/live": { screen: "match", subview: "live-match", authRequired: true, fullScreen: true },
+  "/match/result": { screen: "match", subview: "match-result", authRequired: true, fullScreen: true },
+  "/history": { screen: "history", authRequired: true },
   "/ranking": {
     screen: "ranking",
-    authRequired: false,
+    authRequired: true,
     fullScreen: false,
   },
   "/profile": { screen: "profile", authRequired: true },
@@ -164,11 +164,8 @@ async function handleLocation() {
     window.history.replaceState({}, "", cleanPath);
   }
 
-  // Soporte directo para modo de prueba (Home / Dashboard)
-  const isDirectTest = urlParams.get("test") === "true" ||
-    urlParams.get("home") === "true" ||
-    urlParams.get("screen") === "dashboard" ||
-    window.location.hash.includes("dashboard");
+  // Soporte directo para modo de prueba con parámetros query explícitos (?test=true o ?home=true)
+  const isDirectTest = urlParams.get("test") === "true" || urlParams.get("home") === "true";
 
   if (isDirectTest) {
     localStorage.setItem("hasSeenOnboarding", "true");
@@ -182,7 +179,15 @@ async function handleLocation() {
   const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding") === "true";
   const authToken = localStorage.getItem("auth_token") || localStorage.getItem("access_token");
 
-  // 2. Redirección inicial en la raíz ("/")
+  // 2. Si entra desde cero (sin haber completado onboarding) y no está en login/register/onboarding -> /onboarding
+  if (!isDirectTest && !hasSeenOnboarding) {
+    if (path !== "/onboarding" && path !== "/login" && path !== "/register") {
+      path = "/onboarding";
+      updateBrowserUrl(path);
+    }
+  }
+
+  // 3. Redirección inicial en la raíz ("/")
   if (path === "/") {
     if (isDirectTest) {
       path = "/dashboard";
@@ -197,20 +202,20 @@ async function handleLocation() {
     updateBrowserUrl(path);
   }
 
-  // 3. Regla de negocio: Onboarding estrictamente una única vez
-  if (path === "/onboarding" && hasSeenOnboarding) {
+  // 4. Regla de negocio: Onboarding estrictamente una única vez
+  if (path === "/onboarding" && hasSeenOnboarding && !isDirectTest) {
     path = authToken ? "/dashboard" : "/login";
     updateBrowserUrl(path);
   }
 
-  // 4. Guardia de rutas protegidas (authRequired)
+  // 5. Guardia de rutas protegidas (authRequired)
   const candidateRoute = routes[path] || routes["/login"];
   if (candidateRoute.authRequired && !authToken) {
-    path = "/login";
+    path = hasSeenOnboarding ? "/login" : "/onboarding";
     updateBrowserUrl(path);
   }
 
-  // 5. Redireccionar usuarios autenticados fuera de login o register
+  // 6. Redireccionar usuarios autenticados fuera de login o register
   if ((path === "/login" || path === "/register") && authToken) {
     path = "/dashboard";
     updateBrowserUrl(path);

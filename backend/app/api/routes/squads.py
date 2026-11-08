@@ -35,7 +35,7 @@ class SaveSquadRequest(BaseModel):
 
 
 def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int] = None) -> Optional[User]:
-    """Obtiene el mánager autenticado a partir del header Authorization o el último usuario registrado."""
+    """Obtiene el mánager autenticado a partir del header Authorization."""
     auth_header = request.headers.get("Authorization", "")
     if "token_user_" in auth_header:
         try:
@@ -51,7 +51,7 @@ def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int]
         if user:
             return user
 
-    return db.query(User).order_by(User.id.desc()).first()
+    return None
 
 
 def calculate_realistic_rating(partidos: int, goles: int, mvps: int, base_rating: int) -> float:
@@ -217,8 +217,8 @@ def save_squad(
     user = _resolve_user(request, db, payload.user_id)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No hay ningún mánager registrado en la base de datos para asociar la plantilla.",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No autenticado",
         )
 
     raw_slots = (payload.players or [])[:10]
