@@ -204,14 +204,16 @@ export async function syncSquadWithDatabase() {
           localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
           renderScreen();
         } else {
-          // Si ya existen jugadores locales, sincronizar los niveles reales de energía actualizados por partidos en backend
+          // Si ya existen jugadores locales, preservar su estado físico y recuperación activa local
           let energySyncUpdated = false;
           activeSquad.players = activeSquad.players.map((lp) => {
             if (!lp) return lp;
             const rp = remoteSquad.players.find(r => r && (r.id === lp.id || (r.name && lp.name && r.name.toLowerCase() === lp.name.toLowerCase())));
             if (rp && rp.energia !== undefined && rp.energia !== null && !isNaN(Number(rp.energia))) {
               const remoteEnergy = Math.max(0, Math.min(100, Math.round(Number(rp.energia))));
-              if (lp.energia !== remoteEnergy) {
+              const hasLocalEnergy = lp.energia !== undefined && lp.energia !== null && !isNaN(Number(lp.energia));
+              // Si el jugador local no tenía energía definida, inicializarla desde el backend
+              if (!hasLocalEnergy) {
                 energySyncUpdated = true;
                 return { ...lp, energia: remoteEnergy };
               }
@@ -726,7 +728,10 @@ function openPlayerActionModal(slotIndex) {
     if (isExhausted) {
       exhaustedNotice.textContent = isStarter
         ? '⚠️ Jugador sin energía física (0%). No puede disputar partidos como titular. Muévelo al banquillo para descansar y recuperarse.'
-        : '💤 Jugador sin energía (0%). Recuperará energía descansando en el banquillo durante los partidos.';
+        : '💤 Jugador sin energía (0%). Recuperará +35% de energía descansando en el banquillo en cada partido.';
+      exhaustedNotice.style.display = 'block';
+    } else if (!isStarter && energy < 100) {
+      exhaustedNotice.textContent = `💤 Descansando en banquillo (${energy}%). Recuperará +35% de energía por partido hasta alcanzar su tope del 100%.`;
       exhaustedNotice.style.display = 'block';
     } else {
       exhaustedNotice.style.display = 'none';

@@ -247,7 +247,12 @@ def save_squad(
         price = float(player_db.precio or 0.0)
         total_cost += price
         energia_val = slot.get("energia")
-        energia_clean = max(0, min(100, int(round(float(energia_val))))) if isinstance(energia_val, (int, float)) else None
+        energia_clean = None
+        if energia_val is not None:
+            try:
+                energia_clean = max(0, min(100, int(round(float(energia_val)))))
+            except (ValueError, TypeError):
+                energia_clean = None
         valid_entries.append((idx, player_db, energia_clean))
 
     total_cost = round(total_cost, 2)

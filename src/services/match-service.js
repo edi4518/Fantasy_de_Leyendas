@@ -18,6 +18,7 @@ import { apiClient } from './api-client.js';
 import { simulateMatchEngine } from '../domain/simulation-engine.js';
 import { CPU_TEAMS, getRandomCpuTeam } from '../domain/cpu-teams.js';
 import { FORMATIONS_6V6 } from '../domain/formation-rules.js';
+import { squadService } from './squad-service.js';
 
 const STORAGE_KEYS = {
   HISTORY: 'fantasy_match_history',
@@ -404,6 +405,13 @@ export const matchService = {
         if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
           window.dispatchEvent(new CustomEvent('fantasy:squad-updated', { detail: squadToSave }));
         }
+        try {
+          squadService.saveSquad({
+            formation: squadToSave.formation || '1-2-2-1',
+            players: squadToSave.players || [],
+            name: squadToSave.name || undefined
+          }).catch(() => {});
+        } catch (_) {}
         console.info('[MatchService] Plantilla actualizada con nuevo estado de Stamina tras el partido.');
       } catch (staminaErr) {
         console.warn('[MatchService] Error actualizando stamina del plantel:', staminaErr);

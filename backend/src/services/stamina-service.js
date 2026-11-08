@@ -21,8 +21,8 @@ export const MODIFICADORES_POSICION = Object.freeze({
  * Parámetros base del balance matemático neto.
  */
 export const STAMINA_CONFIG = Object.freeze({
-  DESGASTE_BASE_90_MIN: 14,    // Desgaste base para 90 min titular (~15-21% según posición y físico)
-  RECUPERACION_BASE_90_MIN: 20,// Recuperación gradual (+20% base por descanso completo; 5 partidos de 0 a 100)
+  DESGASTE_BASE_90_MIN: 14,    // Desgaste base para 90 minutos de juego titular (~15-21% según posición y físico)
+  RECUPERACION_BASE_90_MIN: 35,// Recuperación (+35% base por partido completo de descanso en el banquillo; permite alcanzar el tope máximo del 100%)
   UMBRAL_OPTIMO: 80,           // >= 80%: Rendimiento óptimo (0% penalización)
   UMBRAL_FATIGA_MEDIA: 60,     // 60% a 79%: -5% Rating General temporal
   PENALIZACION_MEDIA: 0.05,    // 5% de descuento
@@ -80,7 +80,10 @@ export function calcularCambioEnergia(jugador, minutosJugados = 0) {
 
   // C) Balance Neto
   const cambioNeto = Number((recuperacion - desgaste).toFixed(1));
-  const energiaActual = typeof jugador?.energia === 'number' ? jugador.energia : 100;
+  const rawEnergia = jugador?.energia ?? jugador?.stamina;
+  const energiaActual = (rawEnergia !== undefined && rawEnergia !== null && !isNaN(Number(rawEnergia)))
+    ? Math.max(0, Math.min(100, Number(rawEnergia)))
+    : 100;
   const energiaFinal = Number(Math.max(0, Math.min(100, energiaActual + cambioNeto)).toFixed(1));
 
   return {

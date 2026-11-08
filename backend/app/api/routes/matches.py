@@ -301,8 +301,12 @@ def record_finished_match(
             pid = sp.get("id")
             if pid and int(pid) in up_by_pid:
                 up = up_by_pid[int(pid)]
-                if isinstance(sp.get("energia"), (int, float)):
-                    up.energia = max(0, min(100, int(round(float(sp["energia"])))))
+                raw_eng = sp.get("energia")
+                if raw_eng is not None:
+                    try:
+                        up.energia = max(0, min(100, int(round(float(raw_eng)))))
+                    except (ValueError, TypeError):
+                        pass
 
     if payload.player_stats and isinstance(payload.player_stats, dict):
         for p_key, st in payload.player_stats.items():
