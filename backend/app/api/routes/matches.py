@@ -74,7 +74,7 @@ def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int]
         user = db.query(User).filter(User.id == explicit_user_id).first()
         if user:
             return user
-    return db.query(User).order_by(User.id.desc()).first()
+    return None
 
 
 def _normalize_event_type(raw_type: str) -> str:
@@ -507,9 +507,9 @@ def get_match_history(
     """Retorna el historial completo de partidos desde MySQL ('partidos' + 'eventos_partido') listo para el Popup de Historial."""
     try:
         user = _resolve_user(request, db, user_id)
-        query = db.query(Partido)
-        if user:
-            query = query.filter(Partido.local_user_id == user.id)
+        if not user:
+            return []
+        query = db.query(Partido).filter(Partido.local_user_id == user.id)
         partidos = query.order_by(Partido.id.desc()).limit(limit).all()
 
         if partidos:

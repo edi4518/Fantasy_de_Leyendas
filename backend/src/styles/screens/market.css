@@ -29,9 +29,8 @@
   padding: 1.25rem 1.25rem 0.85rem;
   background-color: #FFFFFF;
   border-bottom: 1px solid #DEE2E6;
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  position: relative;
+  z-index: 10;
 }
 
 .market-header-inner {
@@ -102,7 +101,6 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  overflow-y: auto;
   box-sizing: border-box;
 }
 
@@ -153,14 +151,21 @@
   box-shadow: 0 0 0 2px rgba(45, 106, 79, 0.15);
 }
 
-/* Filtros por Posición (Pills) */
+/* Filtros por Posición (Pills fijas sticky en el scroleo al frente de todo) */
 .market-position-filters {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.45rem;
   overflow-x: auto;
-  padding-bottom: 2px;
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background-color: #FFFFFF;
+  padding: 0.75rem 1.25rem;
+  margin: -0.25rem -1.25rem 0.25rem -1.25rem;
+  border-bottom: 1px solid #E2E8F0;
+  box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 .filter-pill {
@@ -546,13 +551,12 @@
 }
 
 /* =============================================================================
-   AVATAR DE JUGADOR EN EL MERCADO (Diseño Circular Uniforme y Neutro)
+   AVATAR DE JUGADOR EN EL MERCADO (Diseño Circular Coloreado por Posición)
    ============================================================================= */
 
 .player-row-avatar,
 .market-screen .player-slot__avatar,
-.market-screen .player-slot__avatar[data-position],
-.market-screen .player-row-avatar[data-position] {
+.market-screen .modal-preview-avatar {
   width: 52px;
   height: 52px;
   min-width: 52px;
@@ -566,14 +570,94 @@
   flex-shrink: 0;
   position: relative;
   box-sizing: border-box;
-  background-color: #F8F9FA !important;
-  border: 1.5px solid #DEE2E6 !important;
-  color: #6B7280 !important;
+  background-color: #F8F9FA;
+  border: 2px solid #DEE2E6;
+  color: #6B7280;
   padding-top: 5px;
   padding-bottom: 0;
   padding-left: 2px;
   padding-right: 2px;
   transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+/* =============================================================================
+   COLORES POSICIONALES DE LOS CÍRCULOS DE JUGADOR (IDÉNTICO AL DASHBOARD)
+   ============================================================================= */
+
+/* POR (Arquero / Portero: Amarillo / Dorado) */
+.market-screen .player-row-avatar[data-position="POR"],
+.market-screen .player-slot--por.player-row-avatar,
+.market-screen .player-slot--por .player-row-avatar,
+.market-screen .modal-preview-avatar[data-position="POR"],
+.market-screen .player-slot--por.modal-preview-avatar {
+  border: 2px solid #EAB308 !important;
+  background-color: #FEF9C3 !important;
+  color: #CA8A04 !important;
+}
+
+.market-screen .player-row-avatar[data-position="POR"] svg,
+.market-screen .player-slot--por .player-row-avatar svg,
+.market-screen .player-slot--por.player-row-avatar svg {
+  color: #CA8A04 !important;
+  stroke: #CA8A04 !important;
+}
+
+/* DEF (Defensor / Defensa: Azul) */
+.market-screen .player-row-avatar[data-position="DEF"],
+.market-screen .player-slot--def.player-row-avatar,
+.market-screen .player-slot--def .player-row-avatar,
+.market-screen .modal-preview-avatar[data-position="DEF"],
+.market-screen .player-slot--def.modal-preview-avatar {
+  border: 2px solid #60A5FA !important;
+  background-color: #EFF6FF !important;
+  color: #2563EB !important;
+}
+
+.market-screen .player-row-avatar[data-position="DEF"] svg,
+.market-screen .player-slot--def .player-row-avatar svg,
+.market-screen .player-slot--def.player-row-avatar svg {
+  color: #2563EB !important;
+  stroke: #2563EB !important;
+}
+
+/* MC / MED (Mediocampista / Volante: Verde Esmeralda) */
+.market-screen .player-row-avatar[data-position="MC"],
+.market-screen .player-row-avatar[data-position="MED"],
+.market-screen .player-slot--mc.player-row-avatar,
+.market-screen .player-slot--mc .player-row-avatar,
+.market-screen .player-slot--med.player-row-avatar,
+.market-screen .modal-preview-avatar[data-position="MC"],
+.market-screen .modal-preview-avatar[data-position="MED"],
+.market-screen .player-slot--mc.modal-preview-avatar {
+  border: 2px solid #34D399 !important;
+  background-color: #ECFDF5 !important;
+  color: #059669 !important;
+}
+
+.market-screen .player-row-avatar[data-position="MC"] svg,
+.market-screen .player-row-avatar[data-position="MED"] svg,
+.market-screen .player-slot--mc .player-row-avatar svg,
+.market-screen .player-slot--mc.player-row-avatar svg {
+  color: #059669 !important;
+  stroke: #059669 !important;
+}
+
+/* DEL (Delantero: Rojo / Coral) */
+.market-screen .player-row-avatar[data-position="DEL"],
+.market-screen .player-slot--del.player-row-avatar,
+.market-screen .player-slot--del .player-row-avatar,
+.market-screen .modal-preview-avatar[data-position="DEL"],
+.market-screen .player-slot--del.modal-preview-avatar {
+  border: 2px solid #F87171 !important;
+  background-color: #FEF2F2 !important;
+  color: #DC2626 !important;
+}
+
+.market-screen .player-row-avatar[data-position="DEL"] svg,
+.market-screen .player-slot--del .player-row-avatar svg,
+.market-screen .player-slot--del.player-row-avatar svg {
+  color: #DC2626 !important;
+  stroke: #DC2626 !important;
 }
 
 /* Redimensionamiento ampliado en igual proporción (48px) para apreciar con nitidez el rostro */

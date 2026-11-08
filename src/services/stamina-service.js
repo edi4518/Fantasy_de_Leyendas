@@ -11,18 +11,18 @@
  * POR (x0.3), DEF (x0.9), DEL (x1.1), MC (x1.3).
  */
 export const MODIFICADORES_POSICION = Object.freeze({
-  POR: 0.3, // Menor exigencia aeróbica
-  DEF: 0.9, // Posicionamiento y repliegue
-  DEL: 1.1, // Desmarques y sprints de definición
-  MC: 1.3   // Mayor volumen de recorrido y desgaste box-to-box
+  POR: 0.35, // Menor exigencia aeróbica
+  DEF: 1.05, // Coberturas, repliegues y duelos de contención (6v6)
+  DEL: 1.10, // Sprints y desmarques de definición
+  MC: 1.20   // Mayor volumen de recorrido y desgaste box-to-box
 });
 
 /**
  * Parámetros base del balance matemático neto.
  */
 export const STAMINA_CONFIG = Object.freeze({
-  DESGASTE_BASE_90_MIN: 18,    // 18% base para 90 minutos de juego (MC: ~31%, DEL: ~26%, DEF: ~21%, POR: ~7%)
-  RECUPERACION_BASE_90_MIN: 35,// 35% base por partido completo de descanso en el banquillo (0 minutos disputados)
+  DESGASTE_BASE_90_MIN: 14,    // Desgaste base para 90 min titular (~15-21% según posición y físico)
+  RECUPERACION_BASE_90_MIN: 20,// Recuperación gradual (+20% base por descanso completo; 5 partidos de 0 a 100)
   UMBRAL_OPTIMO: 80,           // >= 80%: Rendimiento óptimo (0% penalización)
   UMBRAL_FATIGA_MEDIA: 60,     // 60% a 79%: -5% Rating General temporal
   PENALIZACION_MEDIA: 0.05,    // 5% de descuento
@@ -61,7 +61,7 @@ export function calcularCambioEnergia(jugador, minutosJugados = 0) {
   const ratingFisico = Math.max(1, Math.min(99, Number(rawFisico) || 75));
 
   // Normalización de Posición (POR, DEF, DEL, MC)
-  const rawPos = (jugador?.posicion || jugador?.role || 'MC').toUpperCase();
+  const rawPos = (jugador?.assignedRole || jugador?.role || jugador?.posicion_base || jugador?.posicion || 'MC').toUpperCase();
   const modPosicion = MODIFICADORES_POSICION[rawPos] ?? 1.0;
 
   let recuperacion = 0;

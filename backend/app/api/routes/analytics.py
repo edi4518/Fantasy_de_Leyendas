@@ -40,7 +40,7 @@ def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int]
         user = db.query(User).filter(User.id == explicit_user_id).first()
         if user:
             return user
-    return db.query(User).order_by(User.id.desc()).first()
+    return None
 
 
 @router.get("/meta-stats")

@@ -10,7 +10,7 @@ import time
 import unicodedata
 from typing import List, Optional
 
-from fastapi import FastAPI, Depends, Query, Request
+from fastapi import FastAPI, Depends, Query, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -170,41 +170,34 @@ def get_current_manager_profile(request: Request, db: Session = Depends(get_db))
             pass
 
     if not user:
-        user = db.query(User).order_by(User.id.desc()).first()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No autenticado",
+        )
 
-    if user:
-        full_name = f"{user.nombre} {user.apellido}".strip()
-        return {
-            "id": user.id,
-            "name": full_name,
-            "username": user.username or full_name,
-            "first_name": user.nombre,
-            "last_name": user.apellido,
-            "team_name": user.team_name,
-            "email": user.email,
-            "season": "Temporada 24 / 25",
-            "ranking": user.elo_rating if user.elo_rating is not None else 1000,
-            "presupuesto": float(user.presupuesto if user.presupuesto is not None else 150.0),
-            "partidos_jugados": user.partidos_jugados or 0,
-            "victorias": user.victorias or 0,
-            "empates": user.empates or 0,
-            "derrotas": user.derrotas or 0,
-            "goles_favor": user.goles_favor or 0,
-            "goles_contra": user.goles_contra or 0,
-            "preferences": {
-                "notifications": bool(user.notif_activas if user.notif_activas is not None else True),
-                "sounds": bool(user.sonido_activo if user.sonido_activo is not None else False),
-            },
-            "avatarUrl": f"{str(request.base_url).rstrip('/')}{user.photo_url}" if user.photo_url and user.photo_url.startswith("/") else user.photo_url,
-        }
-
+    full_name = f"{user.nombre} {user.apellido}".strip()
     return {
-        "name": "Mánager Leyendas",
-        "username": "Mánager Leyendas",
-        "team_name": "Tu Equipo",
+        "id": user.id,
+        "name": full_name,
+        "username": user.username or full_name,
+        "first_name": user.nombre,
+        "last_name": user.apellido,
+        "team_name": user.team_name,
+        "email": user.email,
         "season": "Temporada 24 / 25",
-        "ranking": 1000,
-        "avatarUrl": None
+        "ranking": user.elo_rating if user.elo_rating is not None else 1000,
+        "presupuesto": float(user.presupuesto if user.presupuesto is not None else 150.0),
+        "partidos_jugados": user.partidos_jugados or 0,
+        "victorias": user.victorias or 0,
+        "empates": user.empates or 0,
+        "derrotas": user.derrotas or 0,
+        "goles_favor": user.goles_favor or 0,
+        "goles_contra": user.goles_contra or 0,
+        "preferences": {
+            "notifications": bool(user.notif_activas if user.notif_activas is not None else True),
+            "sounds": bool(user.sonido_activo if user.sonido_activo is not None else False),
+        },
+        "avatarUrl": f"{str(request.base_url).rstrip('/')}{user.photo_url}" if user.photo_url and user.photo_url.startswith("/") else user.photo_url,
     }
 
 
@@ -235,10 +228,10 @@ def update_current_manager_profile(
             pass
 
     if not user:
-        user = db.query(User).order_by(User.id.desc()).first()
-
-    if not user:
-        return {"status": "offline_fallback", "message": "Sin usuario registrado en BD"}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No autenticado",
+        )
 
     if payload.first_name is not None and payload.first_name.strip():
         user.nombre = payload.first_name.strip()

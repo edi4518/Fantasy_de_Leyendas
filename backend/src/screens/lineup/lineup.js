@@ -1101,6 +1101,7 @@ function renderMetrics() {
 
   let totalPenalty = 0;
   let totalRating = 0;
+  let penalizedCount = 0;
 
   const filledStarters = starters.filter(Boolean);
   const missingCount = 6 - filledStarters.length;
@@ -1111,6 +1112,7 @@ function renderMetrics() {
     const assignedRole = slots[i];
     const naturalRole = (player.role || player.posicion_base || 'MC').toUpperCase();
     const penalty = getPositionPenalty(naturalRole, assignedRole);
+    if (penalty > 0) penalizedCount++;
     totalPenalty += penalty;
     totalRating += getPlayerRating(player);
   });
@@ -1136,10 +1138,10 @@ function renderMetrics() {
       synergyTextEl.innerHTML = `<strong style="color: #DC2626;">⚠️ Titular sin energía (0%):</strong> Debes sustituir a ${exhaustedStarters.map(p => p.name).join(', ')}`;
     } else if (missingCount > 0) {
       synergyTextEl.textContent = `Alineación incompleta: faltan ${missingCount} jugador(es) en cancha`;
-    } else if (totalPenalty === 0) {
+    } else if (penalizedCount === 0) {
       synergyTextEl.textContent = 'Química óptima: todos los jugadores en su rol natural';
     } else {
-      synergyTextEl.textContent = `${Math.round(totalPenalty * 100 / 0.15)} jugador(es) fuera de su posición natural`;
+      synergyTextEl.textContent = `${penalizedCount} jugador(es) fuera de su posición natural`;
     }
   }
 
