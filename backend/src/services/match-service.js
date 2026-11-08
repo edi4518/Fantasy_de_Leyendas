@@ -17,6 +17,7 @@ import {
 import { apiClient } from './api-client.js';
 import { simulateMatchEngine } from '../domain/simulation-engine.js';
 import { CPU_TEAMS, getRandomCpuTeam } from '../domain/cpu-teams.js';
+import { FORMATIONS_6V6 } from '../domain/formation-rules.js';
 
 const STORAGE_KEYS = {
   HISTORY: 'fantasy_match_history',
@@ -359,9 +360,13 @@ export const matchService = {
 
       // Procesar sistema de Stamina / Energía para la plantilla del mánager
       try {
+        const formationKey = matchData.homeTeam?.formation || activeSquadObj?.formation || '1-2-2-1';
+        const formationSlots = FORMATIONS_6V6[formationKey]?.slots || ['POR', 'DEF', 'DEF', 'MC', 'MC', 'DEL'];
+
         const squadWithMinutes = squadSlots.map((player, idx) => {
           if (!player) return null;
           const isStarter = idx < 6;
+          const assignedRole = isStarter ? formationSlots[idx] : (player.role || player.posicion_base || 'MC');
           let minutos = 0;
           if (isStarter) {
             const wasSubbedOut = homeSubInEvents.find(e =>
@@ -377,6 +382,7 @@ export const matchService = {
           }
           return {
             ...player,
+            assignedRole,
             minutosJugados: minutos
           };
         });
