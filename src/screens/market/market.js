@@ -312,7 +312,7 @@ async function initMarketController(container, router) {
     }
 
     if (modalPrice) {
-      modalPrice.textContent = `${price}M €`;
+      modalPrice.textContent = `${price}M $`;
     }
 
     // Renderizar Radar Táctico Hexagonal
@@ -362,13 +362,10 @@ async function initMarketController(container, router) {
 
     const pName = player.nombre || player.name || 'Jugador';
 
+    // En ficha individual no es necesaria la leyenda redundante inferior
     if (modalRadarLegend) {
-      modalRadarLegend.innerHTML = `
-        <div class="comp-legend-item" style="--player-color: #2D6A4F;">
-          <span class="comp-legend-dot"></span>
-          <span class="comp-legend-name">${pName}</span>
-        </div>
-      `;
+      modalRadarLegend.innerHTML = '';
+      modalRadarLegend.style.display = 'none';
     }
 
     marketRadarChartInstance = new window.Chart(radarCanvas, {
@@ -385,10 +382,10 @@ async function initMarketController(container, router) {
             player.rating_fisico ?? 50,
             player.rating_palmares ?? 50
           ],
-          backgroundColor: 'rgba(45, 106, 79, 0.2)',
+          backgroundColor: 'rgba(45, 106, 79, 0.22)',
           borderColor: '#2D6A4F',
-          borderWidth: 2,
-          pointRadius: 3,
+          borderWidth: 2.2,
+          pointRadius: 3.5,
           pointBackgroundColor: '#2D6A4F'
         }]
       },
@@ -410,7 +407,7 @@ async function initMarketController(container, router) {
   }
 
   /**
-   * Renderiza los benchmarks estadísticos correspondientes a la posición del jugador
+   * Renderiza los atributos y rendimiento estadístico individual según la posición del jugador
    */
   function renderSinglePlayerBenchmarks(player) {
     if (!modalBenchmarkList) return;
@@ -422,60 +419,64 @@ async function initMarketController(container, router) {
     if (primaryPos.includes('POR')) {
       posName = 'ARQUEROS';
       metrics = [
-        { title: 'VALLAS INVICTAS', key: 'vallas_invictas', badge: 'MÁXIMO', unit: '' },
-        { title: 'RECUPERACIONES / 90 MIN', key: 'recuperaciones_p90', badge: 'TOP', unit: '' },
-        { title: 'NOTA MEDIA', key: 'media_juego', badge: 'LÍDER', unit: '' },
-        { title: 'RATING DEFENSA', key: 'rating_defensa', badge: 'ÉLITE', unit: '' },
-        { title: 'RATING FÍSICO', key: 'rating_fisico', badge: 'TOP', unit: '' }
+        { title: 'VALLAS INVICTAS', key: 'vallas_invictas', maxScale: 300, unit: '' },
+        { title: 'RECUPERACIONES / 90 MIN', key: 'recuperaciones_p90', maxScale: 5, unit: '' },
+        { title: 'VALORACIÓN GENERAL', key: 'media_juego', maxScale: 100, unit: '/100' },
+        { title: 'RATING DEFENSA', key: 'rating_defensa', maxScale: 100, unit: '/100' },
+        { title: 'RATING FÍSICO', key: 'rating_fisico', maxScale: 100, unit: '/100' }
       ];
     } else if (primaryPos.includes('DEF')) {
       posName = 'DEFENSORES';
       metrics = [
-        { title: 'ENTRADAS / 90 MIN', key: 'entradas_exitosas_p90', badge: 'MÁXIMO', unit: '' },
-        { title: 'INTERCEPCIONES / 90 MIN', key: 'intercepciones_p90', badge: 'TOP', unit: '' },
-        { title: '% DUELOS DEFENSIVOS', key: 'porcentaje_duelos_defensivos', badge: 'ÉLITE', unit: '%' },
-        { title: 'RECUPERACIONES / 90 MIN', key: 'recuperaciones_p90', badge: 'MÁXIMO', unit: '' },
-        { title: 'PUNTOS TOTALES', key: 'media_juego', badge: 'LÍDER', unit: '' }
+        { title: 'ENTRADAS / 90 MIN', key: 'entradas_exitosas_p90', maxScale: 6, unit: '' },
+        { title: 'INTERCEPCIONES / 90 MIN', key: 'intercepciones_p90', maxScale: 6, unit: '' },
+        { title: '% DUELOS DEFENSIVOS GANADOS', key: 'porcentaje_duelos_defensivos', maxScale: 100, unit: '%' },
+        { title: 'RECUPERACIONES / 90 MIN', key: 'recuperaciones_p90', maxScale: 12, unit: '' },
+        { title: 'VALORACIÓN GENERAL', key: 'media_juego', maxScale: 100, unit: '/100' }
       ];
     } else if (primaryPos.includes('MC') || primaryPos.includes('MED')) {
       posName = 'MEDIOCENTROS';
       metrics = [
-        { title: 'PASES CLAVE / 90 MIN', key: 'pases_clave_p90', badge: 'RÉCORD', unit: '' },
-        { title: 'PRECISIÓN DE PASE', key: 'precision_pases', badge: 'ÉLITE', unit: '%' },
-        { title: 'ASISTENCIAS / 90 MIN', key: 'asistencias_p90', badge: 'TOP', unit: '' },
-        { title: 'GOLES / PARTIDO', key: 'goles_p90', badge: 'MÁXIMO', unit: '' },
-        { title: 'PUNTOS TOTALES', key: 'media_juego', badge: 'LÍDER', unit: '' }
+        { title: 'PASES CLAVE / 90 MIN', key: 'pases_clave_p90', maxScale: 4, unit: '' },
+        { title: 'PRECISIÓN DE PASE', key: 'precision_pases', maxScale: 100, unit: '%' },
+        { title: 'ASISTENCIAS / 90 MIN', key: 'asistencias_p90', maxScale: 1.5, unit: '' },
+        { title: 'GOLES / PARTIDO', key: 'goles_p90', maxScale: 0.8, unit: '' },
+        { title: 'VALORACIÓN GENERAL', key: 'media_juego', maxScale: 100, unit: '/100' }
       ];
     } else {
       posName = 'DELANTEROS';
       metrics = [
-        { title: 'GOLES / PARTIDO', key: 'goles_p90', badge: 'MÁXIMO', unit: '' },
-        { title: 'OCASIONES CREADAS / 90 MIN', key: 'ocasiones_creadas_p90', badge: 'RÉCORD', unit: '' },
-        { title: '% REGATES EXITOSOS', key: 'porcentaje_regates', badge: 'TOP', unit: '%' },
-        { title: 'CONVERSIÓN DE GOLES', key: 'conversion_goles', badge: 'ÉLITE', unit: '%' },
-        { title: 'PUNTOS TOTALES', key: 'media_juego', badge: 'LÍDER', unit: '' }
+        { title: 'GOLES / PARTIDO', key: 'goles_p90', maxScale: 1.2, unit: '' },
+        { title: 'OCASIONES CREADAS / 90 MIN', key: 'ocasiones_creadas_p90', maxScale: 3.5, unit: '' },
+        { title: '% REGATES EXITOSOS', key: 'porcentaje_regates', maxScale: 100, unit: '%' },
+        { title: 'CONVERSIÓN DE GOLES', key: 'conversion_goles', maxScale: 40, unit: '%' },
+        { title: 'VALORACIÓN GENERAL', key: 'media_juego', maxScale: 100, unit: '/100' }
       ];
     }
 
     if (modalBenchmarkTitle) {
-      modalBenchmarkTitle.textContent = `[BENCHMARK ESTADÍSTICO — ${posName}]`;
+      modalBenchmarkTitle.textContent = `[ATRIBUTOS Y RENDIMIENTO — ${posName}]`;
     }
-
-    const pName = player.nombre || player.name || 'Jugador';
-    const leaderName = pName.split(' ')[0];
 
     modalBenchmarkList.innerHTML = metrics.map((m) => {
       const val = Number(player[m.key]) || 0;
+      const maxVal = m.maxScale || 100;
+      const pct = Math.min(100, Math.max(6, Math.round((val / maxVal) * 100)));
+
+      let tierBadge = 'DESTACADO';
+      if (pct >= 85) tierBadge = 'ÉLITE';
+      else if (pct >= 70) tierBadge = 'TOP';
+      else if (pct >= 55) tierBadge = 'ALTO';
+      else if (pct >= 40) tierBadge = 'MEDIO';
+      else tierBadge = 'BÁSICO';
+
       return `
-        <div class="comp-bench-card">
+        <div class="comp-bench-card player-single-stat-card">
           <div class="comp-bench-header">
             <span class="comp-bench-title">${m.title}</span>
-            <span class="comp-bench-badge">
-              ${m.badge}: ${leaderName} (${val}${m.unit})
-            </span>
+            <span class="comp-bench-badge">${tierBadge}</span>
           </div>
-          <div class="comp-bench-row" style="--player-color: #2D6A4F; --bar-width: 100%;">
-            <span class="comp-bench-name">${pName}</span>
+          <div class="comp-bench-row" style="--player-color: #2D6A4F; --bar-width: ${pct}%;">
             <div class="comp-bench-bar-track">
               <div class="comp-bench-bar-fill"></div>
             </div>
