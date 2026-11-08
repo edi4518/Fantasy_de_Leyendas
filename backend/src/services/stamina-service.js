@@ -22,7 +22,7 @@ export const MODIFICADORES_POSICION = Object.freeze({
  */
 export const STAMINA_CONFIG = Object.freeze({
   DESGASTE_BASE_90_MIN: 14,    // Desgaste base para 90 minutos de juego titular (~15-21% según posición y físico)
-  RECUPERACION_BASE_90_MIN: 20,// Recuperación GRADUAL (+20% base por partido completo sin jugar; pasar de 0 a 100 toma 5 descansos)
+  RECUPERACION_BASE_90_MIN: 35,// Recuperación (+35% base por partido completo de descanso en el banquillo; permite alcanzar el tope máximo del 100%)
   UMBRAL_OPTIMO: 80,           // >= 80%: Rendimiento óptimo (0% penalización)
   UMBRAL_FATIGA_MEDIA: 60,     // 60% a 79%: -5% Rating General temporal
   PENALIZACION_MEDIA: 0.05,    // 5% de descuento

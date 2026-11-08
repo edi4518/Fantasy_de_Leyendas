@@ -237,8 +237,9 @@ export function makeSingleSubstitution(starters = [], inPlayer = null) {
   if (!inPlayer) return { activeStarters: starters, subInfo: null };
 
   const inEnergy = typeof inPlayer.energia === 'number' ? inPlayer.energia : (Number(inPlayer.energia) || 100);
-  if (inEnergy <= 0) {
-    // Un jugador con 0% de energía no puede ingresar al campo; debe descansar en el banquillo
+  if (inEnergy < 70) {
+    // Un jugador en el banquillo descansando o con fatiga (< 70% energía) no entra como sustituto;
+    // debe completar su descanso en el banco para recuperar energía al 100% de su capacidad.
     return { activeStarters: starters, subInfo: null };
   }
 
@@ -256,6 +257,13 @@ export function makeSingleSubstitution(starters = [], inPlayer = null) {
   if (candidates.length === 0) return { activeStarters: starters, subInfo: null };
 
   const outPlayer = candidates[0];
+  const outEnergy = typeof outPlayer.energia === 'number' ? outPlayer.energia : (Number(outPlayer.energia) || 100);
+
+  // No sustituir si el jugador en cancha tiene más o igual energía que el suplente
+  if (inEnergy <= outEnergy) {
+    return { activeStarters: starters, subInfo: null };
+  }
+
   const preparedIn = getAdjustedPlayer(inPlayer, outPlayer.assignedRole);
   preparedIn.isSubFresh = true;
 
@@ -364,8 +372,8 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
 
     // Cambio 1 Local (Ciclo 12 ~54')
     if (cycle === 12) {
-      while (homeBenchIndex < homeBench.length && (Number(homeBench[homeBenchIndex]?.energia ?? 100) <= 0)) {
-        homeBenchIndex++; // Saltar suplentes que tienen 0% de energía para que descansen
+      while (homeBenchIndex < homeBench.length && (Number(homeBench[homeBenchIndex]?.energia ?? 100) < 70)) {
+        homeBenchIndex++; // Saltar suplentes que están descansando en el banco (< 70% energía)
       }
       if (homeBenchIndex < homeBench.length) {
         const res = makeSingleSubstitution(homeStarters, homeBench[homeBenchIndex++]);
@@ -386,7 +394,7 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
     }
     // Cambio 1 Visitante (Ciclo 13 ~59')
     else if (cycle === 13) {
-      while (awayBenchIndex < awayBench.length && (Number(awayBench[awayBenchIndex]?.energia ?? 100) <= 0)) {
+      while (awayBenchIndex < awayBench.length && (Number(awayBench[awayBenchIndex]?.energia ?? 100) < 70)) {
         awayBenchIndex++;
       }
       if (awayBenchIndex < awayBench.length) {
@@ -408,7 +416,7 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
     }
     // Cambio 2 Local (Ciclo 15 ~68')
     else if (cycle === 15) {
-      while (homeBenchIndex < homeBench.length && (Number(homeBench[homeBenchIndex]?.energia ?? 100) <= 0)) {
+      while (homeBenchIndex < homeBench.length && (Number(homeBench[homeBenchIndex]?.energia ?? 100) < 70)) {
         homeBenchIndex++;
       }
       if (homeBenchIndex < homeBench.length) {
@@ -430,7 +438,7 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
     }
     // Cambio 2 Visitante (Ciclo 16 ~72')
     else if (cycle === 16) {
-      while (awayBenchIndex < awayBench.length && (Number(awayBench[awayBenchIndex]?.energia ?? 100) <= 0)) {
+      while (awayBenchIndex < awayBench.length && (Number(awayBench[awayBenchIndex]?.energia ?? 100) < 70)) {
         awayBenchIndex++;
       }
       if (awayBenchIndex < awayBench.length) {
@@ -452,7 +460,7 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
     }
     // Cambio 3 Local (Ciclo 17 ~77')
     else if (cycle === 17) {
-      while (homeBenchIndex < homeBench.length && (Number(homeBench[homeBenchIndex]?.energia ?? 100) <= 0)) {
+      while (homeBenchIndex < homeBench.length && (Number(homeBench[homeBenchIndex]?.energia ?? 100) < 70)) {
         homeBenchIndex++;
       }
       if (homeBenchIndex < homeBench.length) {
@@ -474,7 +482,7 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
     }
     // Cambio 3 Visitante (Ciclo 18 ~81')
     else if (cycle === 18) {
-      while (awayBenchIndex < awayBench.length && (Number(awayBench[awayBenchIndex]?.energia ?? 100) <= 0)) {
+      while (awayBenchIndex < awayBench.length && (Number(awayBench[awayBenchIndex]?.energia ?? 100) < 70)) {
         awayBenchIndex++;
       }
       if (awayBenchIndex < awayBench.length) {
