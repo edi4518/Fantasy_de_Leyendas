@@ -33,7 +33,7 @@ function resolveManagerAvatarUrl(managerData) {
     const rawUser = localStorage.getItem('user');
     if (rawUser) localUser = JSON.parse(rawUser);
     authToken = localStorage.getItem('access_token') || localStorage.getItem('auth_token') || '';
-  } catch (_) {}
+  } catch (_) { }
 
   const localUserAvatar =
     localUser?.avatar_url ||
@@ -256,7 +256,7 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
               let fallbackLocal = null;
               try {
                 fallbackLocal = localStorage.getItem('user_avatar');
-              } catch (_) {}
+              } catch (_) { }
               if (fallbackLocal && avatarImgEl.src !== fallbackLocal) {
                 avatarImgEl.src = fallbackLocal;
                 return;
@@ -384,16 +384,16 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
       const slotsToRender = Array.isArray(data.team?.slots) && data.team.slots.length > 0
         ? data.team.slots
         : (data.team?.players?.length > 0
-            ? data.team.players.map((p, i) => ({ slotIndex: i, assignedRole: p.role, player: p, avatarUrl: p.avatarUrl }))
-            : [
-                { slotIndex: 0, assignedRole: 'POR', player: null },
-                { slotIndex: 1, assignedRole: 'DEF', player: null },
-                { slotIndex: 2, assignedRole: 'DEF', player: null },
-                { slotIndex: 3, assignedRole: 'MC', player: null },
-                { slotIndex: 4, assignedRole: 'MC', player: null },
-                { slotIndex: 5, assignedRole: 'DEL', player: null }
-              ]
-          );
+          ? data.team.players.map((p, i) => ({ slotIndex: i, assignedRole: p.role, player: p, avatarUrl: p.avatarUrl }))
+          : [
+            { slotIndex: 0, assignedRole: 'POR', player: null },
+            { slotIndex: 1, assignedRole: 'DEF', player: null },
+            { slotIndex: 2, assignedRole: 'DEF', player: null },
+            { slotIndex: 3, assignedRole: 'MC', player: null },
+            { slotIndex: 4, assignedRole: 'MC', player: null },
+            { slotIndex: 5, assignedRole: 'DEL', player: null }
+          ]
+        );
 
       teamSlotsContainer.innerHTML = slotsToRender
         .map((slot) => {
@@ -425,13 +425,12 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
           return `
             <div class="player-slot player-slot--${roleClass}" role="listitem" title="${name} (${naturalRole}) - ${role}">
               <div class="player-slot__avatar" data-position="${role}" aria-label="${name} - ${role}">
-                ${
-                  avatarUrl
-                    ? `<img src="${avatarUrl}" alt="${name}" onerror="this.outerHTML='<svg class=\'player-slot__icon\' viewBox=\'0 0 24 24\' fill=\'currentColor\' stroke=\'none\' aria-hidden=\'true\'><path d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'">`
-                    : `<svg class="player-slot__icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
+                ${avatarUrl
+              ? `<img src="${avatarUrl}" alt="${name}" onerror="this.outerHTML='<svg class=\'player-slot__icon\' viewBox=\'0 0 24 24\' fill=\'currentColor\' stroke=\'none\' aria-hidden=\'true\'><path d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'">`
+              : `<svg class="player-slot__icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true">
                         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                       </svg>`
-                }
+            }
               </div>
               <span class="player-slot__role">${role}</span>
             </div>
@@ -511,7 +510,7 @@ export function invalidateDashboardCache() {
   try {
     sessionStorage.removeItem('fantasy_dashboard_cache');
     sessionStorage.removeItem('fantasy_dashboard_cache_time');
-  } catch (_) {}
+  } catch (_) { }
 }
 
 if (typeof window !== 'undefined') {
@@ -564,7 +563,7 @@ export function healLocalPlayerStats(rawStats) {
   if (changed) {
     try {
       localStorage.setItem('fantasy_player_stats', JSON.stringify(statsObj));
-    } catch (_) {}
+    } catch (_) { }
   }
   return statsObj;
 }
@@ -825,7 +824,7 @@ export function getOptimisticHomeData() {
   try {
     const rawPlayerStats = localStorage.getItem('fantasy_player_stats');
     if (rawPlayerStats) playerStats = healLocalPlayerStats(rawPlayerStats);
-  } catch (_) {}
+  } catch (_) { }
 
   // Verificar si la caché sigue sincronizada con los partidos acumulados reales
   const maxLocalMatches = Math.max(0, ...Object.values(playerStats).map(s => s.matchesPlayed || 0));
@@ -837,7 +836,7 @@ export function getOptimisticHomeData() {
     const rawLocalSquad = localStorage.getItem('fantasy_active_squad');
     const parsedLocalSquad = rawLocalSquad ? JSON.parse(rawLocalSquad) : null;
     localPlayersCount = Array.isArray(parsedLocalSquad?.players) ? parsedLocalSquad.players.filter(Boolean).length : 0;
-  } catch (_) {}
+  } catch (_) { }
   const isCacheSquadInSync = (cached) => !cached || Number(cached.totalPlayers ?? localPlayersCount) === localPlayersCount;
   if (homeDataMemoryCache && !isCacheSquadInSync(homeDataMemoryCache)) homeDataMemoryCache = null;
 
@@ -857,19 +856,19 @@ export function getOptimisticHomeData() {
         return parsed;
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   let savedUser = null;
   try {
     const rawUser = localStorage.getItem('user');
     if (rawUser) savedUser = JSON.parse(rawUser);
-  } catch (_) {}
+  } catch (_) { }
 
   let activeSquad = null;
   try {
     const rawSquad = localStorage.getItem('fantasy_active_squad');
     if (rawSquad) activeSquad = JSON.parse(rawSquad);
-  } catch (_) {}
+  } catch (_) { }
 
   let localStats = null;
   let localLastMatch = null;
@@ -883,7 +882,7 @@ export function getOptimisticHomeData() {
         localLastMatch = historyArr[0];
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 
   return buildConsolidatedHomeData({
     savedUser,
@@ -921,13 +920,13 @@ export async function fetchHomeData({ force = false } = {}) {
         const parsed = JSON.parse(raw);
         localMatches = Math.max(0, ...Object.values(parsed).map(s => s.matchesPlayed || 0));
       }
-    } catch (_) {}
+    } catch (_) { }
 
     let localSquadCount = 0;
     try {
       const rawSq = JSON.parse(localStorage.getItem('fantasy_active_squad') || 'null');
       localSquadCount = Array.isArray(rawSq?.players) ? rawSq.players.filter(Boolean).length : 0;
-    } catch (_) {}
+    } catch (_) { }
     const squadInSync = (c) => Number(c?.totalPlayers ?? localSquadCount) === localSquadCount;
 
     if (homeDataMemoryCache && (now - homeDataCacheTimestamp < DASHBOARD_CACHE_TTL_MS)) {
@@ -948,14 +947,14 @@ export async function fetchHomeData({ force = false } = {}) {
           return homeDataMemoryCache;
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   let savedUser = null;
   try {
     const rawUser = localStorage.getItem('user');
     if (rawUser) savedUser = JSON.parse(rawUser);
-  } catch (_) {}
+  } catch (_) { }
 
   // 1. Ejecución paralela simultánea con Promise.allSettled para eliminar cuellos de botella secuenciales
   const [meResult, analyticsResult, squadResult, leaderboardResult, historyResult] = await Promise.allSettled([
@@ -1108,7 +1107,7 @@ export async function fetchHomeData({ force = false } = {}) {
   try {
     sessionStorage.setItem('fantasy_dashboard_cache', JSON.stringify(consolidatedData));
     sessionStorage.setItem('fantasy_dashboard_cache_time', String(homeDataCacheTimestamp));
-  } catch (_) {}
+  } catch (_) { }
 
   return consolidatedData;
 }
@@ -1126,7 +1125,7 @@ export function getLineupValidationStatus() {
   try {
     const raw = localStorage.getItem('fantasy_active_squad');
     if (raw) squad = JSON.parse(raw);
-  } catch (e) {}
+  } catch (e) { }
 
   const players = Array.isArray(squad?.players) ? squad.players : [];
   const starters = players.slice(0, 6).filter(Boolean);
@@ -1193,22 +1192,20 @@ export function showLineupRequirementModal(status, router) {
       </div>
 
       <div class="lineup-req-actions">
-        ${
-          status.totalCount > 0 && status.missingStarters > 0
-            ? `<button type="button" class="lineup-req-btn lineup-req-btn--primary" id="btn-modal-go-lineup">
+        ${status.totalCount > 0 && status.missingStarters > 0
+      ? `<button type="button" class="lineup-req-btn lineup-req-btn--primary" id="btn-modal-go-lineup">
                  Configurar en Pizarra
                </button>`
-            : `<button type="button" class="lineup-req-btn lineup-req-btn--primary" id="btn-modal-go-market">
+      : `<button type="button" class="lineup-req-btn lineup-req-btn--primary" id="btn-modal-go-market">
                  Fichar en el Mercado
                </button>`
-        }
-        ${
-          status.totalCount > 0 && status.missingStarters > 0
-            ? `<button type="button" class="lineup-req-btn lineup-req-btn--secondary" id="btn-modal-go-market">
+    }
+        ${status.totalCount > 0 && status.missingStarters > 0
+      ? `<button type="button" class="lineup-req-btn lineup-req-btn--secondary" id="btn-modal-go-market">
                  Ir al Mercado a Fichar
                </button>`
-            : ''
-        }
+      : ''
+    }
         <button type="button" class="lineup-req-btn lineup-req-btn--secondary" id="btn-modal-dismiss-req">
           Entendido
         </button>
@@ -1300,11 +1297,11 @@ export function showWelcomeMarketModal(router) {
       <div class="welcome-market-info-box">
         <div class="welcome-market-info-header">
           <span class="welcome-market-info-label">PRESUPUESTO INICIAL</span>
-          <span class="welcome-market-info-value">150M €</span>
+          <span class="welcome-market-info-value">150M $</span>
         </div>
         <div class="welcome-market-accent-bar"></div>
         <p class="welcome-market-info-desc">
-          Ficha exactamente a 6 leyendas históricas sin superar el límite salarial.
+          Ficha exactamente a 10 leyendas históricas sin superar el límite salarial.
         </p>
       </div>
 
@@ -1402,7 +1399,7 @@ export function checkAndShowWelcomeMarketModal(router) {
 
 export function setupHomeEventListeners(router) {
   // 1. Botón "BUSCAR RIVAL" con animación de Matchmaking
-    // 1. Boton "BUSCAR RIVAL" con validacion estricta (6 titulares y 4 suplentes)
+  // 1. Boton "BUSCAR RIVAL" con validacion estricta (6 titulares y 4 suplentes)
   const btnBuscarRival = document.getElementById('btn-buscar-rival');
   if (btnBuscarRival) {
     btnBuscarRival.addEventListener('click', (e) => {
@@ -1522,13 +1519,13 @@ export function setupHomeEventListeners(router) {
     try {
       const raw = localStorage.getItem('fantasy_active_squad');
       if (raw) squad = JSON.parse(raw);
-    } catch (e) {}
+    } catch (e) { }
 
     let stats = {};
     try {
       const raw = localStorage.getItem('fantasy_player_stats');
       if (raw) stats = healLocalPlayerStats(raw);
-    } catch (e) {}
+    } catch (e) { }
 
     const rawList = Array.isArray(squad?.players) ? squad.players : [];
     const signedPlayers = [];

@@ -245,6 +245,7 @@ async function initMarketController(container, router) {
       const isSelected = selectedForAction.has(player.id) || selectedForAction.has(Number(player.id)) || selectedForAction.has(String(player.id));
       const playerImage = player.image_filename ? `${STORAGE_URL}${player.image_filename}` : null;
       const positionLabel = player.posicion_base || player.role || 'MC';
+      const posClass = `player-slot--${positionLabel.toLowerCase()}`;
       const detailLabel = player.posicion_detalle || POSITION_DETAILS[positionLabel] || 'Jugador de leyenda';
       const rating = player.media_juego || player.rating_general || 75;
       const price = Number(player.precio || 10).toFixed(1).replace('.0', '');
@@ -252,7 +253,7 @@ async function initMarketController(container, router) {
       return `
         <article class="player-row-item" data-purpose="squad-player-item" data-id="${player.id}">
           <div class="player-row-left">
-            <div class="player-row-avatar player-slot__avatar">
+            <div class="player-row-avatar player-slot__avatar ${posClass}" data-position="${positionLabel}">
               ${playerImage
                 ? `<img src="${playerImage}" alt="${player.nombre || player.name}" class="player-slot__img" onerror="this.outerHTML='<svg class=\'player-slot__icon\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.8\' viewBox=\'0 0 24 24\'><path d=\'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z\' stroke-linecap=\'round\' stroke-linejoin=\'round\'></path></svg>'"/>`
                 : `<svg class="player-slot__icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" stroke-linecap="round" stroke-linejoin="round"></path></svg>`
@@ -336,6 +337,7 @@ async function initMarketController(container, router) {
       const isSelected = selectedForAction.has(player.id) || selectedForAction.has(Number(player.id)) || selectedForAction.has(String(player.id));
       const playerImage = player.image_filename ? `${STORAGE_URL}${player.image_filename}` : null;
       const positionLabel = player.posicion_base || 'MC';
+      const posClass = `player-slot--${positionLabel.toLowerCase()}`;
       const positionReadable = player.posicion_detalle || POSITION_NAMES[positionLabel] || positionLabel;
       const rating = player.media_juego || 75;
       const price = Number(player.precio || 10).toFixed(1).replace('.0', '');
@@ -343,7 +345,7 @@ async function initMarketController(container, router) {
       return `
         <article class="player-row-item" data-purpose="player-item" data-id="${player.id}">
           <div class="player-row-left">
-            <div class="player-row-avatar player-slot__avatar">
+            <div class="player-row-avatar player-slot__avatar ${posClass}" data-position="${positionLabel}">
               ${playerImage
                 ? `<img src="${playerImage}" alt="${player.nombre}" class="player-slot__img" onerror="this.outerHTML='<svg class=\\\'player-slot__icon\\\' fill=\\\'none\\\' stroke=\\\'currentColor\\\' stroke-width=\\\'1.8\\\' viewBox=\\\'0 0 24 24\\\'><path d=\\\'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z\\\' stroke-linecap=\\\'round\\\' stroke-linejoin=\\\'round\\\'></path></svg>'"/>`
                 : `<svg class="player-slot__icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" stroke-linecap="round" stroke-linejoin="round"></path></svg>`
@@ -737,7 +739,7 @@ function showSellConfirmModal(player, onConfirm) {
       <p class="market-modal-desc">El jugador abandonará tu plantilla y el saldo se añadirá a tu presupuesto.</p>
       
       <div class="market-modal-player-preview">
-        <div class="modal-preview-avatar player-slot__avatar">
+        <div class="modal-preview-avatar player-slot__avatar player-slot--${(playerRole || 'mc').toLowerCase()}" data-position="${playerRole || 'MC'}">
           ${playerImage
             ? `<img src="${playerImage}" alt="${playerName}" class="player-slot__img" onerror="this.outerHTML='<svg class=\\\'player-slot__icon\\\' fill=\\\'none\\\' stroke=\\\'currentColor\\\' stroke-width=\\\'1.8\\\' viewBox=\\\'0 0 24 24\\\'><path d=\\\'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z\\\' stroke-linecap=\\\'round\\\' stroke-linejoin=\\\'round\\\'></path></svg>'"/>`
             : `<svg class="player-slot__icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" stroke-linecap="round" stroke-linejoin="round"></path></svg>`
