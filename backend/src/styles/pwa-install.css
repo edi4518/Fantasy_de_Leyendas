@@ -1,0 +1,250 @@
+/**
+ * @file pwa-install.css
+ * @description Estilos para el banner flotante PWA (Opción B: Tarjeta Flotante / Píldora Redondeada).
+ * Posicionamiento con position: fixed y z-index alto para no desplazar el contenido del layout.
+ */
+
+.pwa-install-banner {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  max-width: 440px;
+  margin: 0 auto;
+  z-index: 9999;
+  background-color: #1B4332;
+  color: #FFFFFF;
+  padding: 10px 14px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  animation: pwaSlideDown 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-sizing: border-box;
+  touch-action: manipulation;
+}
+
+.pwa-install-banner.is-hiding {
+  animation: pwaSlideUp 0.22s ease forwards;
+}
+
+@keyframes pwaSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pwaSlideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.96);
+  }
+}
+
+.pwa-install-banner__content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pwa-install-banner__badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #34D399 0%, #059669 100%);
+  color: #064E3B;
+  font-size: 0.75rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.5px;
+}
+
+.pwa-install-banner__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pwa-install-banner__title {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pwa-install-banner__subtitle {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #A7F3D0;
+  line-height: 1.2;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pwa-install-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pwa-install-banner__btn {
+  background-color: #FFFFFF;
+  color: #1B4332;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 6px 13px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pwa-install-banner__btn:hover {
+  background-color: #ECFDF5;
+  transform: translateY(-1px);
+}
+
+.pwa-install-banner__btn:active {
+  transform: scale(0.96);
+}
+
+.pwa-install-banner__close {
+  background: transparent;
+  border: none;
+  color: #A7F3D0;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.pwa-install-banner__close:hover {
+  color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Modal explicativo de instalación para iOS Safari */
+.pwa-ios-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  animation: pwaFadeIn 0.2s ease forwards;
+}
+
+.pwa-ios-modal {
+  position: fixed;
+  bottom: 24px;
+  left: 16px;
+  right: 16px;
+  max-width: 380px;
+  margin: 0 auto;
+  background: #FFFFFF;
+  color: #0F172A;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  z-index: 10001;
+  text-align: center;
+  animation: pwaSlideUpModal 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.pwa-ios-modal__title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 8px;
+}
+
+.pwa-ios-modal__text {
+  font-size: 0.8125rem;
+  color: #64748B;
+  line-height: 1.45;
+  margin: 0 0 14px;
+}
+
+.pwa-ios-modal__step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: #1B4332;
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.pwa-ios-modal__btn {
+  width: 100%;
+  padding: 11px;
+  background: #2D6A4F;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.pwa-ios-modal__btn:hover {
+  background-color: #245640;
+}
+
+@keyframes pwaFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pwaSlideUpModal {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

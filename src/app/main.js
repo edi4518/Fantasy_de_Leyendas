@@ -10,21 +10,14 @@
 import { initRouter } from './router.js';
 import { renderNavigation } from './navigation.js';
 import { authService } from '../services/auth-service.js';
+import { initPwaInstall } from '../services/pwa-install.js';
 
 export function bootstrapApp() {
-  // 1. Limpieza preventiva no bloqueante de cachés y Service Workers antiguos
-  if ('caches' in window) {
-    caches.keys().then((names) => {
-      names.forEach((name) => caches.delete(name));
-    });
-  }
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      for (const reg of registrations) {
-        reg.unregister();
-      }
-    }).catch(() => {});
+  // 1. Inicializar sistema de instalación PWA (tarjeta flotante no invasiva)
+  try {
+    initPwaInstall();
+  } catch (pwaErr) {
+    console.debug('[PWA] Inicializador omitido:', pwaErr);
   }
 
   // 2. Verificar estado de autenticación inicial (sesión en localStorage o token)
