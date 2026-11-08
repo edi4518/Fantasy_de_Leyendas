@@ -17,6 +17,7 @@ import {
 import { apiClient } from './api-client.js';
 import { simulateMatchEngine } from '../domain/simulation-engine.js';
 import { CPU_TEAMS, getRandomCpuTeam } from '../domain/cpu-teams.js';
+import { FORMATIONS_6V6 } from '../domain/formation-rules.js';
 
 const STORAGE_KEYS = {
   HISTORY: 'fantasy_match_history',
@@ -320,43 +321,29 @@ export const matchService = {
       const raw = localStorage.getItem(STORAGE_KEYS.PLAYER_STATS);
       const stats = raw ? JSON.parse(raw) : {};
 
-      // 1. Obtener la plantilla oficial de MI equipo (6 titulares y 3 suplentes)
-      let userSquadPlayers = [];
+      // 1. Obtener la plantilla oficial de MI equipo (6 titulares y 4 suplentes)
+      let activeSquadObj = null;
+      let squadSlots = [];
       try {
         const rawSquad = localStorage.getItem('fantasy_active_squad');
         if (rawSquad) {
-          const parsedSquad = JSON.parse(rawSquad);
-          if (Array.isArray(parsedSquad?.players)) {
-            userSquadPlayers = parsedSquad.players.filter(Boolean);
+          activeSquadObj = JSON.parse(rawSquad);
+          if (Array.isArray(activeSquadObj?.players)) {
+            squadSlots = activeSquadObj.players;
           }
         }
       } catch (e) {}
 
       // Fallback a los titulares/suplentes de lineups si no están en localStorage
-      if (userSquadPlayers.length === 0) {
+      if (squadSlots.length === 0) {
         const hStarters = matchData.lineups?.home || matchData.lineups?.homeStarters || [];
         const hBench = matchData.lineups?.homeBench || [];
-        userSquadPlayers = [...hStarters, ...hBench];
+        squadSlots = [...hStarters, ...hBench];
       }
 
-      const defaultFallback = [
-        { name: 'Casillas', role: 'POR', rating_general: 89, rating_fisico: 89, energia: 100 },
-        { name: 'Maldini', role: 'DEF', rating_general: 92, rating_fisico: 96, energia: 100 },
-        { name: 'Baresi', role: 'DEF', rating_general: 93, rating_fisico: 84, energia: 100 },
-        { name: 'Zidane', role: 'MC', rating_general: 96, rating_fisico: 82, energia: 100 },
-        { name: 'Xavi', role: 'MC', rating_general: 97, rating_fisico: 75, energia: 100 },
-        { name: 'Messi', role: 'DEL', rating_general: 99, rating_fisico: 80, energia: 100 },
-        { name: 'Ronaldo', role: 'DEL', rating_general: 97, rating_fisico: 88, energia: 100 },
-        { name: 'Iniesta', role: 'MC', rating_general: 94, rating_fisico: 74, energia: 100 },
-        { name: 'Puyol', role: 'DEF', rating_general: 90, rating_fisico: 90, energia: 100 },
-        { name: 'Buffon', role: 'POR', rating_general: 90, rating_fisico: 84, energia: 100 }
-      ];
-
-      // Completar plantilla completa (10 posiciones)
-      const cleanNinePlayers = [];
-      const totalCount = Math.max(10, userSquadPlayers.length);
-      for (let i = 0; i < totalCount; i++) {
-        cleanNinePlayers.push(userSquadPlayers[i] || defaultFallback[i]);
+      // Asegurar array de 10 posiciones respetando el índice exacto
+      while (squadSlots.length < 10) {
+        squadSlots.push(null);
       }
 
       const events = Array.isArray(matchData.events) ? matchData.events : [];
@@ -371,10 +358,15 @@ export const matchService = {
         e.side === 'home' && e.type === 'substitution'
       );
 
-      // Procesar sistema de Stamina / Energía para los 9 jugadores del plantel
+      // Procesar sistema de Stamina / Energía para la plantilla del mánager
       try {
-        const squadWithMinutes = cleanNinePlayers.map((player, idx) => {
+        const formationKey = matchData.homeTeam?.formation || activeSquadObj?.formation || '1-2-2-1';
+        const formationSlots = FORMATIONS_6V6[formationKey]?.slots || ['POR', 'DEF', 'DEF', 'MC', 'MC', 'DEL'];
+
+        const squadWithMinutes = squadSlots.map((player, idx) => {
+          if (!player) return null;
           const isStarter = idx < 6;
+          const assignedRole = isStarter ? formationSlots[idx] : (player.role || player.posicion_base || 'MC');
           let minutos = 0;
           if (isStarter) {
             const wasSubbedOut = homeSubInEvents.find(e =>
@@ -390,6 +382,7 @@ export const matchService = {
           }
           return {
             ...player,
+            assignedRole,
             minutosJugados: minutos
           };
         });
@@ -397,12 +390,7 @@ export const matchService = {
         const updatedSquadStamina = actualizarEnergiaPlantel(squadWithMinutes);
 
         // Persistir la plantilla de forma garantizada en fantasy_active_squad
-        let squadToSave = null;
-        try {
-          const rawSquad = localStorage.getItem('fantasy_active_squad');
-          if (rawSquad) squadToSave = JSON.parse(rawSquad);
-        } catch (_) {}
-
+        let squadToSave = activeSquadObj;
         if (!squadToSave || typeof squadToSave !== 'object') {
           squadToSave = {
             name: matchData.homeTeam?.name || 'Tu Equipo',
@@ -410,26 +398,8 @@ export const matchService = {
             players: []
           };
         }
-        if (squadToSave && Array.isArray(squadToSave.players) && squadToSave.players.length > 0) {
-          squadToSave.players = squadToSave.players.map((origP) => {
-            if (!origP) return origP;
-            const updated = updatedSquadStamina.find(u => u && (u.id === origP.id || this.isSamePlayer(u.name, origP.name)));
-            if (updated) {
-              return {
-                ...origP,
-                energia: updated.energia,
-                cambioNetoStamina: updated.cambioNetoStamina,
-                recuperacionCalculada: updated.recuperacionCalculada,
-                desgasteCalculado: updated.desgasteCalculado,
-                minutosJugados: updated.minutosJugados,
-                minutosDescansados: updated.minutosDescansados
-              };
-            }
-            return origP;
-          });
-        } else {
-          squadToSave.players = updatedSquadStamina;
-        }
+
+        squadToSave.players = updatedSquadStamina;
         localStorage.setItem('fantasy_active_squad', JSON.stringify(squadToSave));
         if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
           window.dispatchEvent(new CustomEvent('fantasy:squad-updated', { detail: squadToSave }));
@@ -439,12 +409,11 @@ export const matchService = {
         console.warn('[MatchService] Error actualizando stamina del plantel:', staminaErr);
       }
 
-
       let matchMvp = null;
       let highestRating = -1;
 
-      // Iterar EXACTAMENTE sobre los 9 jugadores de MI equipo una única vez
-      cleanNinePlayers.forEach((p, idx) => {
+      // Iterar sobre los futbolistas válidos de MI equipo para registrar estadísticas
+      squadSlots.forEach((p, idx) => {
         const pName = p.name || p;
         if (!pName) return;
 

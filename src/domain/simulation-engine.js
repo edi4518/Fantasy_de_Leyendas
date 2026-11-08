@@ -238,7 +238,14 @@ export function makeSingleSubstitution(starters = [], inPlayer = null) {
 
   const candidates = starters
     .filter((p) => p.assignedRole !== 'POR' && !p.isSubFresh)
-    .sort((a, b) => a.rating_fisico - b.rating_fisico);
+    .sort((a, b) => {
+      const energyA = typeof a.energia === 'number' ? a.energia : 100;
+      const energyB = typeof b.energia === 'number' ? b.energia : 100;
+      if (Math.abs(energyA - energyB) >= 5) {
+        return energyA - energyB; // Sustituir al más cansado en cancha
+      }
+      return (a.rating_fisico || 75) - (b.rating_fisico || 75);
+    });
 
   if (candidates.length === 0) return { activeStarters: starters, subInfo: null };
 
@@ -307,8 +314,10 @@ export function simulateMatchEngine(homeTeamData = {}, awayTeamData = {}) {
   const initialHomeStarters = [...homeStarters];
   const initialAwayStarters = [...awayStarters];
 
-  const homeBench = homeRaw.slice(6);
-  const awayBench = awayRaw.slice(6);
+  const homeBench = (Array.isArray(homeTeamData?.players) && homeTeamData.players.length > 6)
+    ? homeTeamData.players.slice(6).filter(Boolean)
+    : (homeRaw.length > 6 ? homeRaw.slice(6).filter(Boolean) : []);
+  const awayBench = awayRaw.slice(6).filter(Boolean);
 
   let homeBenchIndex = 0;
   let awayBenchIndex = 0;

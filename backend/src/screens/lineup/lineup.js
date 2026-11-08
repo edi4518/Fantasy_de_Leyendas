@@ -540,20 +540,22 @@ function getStaminaPillHtml(energia = 100) {
   const val = (energia !== undefined && energia !== null && !isNaN(num))
     ? Math.max(0, Math.min(100, Math.round(num)))
     : 100;
+  const isExhausted = val === 0;
   let tier = 'stamina-high';
-  if (val < 60) tier = 'stamina-low';
+  if (isExhausted) tier = 'stamina-empty';
+  else if (val < 60) tier = 'stamina-low';
   else if (val < 80) tier = 'stamina-mid';
 
-  const staminaAlt = `Energía: ${val}%`;
+  const staminaAlt = isExhausted ? 'Agotado (0% energía) - Requiere descanso' : `Energía: ${val}%`;
   return `
-    <div class="stamina-pill" title="Energía física: ${val}%" alt="${staminaAlt}" aria-label="Energía física: ${val}%">
+    <div class="stamina-pill ${isExhausted ? 'stamina-pill--exhausted' : ''}" title="${staminaAlt}" alt="${staminaAlt}" aria-label="${staminaAlt}">
       <svg class="stamina-pill__bolt ${tier}" width="9" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" alt="${staminaAlt}">
         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
       </svg>
-      <div class="stamina-pill__track" role="progressbar" aria-valuenow="${val}" aria-valuemin="0" aria-valuemax="100" title="${staminaAlt}" alt="${staminaAlt}">
+      <div class="stamina-pill__track ${isExhausted ? 'stamina-pill__track--exhausted' : ''}" role="progressbar" aria-valuenow="${val}" aria-valuemin="0" aria-valuemax="100" title="${staminaAlt}" alt="${staminaAlt}">
         <div class="stamina-pill__fill ${tier}" style="width: ${val}%"></div>
       </div>
-      <span class="stamina-pill__text" title="${staminaAlt}" alt="${staminaAlt}">${val}%</span>
+      <span class="stamina-pill__text ${isExhausted ? 'stamina-pill__text--exhausted' : ''}" title="${staminaAlt}" alt="${staminaAlt}">${val}%</span>
     </div>
   `;
 }
@@ -584,14 +586,18 @@ function renderLineRow(slotsInRow, rowClass) {
     const rating = getPlayerRating(player);
 
     const stamina = getPlayerEnergy(player);
-    const slotTitle = `${player.name} (${naturalRole}) - Asignado: ${assignedRole} - Energía: ${stamina}%`;
+    const isExhausted = stamina === 0;
+    const slotTitle = isExhausted
+      ? `¡AGOTADO (0% ENERGÍA)! ${player.name} (${naturalRole}) - Debes sacarlo del equipo titular.`
+      : `${player.name} (${naturalRole}) - Asignado: ${assignedRole} - Energía: ${stamina}%`;
 
     return `
-      <div class="pitch-slot ${isPenalized ? 'is-penalized' : ''} ${isSelected ? 'is-selected' : ''}" data-index="${index}" title="${slotTitle}" alt="${slotTitle}" aria-label="${slotTitle}">
+      <div class="pitch-slot ${isPenalized ? 'is-penalized' : ''} ${isExhausted ? 'is-exhausted' : ''} ${isSelected ? 'is-selected' : ''}" data-index="${index}" title="${slotTitle}" alt="${slotTitle}" aria-label="${slotTitle}">
         <div class="pitch-slot__token">
           ${getPlayerAvatarHtml(player)}
           <span class="pitch-slot__rating-pill ${getRatingTierClass(rating)}" title="Valoración del jugador: ${rating}">${rating}</span>
           ${isPenalized ? '<span class="pitch-slot__penalty-dot" title="Fuera de posición natural (-15% eficacia)"></span>' : ''}
+          ${isExhausted ? '<span class="pitch-slot__exhausted-badge" title="0% energía. No puede jugar como titular.">AGOTADO</span>' : ''}
           <button type="button" class="pitch-slot__remove-btn" data-index="${index}" title="Mover ${player.name} al banquillo de reservas">✕</button>
         </div>
         <span class="pitch-slot__name">${player.name}</span>
@@ -605,7 +611,7 @@ function renderLineRow(slotsInRow, rowClass) {
 }
 
 /**
- * Renderiza los 3 suplentes en la sección de reservas
+ * Renderiza los 4 suplentes en la sección de reservas
  */
 function renderReserves() {
   const container = document.getElementById('reserves-slots-container');
@@ -625,17 +631,19 @@ function renderReserves() {
     const hasPlayer = Boolean(player);
     const rating = hasPlayer ? getPlayerRating(player) : null;
     const stamina = hasPlayer ? getPlayerEnergy(player) : null;
+    const isExhausted = hasPlayer && stamina === 0;
     const reserveTitle = hasPlayer
-      ? `${player.name} (${player.role || 'MC'}) - Energía: ${stamina}%`
+      ? (isExhausted ? `¡AGOTADO (0% energía)! ${player.name} (${player.role || 'MC'}) - Descansando en banquillo` : `${player.name} (${player.role || 'MC'}) - Energía: ${stamina}%`)
       : 'Banquillo libre';
 
     return `
-      <div class="reserve-slot ${hasPlayer ? 'has-player' : 'is-empty'} ${isSelected ? 'is-selected' : ''}" data-index="${globalIndex}" title="${reserveTitle}" alt="${reserveTitle}" aria-label="${reserveTitle}">
+      <div class="reserve-slot ${hasPlayer ? 'has-player' : 'is-empty'} ${isExhausted ? 'is-exhausted' : ''} ${isSelected ? 'is-selected' : ''}" data-index="${globalIndex}" title="${reserveTitle}" alt="${reserveTitle}" aria-label="${reserveTitle}">
         <div class="reserve-slot__circle">
           ${hasPlayer ? `
             <button type="button" class="reserve-slot__remove-btn" data-index="${globalIndex}" title="Gestionar / Vender suplente">✕</button>
             ${getPlayerAvatarHtml(player)}
             <span class="reserve-slot__rating-pill ${getRatingTierClass(rating)}" title="Valoración: ${rating}">${rating}</span>
+            ${isExhausted ? '<span class="reserve-slot__exhausted-badge" title="Agotado (0% energía)">0%</span>' : ''}
           ` : '<span class="reserve-slot__plus">+</span>'}
         </div>
         <span class="reserve-slot__label">${hasPlayer ? player.name : `SUP ${subIndex + 1}`}</span>
@@ -706,8 +714,24 @@ function openPlayerActionModal(slotIndex) {
   const benchBtn = document.getElementById('btn-action-bench');
 
   if (nameEl) nameEl.textContent = player.name;
-  if (roleEl) roleEl.textContent = `${player.role || 'MC'} · Rating ${getPlayerRating(player)} · Energía: ${getPlayerEnergy(player)}%`;
+  const energy = getPlayerEnergy(player);
+  const isExhausted = energy === 0;
+  if (roleEl) {
+    roleEl.textContent = `${player.role || 'MC'} · Rating ${getPlayerRating(player)} · Energía: ${energy}%${isExhausted ? ' (AGOTADO)' : ''}`;
+  }
   if (tokenEl) tokenEl.innerHTML = getPlayerAvatarHtml(player);
+
+  const exhaustedNotice = document.getElementById('action-player-exhausted-notice');
+  if (exhaustedNotice) {
+    if (isExhausted) {
+      exhaustedNotice.textContent = isStarter
+        ? '⚠️ Jugador sin energía física (0%). No puede disputar partidos como titular. Muévelo al banquillo para descansar y recuperarse.'
+        : '💤 Jugador sin energía (0%). Recuperará energía descansando en el banquillo durante los partidos.';
+      exhaustedNotice.style.display = 'block';
+    } else {
+      exhaustedNotice.style.display = 'none';
+    }
+  }
 
   // Cargar estadísticas reales acumuladas del jugador
   const statsBox = document.getElementById('player-action-stats-box');
@@ -859,19 +883,29 @@ function openEmptySlotModal(slotIndex, router) {
     if (availableReserves.length > 0 && isStarter) {
       reservesBox.innerHTML = `
         <span style="font-size: 0.7rem; font-weight: 700; color: #64748b; margin-bottom: 2px;">SUPLENTES DISPONIBLES EN BANQUILLO:</span>
-        ` + availableReserves.map(item => `
-          <button type="button" class="empty-slot-reserve-item" data-reserve-index="${item.index}" title="${item.player.name} (${item.player.role || 'MC'}) - Energía: ${getPlayerEnergy(item.player)}%" alt="${item.player.name} (${item.player.role || 'MC'}) - Energía: ${getPlayerEnergy(item.player)}%">
+        ` + availableReserves.map(item => {
+          const resEnergy = getPlayerEnergy(item.player);
+          const isExhausted = resEnergy === 0;
+          return `
+          <button type="button" class="empty-slot-reserve-item ${isExhausted ? 'is-exhausted-reserve' : ''}" data-reserve-index="${item.index}" ${isExhausted ? 'data-is-exhausted="true"' : ''} title="${item.player.name} (${item.player.role || 'MC'}) - Energía: ${resEnergy}%${isExhausted ? ' (Agotado)' : ''}" alt="${item.player.name}">
             <span class="empty-slot-reserve-item__left">
               <span class="empty-slot-reserve-item__avatar">${getPlayerAvatarHtml(item.player)}</span>
-              <span>${item.player.name} (${item.player.role || 'MC'}) · ${getPlayerEnergy(item.player)}%</span>
+              <span>${item.player.name} (${item.player.role || 'MC'}) · ${isExhausted ? '<strong style="color: #DC2626;">0% AGOTADO</strong>' : `${resEnergy}%`}</span>
             </span>
-            <span style="color: #2D6A4F; font-weight: 800;">Media: ${getPlayerRating(item.player)}</span>
+            <span style="color: ${isExhausted ? '#DC2626' : '#2D6A4F'}; font-weight: 800;">${isExhausted ? 'No Apto' : `Media: ${getPlayerRating(item.player)}`}</span>
           </button>
-        `).join('');
+        `;
+        }).join('');
 
       reservesBox.querySelectorAll('.empty-slot-reserve-item').forEach(btn => {
         btn.addEventListener('click', () => {
+          const isExhausted = btn.getAttribute('data-is-exhausted') === 'true';
           const resIdx = parseInt(btn.getAttribute('data-reserve-index'), 10);
+          const pickedPlayer = activeSquad.players[resIdx];
+          if (isExhausted || (pickedPlayer && getPlayerEnergy(pickedPlayer) === 0)) {
+            showToast(`¡${pickedPlayer?.name || 'El jugador'} tiene 0% de energía! No puede jugar como titular.`);
+            return;
+          }
           activeSquad.players[slotIndex] = activeSquad.players[resIdx];
           activeSquad.players[resIdx] = null;
           persistActiveSquad();
@@ -1021,6 +1055,26 @@ function handleSlotClick(type, index) {
   const playerFirst = activeSquad.players[firstIndex];
   const playerSecond = activeSquad.players[secondIndex];
 
+  // Regla estricta: un jugador con 0% de energía no puede ingresar al equipo titular (índices 0 a 5)
+  const isTargetStarter = secondIndex < 6;
+  const isSourceStarter = firstIndex < 6;
+
+  if (!isSourceStarter && isTargetStarter && playerFirst && getPlayerEnergy(playerFirst) === 0) {
+    showToast(`¡${playerFirst.name} está agotado (0% energía)! Debe descansar en el banquillo.`);
+    selectedSlot = null;
+    renderPitchPlayers();
+    renderReserves();
+    return;
+  }
+
+  if (isSourceStarter && !isTargetStarter && playerSecond && getPlayerEnergy(playerSecond) === 0) {
+    showToast(`¡${playerSecond.name} está agotado (0% energía)! No puede entrar al once titular.`);
+    selectedSlot = null;
+    renderPitchPlayers();
+    renderReserves();
+    return;
+  }
+
   activeSquad.players[firstIndex] = playerSecond;
   activeSquad.players[secondIndex] = playerFirst;
 
@@ -1047,15 +1101,18 @@ function renderMetrics() {
 
   let totalPenalty = 0;
   let totalRating = 0;
+  let penalizedCount = 0;
 
   const filledStarters = starters.filter(Boolean);
   const missingCount = 6 - filledStarters.length;
+  const exhaustedStarters = filledStarters.filter(p => getPlayerEnergy(p) === 0);
 
   starters.forEach((player, i) => {
     if (!player) return;
     const assignedRole = slots[i];
     const naturalRole = (player.role || player.posicion_base || 'MC').toUpperCase();
     const penalty = getPositionPenalty(naturalRole, assignedRole);
+    if (penalty > 0) penalizedCount++;
     totalPenalty += penalty;
     totalRating += getPlayerRating(player);
   });
@@ -1077,12 +1134,14 @@ function renderMetrics() {
 
   const synergyTextEl = document.getElementById('lineup-synergy-text');
   if (synergyTextEl) {
-    if (missingCount > 0) {
+    if (exhaustedStarters.length > 0) {
+      synergyTextEl.innerHTML = `<strong style="color: #DC2626;">⚠️ Titular sin energía (0%):</strong> Debes sustituir a ${exhaustedStarters.map(p => p.name).join(', ')}`;
+    } else if (missingCount > 0) {
       synergyTextEl.textContent = `Alineación incompleta: faltan ${missingCount} jugador(es) en cancha`;
-    } else if (totalPenalty === 0) {
+    } else if (penalizedCount === 0) {
       synergyTextEl.textContent = 'Química óptima: todos los jugadores en su rol natural';
     } else {
-      synergyTextEl.textContent = `${Math.round(totalPenalty * 100 / 0.15)} jugador(es) fuera de su posición natural`;
+      synergyTextEl.textContent = `${penalizedCount} jugador(es) fuera de su posición natural`;
     }
   }
 
@@ -1097,14 +1156,22 @@ function renderMetrics() {
     const reserves = [activeSquad.players[6], activeSquad.players[7], activeSquad.players[8], activeSquad.players[9]];
     const totalFilled = filledStarters.length + reserves.filter(Boolean).length;
 
-    saveBtn.classList.remove('is-disabled');
-    saveBtn.disabled = false;
-    if (totalFilled === 10) {
-      saveBtn.textContent = 'Confirmar Alineación';
-    } else if (filledStarters.length > 0) {
-      saveBtn.textContent = `Guardar Alineación (${filledStarters.length}/6 Titulares)`;
+    if (exhaustedStarters.length > 0) {
+      saveBtn.classList.add('is-disabled', 'is-exhausted-blocked');
+      saveBtn.disabled = true;
+      saveBtn.textContent = exhaustedStarters.length === 1
+        ? `Sustituye a ${exhaustedStarters[0].name} (0% energía)`
+        : `Sustituye a los titulares agotados (${exhaustedStarters.length})`;
     } else {
-      saveBtn.textContent = 'Guardar Alineación';
+      saveBtn.classList.remove('is-disabled', 'is-exhausted-blocked');
+      saveBtn.disabled = false;
+      if (totalFilled === 10) {
+        saveBtn.textContent = 'Confirmar Alineación';
+      } else if (filledStarters.length > 0) {
+        saveBtn.textContent = `Guardar Alineación (${filledStarters.length}/6 Titulares)`;
+      } else {
+        saveBtn.textContent = 'Guardar Alineación';
+      }
     }
   }
 }
@@ -1368,6 +1435,12 @@ function setupSaveButton(router) {
   saveBtn.addEventListener('click', async () => {
     const starters = activeSquad.players.slice(0, 6);
     const reserves = [activeSquad.players[6], activeSquad.players[7], activeSquad.players[8], activeSquad.players[9]];
+
+    const exhaustedStarters = starters.filter(p => p && getPlayerEnergy(p) === 0);
+    if (exhaustedStarters.length > 0) {
+      showToast(`¡${exhaustedStarters.map(p => p.name).join(', ')} no tiene energía (0%)! Debes moverlo al banquillo.`);
+      return;
+    }
 
     const filledStarters = starters.filter(Boolean).length;
     const filledReserves = reserves.filter(Boolean).length;
