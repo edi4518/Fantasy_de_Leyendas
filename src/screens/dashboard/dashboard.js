@@ -1256,6 +1256,150 @@ export function showLineupRequirementModal(status, router) {
   });
 }
 
+export function closeWelcomeMarketModal() {
+  const existing = document.getElementById('welcome-market-modal-overlay');
+  if (existing) {
+    existing.classList.add('is-closing');
+    setTimeout(() => existing.remove(), 160);
+  }
+}
+
+/**
+ * Muestra el popup modal de bienvenida guiando al usuario recién registrado al Mercado.
+ * @param {Object} [router]
+ */
+export function showWelcomeMarketModal(router) {
+  closeWelcomeMarketModal();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'welcome-market-modal-overlay';
+  overlay.className = 'welcome-market-overlay';
+
+  overlay.innerHTML = `
+    <div class="welcome-market-card" role="dialog" aria-modal="true" aria-labelledby="welcome-market-title">
+      <button type="button" class="welcome-market-close-btn" id="btn-close-welcome-market" aria-label="Cerrar modal">
+        ✕
+      </button>
+
+      <div class="welcome-market-badge-wrap" aria-hidden="true">
+        <div class="welcome-market-icon-circle">
+          <svg viewBox="0 0 24 24" class="welcome-market-bag-icon" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <path d="M16 10a4 4 0 0 1-8 0"/>
+          </svg>
+          <span class="welcome-market-star-badge">★</span>
+        </div>
+      </div>
+
+      <h2 class="welcome-market-title" id="welcome-market-title">¡Bienvenido, Mánager!</h2>
+      <p class="welcome-market-subtitle">
+        Tu plantilla está vacía. Es hora de armar tu equipo legendario.
+      </p>
+
+      <div class="welcome-market-info-box">
+        <div class="welcome-market-info-header">
+          <span class="welcome-market-info-label">PRESUPUESTO INICIAL</span>
+          <span class="welcome-market-info-value">150M €</span>
+        </div>
+        <div class="welcome-market-accent-bar"></div>
+        <p class="welcome-market-info-desc">
+          Ficha exactamente a 6 leyendas históricas sin superar el límite salarial.
+        </p>
+      </div>
+
+      <button type="button" class="welcome-market-cta-btn" id="btn-welcome-go-market">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+        <span>IR AL MERCADO DE FICHAJES</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+
+      <button type="button" class="welcome-market-dismiss-link" id="btn-welcome-dismiss">
+        Explorar la app primero
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const markShown = () => {
+    try {
+      localStorage.removeItem('show_welcome_market_modal');
+      localStorage.setItem('welcome_market_modal_shown', 'true');
+    } catch (_) { }
+  };
+
+  const handleGoMarket = () => {
+    markShown();
+    closeWelcomeMarketModal();
+    if (router && typeof router.navigate === 'function') {
+      router.navigate('/market');
+    } else if (window.router && typeof window.router.navigate === 'function') {
+      window.router.navigate('/market');
+    } else {
+      window.location.hash = '#/market';
+    }
+  };
+
+  const handleDismiss = () => {
+    markShown();
+    closeWelcomeMarketModal();
+  };
+
+  const btnGoMarket = overlay.querySelector('#btn-welcome-go-market');
+  if (btnGoMarket) {
+    btnGoMarket.addEventListener('click', handleGoMarket);
+  }
+
+  const btnClose = overlay.querySelector('#btn-close-welcome-market');
+  if (btnClose) {
+    btnClose.addEventListener('click', handleDismiss);
+  }
+
+  const btnDismiss = overlay.querySelector('#btn-welcome-dismiss');
+  if (btnDismiss) {
+    btnDismiss.addEventListener('click', handleDismiss);
+  }
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      handleDismiss();
+    }
+  });
+}
+
+/**
+ * Comprueba si debe presentarse el popup modal de bienvenida al mánager recién llegado.
+ * @param {Object} [router]
+ */
+export function checkAndShowWelcomeMarketModal(router) {
+  const isDirectFirstTime = localStorage.getItem('show_welcome_market_modal') === 'true';
+  const hasBeenShown = localStorage.getItem('welcome_market_modal_shown') === 'true';
+
+  let hasPlayers = false;
+  try {
+    const rawSq = localStorage.getItem('fantasy_active_squad');
+    if (rawSq) {
+      const parsed = JSON.parse(rawSq);
+      if (Array.isArray(parsed?.players) && parsed.players.some(Boolean)) {
+        hasPlayers = true;
+      }
+    }
+  } catch (_) { }
+
+  if (isDirectFirstTime || (!hasBeenShown && !hasPlayers)) {
+    setTimeout(() => {
+      showWelcomeMarketModal(router);
+    }, 140);
+  }
+}
+
 export function setupHomeEventListeners(router) {
   // 1. Botón "BUSCAR RIVAL" con animación de Matchmaking
     // 1. Boton "BUSCAR RIVAL" con validacion estricta (6 titulares y 4 suplentes)
@@ -1586,6 +1730,9 @@ export async function initDashboard(router) {
   // Renderiza instantáneamente los datos de sesión/locales (usuario, plantilla en cancha, presupuesto y racha)
   const initialData = getOptimisticHomeData();
   renderHome(initialData);
+
+  // Comprobar y mostrar modal de bienvenida al Mercado si el mánager es nuevo / plantilla vacía
+  checkAndShowWelcomeMarketModal(router);
 
   // 2. REVALIDACIÓN ASÍNCRONA EN SEGUNDO PLANO (Stale-While-Revalidate):
   // Consulta la API sin bloquear la interacción ni la evaluación de Core Web Vitals

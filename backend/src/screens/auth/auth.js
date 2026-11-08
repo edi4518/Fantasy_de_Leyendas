@@ -834,6 +834,12 @@ function initRegister(router) {
           console.warn('[Auth] Omitiendo caché local de avatar por límite de cuota del navegador:', quotaErr.message);
         }
 
+        // Señalizar primera entrada para mostrar modal de bienvenida e invitación al mercado
+        try {
+          localStorage.setItem('show_welcome_market_modal', 'true');
+          localStorage.removeItem('welcome_market_modal_shown');
+        } catch (_) { }
+
         // Redirección SPA inmediata a Ranking / Inicio
         if (router && typeof router.navigate === 'function') {
           router.navigate('/dashboard');
