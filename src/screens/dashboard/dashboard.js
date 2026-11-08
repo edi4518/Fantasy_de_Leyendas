@@ -1396,28 +1396,54 @@ export function showWelcomeMarketModal(router) {
 
 /**
  * Comprueba si debe presentarse el popup modal de bienvenida al mánager recién llegado.
+ * Solo se activa si proviene de un registro nuevo (show_welcome_market_modal === 'true')
+ * y se confirma que su plantilla efectivamente está vacía tras sincronizar con el backend.
+ * @param {Object} [liveData]
  * @param {Object} [router]
  */
-export function checkAndShowWelcomeMarketModal(router) {
+export function checkAndShowWelcomeMarketModal(liveData, router) {
   const isDirectFirstTime = localStorage.getItem('show_welcome_market_modal') === 'true';
-  const hasBeenShown = localStorage.getItem('welcome_market_modal_shown') === 'true';
+  if (!isDirectFirstTime) return;
 
   let hasPlayers = false;
-  try {
-    const rawSq = localStorage.getItem('fantasy_active_squad');
-    if (rawSq) {
-      const parsed = JSON.parse(rawSq);
-      if (Array.isArray(parsed?.players) && parsed.players.some(Boolean)) {
-        hasPlayers = true;
-      }
-    }
-  } catch (_) { }
 
-  if (isDirectFirstTime || (!hasBeenShown && !hasPlayers)) {
-    setTimeout(() => {
-      showWelcomeMarketModal(router);
-    }, 140);
+  // 1. Verificar datos vivos devueltos por el backend
+  const livePlayers = liveData?.team?.players || liveData?.squad?.players || [];
+  if (Array.isArray(livePlayers) && livePlayers.some(Boolean)) {
+    hasPlayers = true;
   }
+
+  // 2. Verificar slots en liveData
+  if (!hasPlayers && Array.isArray(liveData?.team?.slots) && liveData.team.slots.some(s => s && s.player)) {
+    hasPlayers = true;
+  }
+
+  // 3. Fallback de comprobación en almacenamiento local
+  if (!hasPlayers) {
+    try {
+      const rawSq = localStorage.getItem('fantasy_active_squad');
+      if (rawSq) {
+        const parsed = JSON.parse(rawSq);
+        if (Array.isArray(parsed?.players) && parsed.players.some(Boolean)) {
+          hasPlayers = true;
+        }
+      }
+    } catch (_) { }
+  }
+
+  // Si el usuario ya tiene equipo formado en backend, nunca mostrar modal de bienvenida
+  if (hasPlayers) {
+    try {
+      localStorage.removeItem('show_welcome_market_modal');
+      localStorage.setItem('welcome_market_modal_shown', 'true');
+    } catch (_) { }
+    return;
+  }
+
+  // Si no tiene equipo y proviene de un registro nuevo, mostrar el modal de orientación al mercado
+  setTimeout(() => {
+    showWelcomeMarketModal(router);
+  }, 100);
 }
 
 export function setupHomeEventListeners(router) {
@@ -1751,19 +1777,19 @@ export async function initDashboard(router) {
   const initialData = getOptimisticHomeData();
   renderHome(initialData);
 
-  // Comprobar y mostrar modal de bienvenida al Mercado si el mánager es nuevo / plantilla vacía
-  checkAndShowWelcomeMarketModal(router);
-
   // 2. REVALIDACIÓN ASÍNCRONA EN SEGUNDO PLANO (Stale-While-Revalidate):
   // Consulta la API sin bloquear la interacción ni la evaluación de Core Web Vitals
   fetchHomeData()
     .then((liveData) => {
       if (liveData) {
         renderHome(liveData);
+        // Evaluar modal de bienvenida con datos certeros del backend
+        checkAndShowWelcomeMarketModal(liveData, router);
       }
     })
     .catch((error) => {
       console.debug('[Dashboard] Sincronización en segundo plano con backend:', error);
+      checkAndShowWelcomeMarketModal(null, router);
     });
 }
 

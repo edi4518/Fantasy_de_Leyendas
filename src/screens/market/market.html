@@ -1,6 +1,6 @@
-<link rel="stylesheet" href="/src/styles/screens/market.css?v=226">
+<link rel="stylesheet" href="/src/styles/screens/market.css?v=227">
 <div class="market-screen" data-purpose="market-screen-container">
-  <!-- BEGIN: MainHeader -->
+  <!-- BEGIN: MainHeader (Sección superior fija: Título, Presupuesto, Buscador y Filtros) -->
   <header class="market-header" data-purpose="market-header">
     <div class="market-header-inner">
       <div class="market-title-wrap">
@@ -20,11 +20,7 @@
         </span>
       </div>
     </div>
-  </header>
-  <!-- END: MainHeader -->
 
-  <!-- BEGIN: MainContent -->
-  <main class="market-content" data-purpose="market-content">
     <!-- Search Bar -->
     <div class="market-search-box" data-purpose="search-box">
       <div class="search-icon-wrap">
@@ -54,7 +50,11 @@
         DEL
       </button>
     </nav>
+  </header>
+  <!-- END: MainHeader -->
 
+  <!-- BEGIN: MainContent (Área de jugadores con scrolleo libre) -->
+  <main class="market-content" data-purpose="market-content">
     <!-- Tray de Seleccionados con (+) -->
     <section id="selected-players-tray" class="selected-players-tray" data-purpose="selected-players-tray" hidden>
       <div class="tray-header">
@@ -137,4 +137,61 @@
     </button>
   </aside>
   <!-- END: BottomDock -->
+
+  <!-- BEGIN: Modal Bottom Sheet Detalle / Estadísticas del Jugador -->
+  <div id="market-player-modal-backdrop" class="market-player-backdrop" hidden></div>
+  <section id="market-player-modal-sheet" class="market-player-sheet" aria-labelledby="market-modal-player-name" aria-modal="true" role="dialog" hidden>
+    <div class="market-player-sheet__handle-wrapper">
+      <span class="market-player-sheet__handle"></span>
+    </div>
+
+    <!-- Header del Jugador -->
+    <header class="market-player-sheet__header">
+      <div class="market-player-sheet__player-info">
+        <div id="market-modal-avatar-container" class="market-player-sheet__avatar player-slot__avatar">
+        </div>
+        <div class="market-player-sheet__title-box">
+          <div class="market-player-sheet__name-row">
+            <h2 id="market-modal-player-name" class="market-player-sheet__name">Nombre Jugador</h2>
+            <span id="market-modal-rating" class="player-rating-star">85</span>
+          </div>
+          <div class="market-player-sheet__sub-row">
+            <span id="market-modal-role-badge" class="player-role-badge">DEL</span>
+            <span id="market-modal-role-desc" class="market-player-sheet__role-desc">Delantero Centro</span>
+            <span class="market-player-sheet__bullet">•</span>
+            <span id="market-modal-price" class="market-player-sheet__price">20M €</span>
+          </div>
+        </div>
+      </div>
+      <button id="btn-close-player-modal" class="market-player-sheet__close-btn" type="button" aria-label="Cerrar detalles">✕</button>
+    </header>
+
+    <!-- Contenido scrolleable: Radar táctico y Benchmarks -->
+    <div class="market-player-sheet__body">
+      <!-- Perfil Táctico (Radar Chart) -->
+      <section class="comp-section-card market-modal-section">
+        <div class="comp-section-header">
+          <span>[PERFIL TÁCTICO]</span>
+          <span class="comp-section-sub">INDIVIDUAL</span>
+        </div>
+
+        <div class="comp-radar-container">
+          <canvas id="marketPlayerRadarChart"></canvas>
+        </div>
+
+        <div id="market-modal-radar-legend" class="comp-radar-legend"></div>
+      </section>
+
+      <!-- Benchmark Estadístico Dinámico -->
+      <section class="comp-section-card market-modal-section">
+        <div class="comp-section-header">
+          <span id="market-modal-benchmark-title">[BENCHMARK ESTADÍSTICO]</span>
+          <span class="comp-metric-badge">5 MÉTRICAS</span>
+        </div>
+
+        <div id="market-modal-benchmark-list" class="comp-benchmark-list"></div>
+      </section>
+    </div>
+  </section>
+  <!-- END: Modal Bottom Sheet Detalle / Estadísticas del Jugador -->
 </div>
