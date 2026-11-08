@@ -481,6 +481,8 @@ def get_real_opponents(
                 "nombre_equipo": team_label,
                 "manager_name": manager_label,
                 "owner": manager_label,
+                "avatar_url": u.photo_url if u else None,
+                "photo_url": u.photo_url if u else None,
                 "formation": pl.formacion or "1-2-2-1",
                 "costo_total": float(pl.costo_total or 0.0),
                 "players": players_list,

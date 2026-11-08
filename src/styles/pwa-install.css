@@ -248,3 +248,13 @@
     transform: translateY(0) scale(1);
   }
 }
+
+/* Restricción estricta: No mostrar jamás en pantallas de escritorio o PC */
+@media (min-width: 769px) {
+  .pwa-install-banner,
+  .pwa-ios-modal-backdrop,
+  .pwa-ios-modal {
+    display: none !important;
+  }
+}
+

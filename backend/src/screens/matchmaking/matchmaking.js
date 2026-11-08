@@ -11,9 +11,79 @@ import { getRandomCpuTeam } from '../../domain/cpu-teams.js';
 import { isTacticalCounter, FORMATIONS_6V6 } from '../../domain/formation-rules.js';
 import { matchService } from '../../services/match-service.js';
 import { getUnifiedLeaderboard, getUserRankInfo } from '../../services/ranking-service.js';
+import { API_BASE_URL } from '../../services/api-client.js';
 
 let matchmakingTimer = null;
 let navigationExecuted = false;
+
+function normalizeManagerAvatarOrigin(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+  if (
+    trimmed.startsWith('data:image/') ||
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://')
+  ) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/uploads/')) {
+    const apiOrigin = (API_BASE_URL || '').replace(/\/api\/?$/, '');
+    return `${apiOrigin}${trimmed}`;
+  }
+  return trimmed;
+}
+
+function resolveManagerAvatarUrl(managerData) {
+  let localAvatar = null;
+  let localUser = null;
+  let authToken = '';
+  try {
+    localAvatar = localStorage.getItem('user_avatar') || null;
+    const rawUser = localStorage.getItem('user') || localStorage.getItem('fantasy_logged_user');
+    if (rawUser) localUser = JSON.parse(rawUser);
+    authToken = localStorage.getItem('access_token') || localStorage.getItem('auth_token') || '';
+  } catch (_) { }
+
+  const localUserAvatar =
+    localUser?.avatar_url ||
+    localUser?.avatarUrl ||
+    localUser?.photo_url ||
+    localUser?.profile_picture ||
+    null;
+  const remoteAvatar =
+    managerData?.avatarUrl ||
+    managerData?.avatar_url ||
+    managerData?.photo_url ||
+    managerData?.profile_picture ||
+    null;
+
+  if (localAvatar && localAvatar.startsWith('data:image/')) {
+    return localAvatar;
+  }
+
+  return (
+    normalizeManagerAvatarOrigin(localAvatar) ||
+    normalizeManagerAvatarOrigin(localUserAvatar) ||
+    normalizeManagerAvatarOrigin(remoteAvatar) ||
+    null
+  );
+}
+
+function renderUserAvatarElement(containerEl, avatarUrl, fallbackName = 'Usuario') {
+  if (!containerEl) return;
+  const defaultSvg = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="32" height="32" aria-hidden="true">
+      <path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  `;
+  if (avatarUrl) {
+    containerEl.innerHTML = `<img src="${avatarUrl}" alt="Avatar de ${fallbackName}" class="avatar-circle-img" onerror="this.outerHTML='<svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.8\\' width=\\'32\\' height=\\'32\\'><path d=\\'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'/></svg>'" />`;
+  } else {
+    containerEl.innerHTML = defaultSvg;
+  }
+}
 
 /**
  * Inicializador principal llamado por el Router SPA
@@ -60,6 +130,7 @@ export async function initMatchmaking(router) {
           user_id: picked.user_id,
           owner: picked.owner || picked.manager_name,
           manager_name: picked.manager_name || picked.owner,
+          avatarUrl: picked.avatar_url || picked.avatarUrl || picked.photo_url || picked.profile_picture || null,
           players: picked.players.map(p => ({
             ...p,
             name: p.name || p.nombre,
@@ -322,10 +393,20 @@ async function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
   if (homeOvrEl) homeOvrEl.textContent = `${homeStats.ovr} OVR`;
   if (homeRankEl) homeRankEl.textContent = `★ Rank: ${localRank}`;
 
+  // Renderizar avatar del usuario
+  const userAvatarUrl = resolveManagerAvatarUrl();
+  const userAvatarCircle = document.getElementById('user-avatar-circle') || document.querySelector('.team-user .avatar-circle');
+  renderUserAvatarElement(userAvatarCircle, userAvatarUrl, localManagerName);
+
   if (awayNameEl) awayNameEl.textContent = awaySquad.name;
   if (awayManagerEl) awayManagerEl.textContent = awayManagerName;
   if (awayOvrEl) awayOvrEl.textContent = `${awayStats.ovr} OVR`;
   if (awayRankEl) awayRankEl.textContent = `★ Rank: ${awayRank}`;
+
+  // Renderizar avatar del rival
+  const rivalAvatarCircle = document.getElementById('rival-avatar-circle') || document.querySelector('.team-rival .avatar-circle');
+  const rivalAvatarUrl = awaySquad.avatarUrl || awaySquad.avatar_url || awaySquad.photo_url || awaySquad.profile_picture || null;
+  renderUserAvatarElement(rivalAvatarCircle, rivalAvatarUrl, awaySquad.name || 'Rival');
 
   // ID aleatorio de Sala
   const roomEl = document.getElementById('matchmaking-room-id');
@@ -396,6 +477,14 @@ function renderSearchingState(homeSquad, homeStats) {
   set('rival-rank', '★ Rank: -');
   document.getElementById('team-rival')?.classList.add('is-searching');
 
+  // Renderizar avatar del usuario y limpiar avatar rival mientras busca
+  const userAvatarUrl = resolveManagerAvatarUrl();
+  const userAvatarCircle = document.getElementById('user-avatar-circle') || document.querySelector('.team-user .avatar-circle');
+  renderUserAvatarElement(userAvatarCircle, userAvatarUrl, homeSquad.name || 'Tú');
+
+  const rivalAvatarCircle = document.getElementById('rival-avatar-circle') || document.querySelector('.team-rival .avatar-circle');
+  renderUserAvatarElement(rivalAvatarCircle, null, 'Rival');
+
   const box = document.getElementById('tactical-insight-box');
   if (box) {
     box.classList.remove('is-favorable', 'is-warning');
@@ -437,6 +526,12 @@ function revealRivalFound(awaySquad) {
   if (title) title.textContent = `¡Rival encontrado: ${awaySquad.name}!`;
   const desc = document.getElementById('status-desc');
   if (desc) desc.textContent = 'Alineaciones confirmadas. Pulsa abajo para dar el pitido inicial.';
+
+  // Actualizar avatar del rival encontrado
+  const rivalAvatarCircle = document.getElementById('rival-avatar-circle') || document.querySelector('.team-rival .avatar-circle');
+  const rivalAvatarUrl = awaySquad.avatarUrl || awaySquad.avatar_url || awaySquad.photo_url || awaySquad.profile_picture || null;
+  renderUserAvatarElement(rivalAvatarCircle, rivalAvatarUrl, awaySquad.name || 'Rival');
+
   const btnStart = document.getElementById('btn-start-match');
   if (btnStart) {
     btnStart.disabled = false;

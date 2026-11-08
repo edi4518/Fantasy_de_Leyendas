@@ -7,7 +7,7 @@
 
 const STORAGE_KEY_DISMISSED = 'fantasy_pwa_dismissed';
 const STORAGE_KEY_INSTALLED = 'fantasy_pwa_installed';
-const DISMISS_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // 3 días de espera si el usuario lo cierra
+const DISMISS_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000; // 14 días de espera si el usuario lo cierra
 
 let deferredPrompt = null;
 let bannerElement = null;
@@ -50,14 +50,12 @@ function isIos() {
 }
 
 /**
- * Detecta si el usuario está en un dispositivo móvil
+ * Detecta si el usuario está estrictamente en un dispositivo móvil/celular
  */
 function isMobileDevice() {
   if (typeof window === 'undefined' || !navigator) return false;
-  return (
-    /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent || '') ||
-    window.innerWidth <= 768
-  );
+  const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
 }
 
 /**
@@ -74,13 +72,35 @@ export function initPwaInstall() {
       .catch((err) => console.debug('[PWA] Service Worker registration note:', err));
   }
 
-  // Si ya está instalada o descartada recientemente, salir
+  // 1. Exclusivo para dispositivos móviles (NUNCA en PC o navegador desktop)
+  if (!isMobileDevice()) {
+    return;
+  }
+
+  // 2. Si ya está instalada o descartada recientemente, salir inmediatamente
   if (isAppInstalled() || isDismissedRecently()) {
     return;
   }
 
-  // Capturar el evento nativo de Chrome/Android/Edge
+  // Comprobar de forma asíncrona si la app ya está instalada en el dispositivo (API Chromium)
+  if ('getInstalledRelatedApps' in navigator) {
+    navigator.getInstalledRelatedApps().then((relatedApps) => {
+      if (Array.isArray(relatedApps) && relatedApps.length > 0) {
+        try {
+          localStorage.setItem(STORAGE_KEY_INSTALLED, 'true');
+        } catch (_) {}
+        hideInstallBanner();
+      }
+    }).catch(() => {});
+  }
+
+  // 3. Capturar el evento nativo de Chrome/Android
+  // En Android Chrome, este evento se dispara ÚNICAMENTE si la app NO está instalada.
+  // Si la app ya está instalada, Chrome NO dispara este evento.
   window.addEventListener('beforeinstallprompt', (e) => {
+    if (isAppInstalled() || isDismissedRecently() || !isMobileDevice()) {
+      return;
+    }
     e.preventDefault();
     deferredPrompt = e;
     showInstallBanner();
@@ -96,14 +116,15 @@ export function initPwaInstall() {
     console.info('[PWA] Aplicación instalada exitosamente.');
   });
 
-  // En dispositivos móviles (incluyendo iOS Safari o navegadores donde beforeinstallprompt no dispara de inmediato),
-  // mostrar la sugerencia tras una breve pausa para que la experiencia sea natural
-  if (isMobileDevice()) {
+  // 4. Exclusivo para iOS Safari (que NO soporta 'beforeinstallprompt')
+  // En Android NUNCA usamos timeout de fallback porque en Android el evento 'beforeinstallprompt'
+  // es la única garantía de que la app no está previamente instalada.
+  if (isIos()) {
     setTimeout(() => {
       if (!isAppInstalled() && !isDismissedRecently() && !bannerElement) {
         showInstallBanner();
       }
-    }, 2200);
+    }, 2500);
   }
 }
 
@@ -112,6 +133,7 @@ export function initPwaInstall() {
  */
 export function showInstallBanner() {
   if (typeof document === 'undefined') return;
+  if (!isMobileDevice()) return;
   if (isAppInstalled() || isDismissedRecently()) return;
   if (document.getElementById('pwa-install-banner')) return;
 
@@ -310,3 +332,4 @@ function showGenericInstallModal() {
     if (e.target === backdrop) closeModal();
   });
 }
+
