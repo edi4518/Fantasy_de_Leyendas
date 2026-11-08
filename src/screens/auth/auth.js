@@ -447,6 +447,12 @@ function initLogin(router) {
 
           await hydrateUserSquad();
 
+          // Usuario existente que inicia sesión: no mostrar modal de bienvenida para nuevo usuario
+          try {
+            localStorage.setItem('welcome_market_modal_shown', 'true');
+            localStorage.removeItem('show_welcome_market_modal');
+          } catch (_) { }
+
           if (router && typeof router.navigate === 'function') {
             router.navigate('/dashboard');
           } else {
