@@ -21,8 +21,8 @@ export const MODIFICADORES_POSICION = Object.freeze({
  * Parámetros base del balance matemático neto.
  */
 export const STAMINA_CONFIG = Object.freeze({
-  DESGASTE_BASE_90_MIN: 12,    // 12% base para 90 minutos de juego
-  RECUPERACION_BASE_90_MIN: 50,// 50% base para 90 minutos de descanso
+  DESGASTE_BASE_90_MIN: 18,    // 18% base para 90 minutos de juego (MC: ~31%, DEL: ~26%, DEF: ~21%, POR: ~7%)
+  RECUPERACION_BASE_90_MIN: 35,// 35% base por partido completo de descanso en el banquillo (0 minutos disputados)
   UMBRAL_OPTIMO: 80,           // >= 80%: Rendimiento óptimo (0% penalización)
   UMBRAL_FATIGA_MEDIA: 60,     // 60% a 79%: -5% Rating General temporal
   PENALIZACION_MEDIA: 0.05,    // 5% de descuento
@@ -33,12 +33,15 @@ export const STAMINA_CONFIG = Object.freeze({
  * 1. SISTEMA DE BALANCE NETO (Post-Partido)
  * Calcula simultáneamente la recuperación por minutos descansados y el desgaste por minutos jugados.
  *
- * A) Recuperación por descanso:
- *    minutosDescansados = 90 - minutosJugados
- *    Recuperacion = 50 * (Rating_Fisico / 50) * (minutosDescansados / 90)
+ * A) Desgaste por jugar:
+ *    Todo jugador que dispute minutos (titular completo, titular sustituido o suplente que ingresa)
+ *    sufre desgaste físico proporcional a su tiempo en cancha, rol táctico y rating físico.
+ *    Desgaste = (18 * Modificador_Posicion) * (100 / Rating_Fisico) * (minutosJugados / 90)
  *
- * B) Desgaste por jugar:
- *    Desgaste = (12 * Modificador_Posicion) * (100 / Rating_Fisico) * (minutosJugados / 90)
+ * B) Recuperación por descanso:
+ *    Se aplica exclusivamente a futbolistas que descansaron en el banquillo sin disputar minutos (0 min),
+ *    permitiendo que la rotación de plantilla recupere energía de forma progresiva (~35% por partido).
+ *    Recuperacion = 35 * (Rating_Fisico / 75)
  *
  * C) Balance Final:
  *    CambioNeto = Recuperacion - Desgaste
@@ -61,17 +64,18 @@ export function calcularCambioEnergia(jugador, minutosJugados = 0) {
   const rawPos = (jugador?.posicion || jugador?.role || 'MC').toUpperCase();
   const modPosicion = MODIFICADORES_POSICION[rawPos] ?? 1.0;
 
-  // A) Recuperación por descanso proporcional
   let recuperacion = 0;
-  if (descansados > 0) {
-    recuperacion = STAMINA_CONFIG.RECUPERACION_BASE_90_MIN * (ratingFisico / 50) * (descansados / 90);
-  }
-
-  // B) Desgaste por minutos jugados proporcional
   let desgaste = 0;
+
   if (jugados > 0) {
+    // El jugador compitió en cancha: sufre desgaste físico proporcional
     const modFisico = 100 / ratingFisico;
     desgaste = (STAMINA_CONFIG.DESGASTE_BASE_90_MIN * modPosicion) * modFisico * (jugados / 90);
+    recuperacion = 0;
+  } else {
+    // El jugador descansó el partido completo en el banquillo (0 minutos): recupera energía
+    recuperacion = STAMINA_CONFIG.RECUPERACION_BASE_90_MIN * (ratingFisico / 75);
+    desgaste = 0;
   }
 
   // C) Balance Neto

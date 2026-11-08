@@ -124,7 +124,13 @@ function isSquadComplete(squad) {
   if (!squad || !Array.isArray(squad.players)) return false;
   const starters = squad.players.slice(0, 6).filter(Boolean);
   const reserves = squad.players.slice(6, 10).filter(Boolean);
-  return starters.length === 6 && reserves.length === 4;
+  const hasExhaustedStarters = starters.some(p => {
+    const raw = p?.energia ?? p?.stamina;
+    if (raw === undefined || raw === null || raw === '') return false;
+    const num = Number(raw);
+    return !isNaN(num) && num === 0;
+  });
+  return starters.length === 6 && reserves.length === 4 && !hasExhaustedStarters;
 }
 
 /**

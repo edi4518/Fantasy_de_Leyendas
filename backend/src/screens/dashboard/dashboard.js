@@ -2,7 +2,7 @@ const STORAGE_URL = 'https://jkdrdrdggclbjatzbpev.supabase.co/storage/v1/object/
 import { FORMATIONS_6V6 } from '../../domain/formation-rules.js';
 import { apiClient, API_BASE_URL } from '../../services/api-client.js';
 import { squadService } from '../../services/squad-service.js';
-import { getPlayerRating, getPlayerPrice } from '../lineup/lineup.js';
+import { getPlayerRating, getPlayerPrice, getPlayerEnergy } from '../lineup/lineup.js';
 import { getUnifiedLeaderboard, getUserRankInfo } from '../../services/ranking-service.js';
 
 function normalizeManagerAvatarOrigin(rawUrl) {
@@ -1119,6 +1119,7 @@ export async function fetchHomeData({ force = false } = {}) {
 /**
  * Valida si la plantilla del usuario cumple con los requisitos para disputar partidos:
  * 6 jugadores titulares en cancha (indices 0 a 5) y 4 suplentes en el banquillo (indices 6 a 9).
+ * Además, ningún titular puede tener 0% de energía (agotado).
  */
 export function getLineupValidationStatus() {
   let squad = null;
@@ -1133,12 +1134,14 @@ export function getLineupValidationStatus() {
 
   const startersCount = starters.length;
   const reservesCount = reserves.length;
-  const isValid = startersCount === 6 && reservesCount === 4;
+  const exhaustedStarters = starters.filter(p => getPlayerEnergy(p) === 0);
+  const isValid = startersCount === 6 && reservesCount === 4 && exhaustedStarters.length === 0;
 
   return {
     isValid,
     startersCount,
     reservesCount,
+    exhaustedStarters,
     missingStarters: 6 - startersCount,
     missingReserves: 4 - reservesCount,
     totalCount: startersCount + reservesCount
@@ -1163,6 +1166,8 @@ export function showLineupRequirementModal(status, router) {
   overlay.id = 'lineup-req-modal-overlay';
   overlay.className = 'lineup-req-overlay';
 
+  const hasExhausted = Array.isArray(status.exhaustedStarters) && status.exhaustedStarters.length > 0;
+
   overlay.innerHTML = `
     <div class="lineup-req-card" role="dialog" aria-modal="true" aria-labelledby="lineup-req-title">
       <div class="lineup-req-icon-wrap" aria-hidden="true">
@@ -1171,9 +1176,13 @@ export function showLineupRequirementModal(status, router) {
         </svg>
       </div>
 
-      <h3 class="lineup-req-title" id="lineup-req-title">Alineacion Incompleta</h3>
+      <h3 class="lineup-req-title" id="lineup-req-title">${hasExhausted ? 'Titulares Agotados (0% Energía)' : 'Alineación Incompleta'}</h3>
       <p class="lineup-req-desc">
-        Para buscar rival y disputar un partido debes cumplir los requisitos oficiales de tu equipo:
+        ${
+          hasExhausted
+            ? `¡Atención! Tienes jugadores titulares agotados con 0% de energía (${status.exhaustedStarters.map(p => p.name).join(', ')}). Debes enviarlos al banquillo para descansar antes de competir.`
+            : 'Para buscar rival y disputar un partido debes cumplir los requisitos oficiales de tu equipo:'
+        }
       </p>
 
       <div class="lineup-req-list">
@@ -1189,23 +1198,37 @@ export function showLineupRequirementModal(status, router) {
             ${status.reservesCount} / 4 ${status.reservesCount === 4 ? 'OK' : `(faltan ${status.missingReserves})`}
           </span>
         </div>
+        ${
+          hasExhausted
+            ? `
+        <div class="lineup-req-item">
+          <span>Energía física titulares</span>
+          <span class="lineup-req-badge lineup-req-badge--incomplete">
+            ${status.exhaustedStarters.length} agotado(s) (0%)
+          </span>
+        </div>
+        `
+            : ''
+        }
       </div>
 
       <div class="lineup-req-actions">
-        ${status.totalCount > 0 && status.missingStarters > 0
-      ? `<button type="button" class="lineup-req-btn lineup-req-btn--primary" id="btn-modal-go-lineup">
+        ${
+          hasExhausted || (status.totalCount > 0 && status.missingStarters > 0)
+            ? `<button type="button" class="lineup-req-btn lineup-req-btn--primary" id="btn-modal-go-lineup">
                  Configurar en Pizarra
                </button>`
-      : `<button type="button" class="lineup-req-btn lineup-req-btn--primary" id="btn-modal-go-market">
+            : `<button type="button" class="lineup-req-btn lineup-req-btn--primary" id="btn-modal-go-market">
                  Fichar en el Mercado
                </button>`
-    }
-        ${status.totalCount > 0 && status.missingStarters > 0
-      ? `<button type="button" class="lineup-req-btn lineup-req-btn--secondary" id="btn-modal-go-market">
+        }
+        ${
+          status.totalCount > 0 && status.missingStarters > 0
+            ? `<button type="button" class="lineup-req-btn lineup-req-btn--secondary" id="btn-modal-go-market">
                  Ir al Mercado a Fichar
                </button>`
-      : ''
-    }
+            : ''
+        }
         <button type="button" class="lineup-req-btn lineup-req-btn--secondary" id="btn-modal-dismiss-req">
           Entendido
         </button>
