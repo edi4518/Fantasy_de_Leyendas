@@ -204,18 +204,16 @@ export async function syncSquadWithDatabase() {
           localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
           renderScreen();
         } else {
-          // Si ya existen jugadores locales, preservar su estado físico y recuperación activa local
+          // Sincronizar estado físico y energía desde el backend oficial
           let energySyncUpdated = false;
           activeSquad.players = activeSquad.players.map((lp) => {
             if (!lp) return lp;
             const rp = remoteSquad.players.find(r => r && (r.id === lp.id || (r.name && lp.name && r.name.toLowerCase() === lp.name.toLowerCase())));
             if (rp && rp.energia !== undefined && rp.energia !== null && !isNaN(Number(rp.energia))) {
               const remoteEnergy = Math.max(0, Math.min(100, Math.round(Number(rp.energia))));
-              const hasLocalEnergy = lp.energia !== undefined && lp.energia !== null && !isNaN(Number(lp.energia));
-              // Si el jugador local no tenía energía definida, inicializarla desde el backend
-              if (!hasLocalEnergy) {
+              if (lp.energia !== remoteEnergy) {
                 energySyncUpdated = true;
-                return { ...lp, energia: remoteEnergy };
+                return { ...lp, energia: remoteEnergy, stamina: remoteEnergy };
               }
             }
             return lp;
