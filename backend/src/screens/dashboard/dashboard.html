@@ -263,4 +263,61 @@
       <!-- Se pueblan reactivamente las tarjetas de los 9 jugadores -->
     </div>
   </section>
+
+  <!-- BEGIN: Modal Bottom Sheet Detalle / Estadísticas del Jugador (Radar Táctico) -->
+  <div id="dashboard-player-modal-backdrop" class="market-player-backdrop" hidden></div>
+  <section id="dashboard-player-modal-sheet" class="market-player-sheet" aria-labelledby="dashboard-modal-player-name" aria-modal="true" role="dialog" hidden>
+    <div class="market-player-sheet__handle-wrapper">
+      <span class="market-player-sheet__handle"></span>
+    </div>
+
+    <!-- Header del Jugador -->
+    <header class="market-player-sheet__header">
+      <div class="market-player-sheet__player-info">
+        <div id="dashboard-modal-avatar-container" class="market-player-sheet__avatar player-slot__avatar">
+        </div>
+        <div class="market-player-sheet__title-box">
+          <div class="market-player-sheet__name-row">
+            <h2 id="dashboard-modal-player-name" class="market-player-sheet__name">Nombre Jugador</h2>
+            <span id="dashboard-modal-rating" class="player-rating-star">85</span>
+          </div>
+          <div class="market-player-sheet__sub-row">
+            <span id="dashboard-modal-role-badge" class="player-role-badge">DEL</span>
+            <span id="dashboard-modal-role-desc" class="market-player-sheet__role-desc">Delantero Centro</span>
+            <span class="market-player-sheet__bullet">•</span>
+            <span id="dashboard-modal-price" class="market-player-sheet__price">20M $</span>
+          </div>
+        </div>
+      </div>
+      <button id="btn-close-dashboard-player-modal" class="market-player-sheet__close-btn" type="button" aria-label="Cerrar detalles">✕</button>
+    </header>
+
+    <!-- Contenido scrolleable: Radar táctico y Rendimiento Individual -->
+    <div class="market-player-sheet__body">
+      <!-- Perfil Táctico (Radar Chart) -->
+      <section class="comp-section-card market-modal-section">
+        <div class="comp-section-header">
+          <span>[PERFIL TÁCTICO]</span>
+          <span class="comp-section-sub">INDIVIDUAL</span>
+        </div>
+
+        <div class="comp-radar-container">
+          <canvas id="dashboardPlayerRadarChart"></canvas>
+        </div>
+
+        <div id="dashboard-modal-radar-legend" class="comp-radar-legend" style="display: none;"></div>
+      </section>
+
+      <!-- Rendimiento Estadístico Individual -->
+      <section class="comp-section-card market-modal-section">
+        <div class="comp-section-header">
+          <span id="dashboard-modal-benchmark-title">[ATRIBUTOS Y RENDIMIENTO]</span>
+          <span class="comp-metric-badge">5 MÉTRICAS</span>
+        </div>
+
+        <div id="dashboard-modal-benchmark-list" class="comp-benchmark-list"></div>
+      </section>
+    </div>
+  </section>
+  <!-- END: Modal Bottom Sheet Detalle / Estadísticas del Jugador (Radar Táctico) -->
 </section>

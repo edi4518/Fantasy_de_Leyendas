@@ -4,6 +4,7 @@ import { apiClient, API_BASE_URL } from '../../services/api-client.js';
 import { squadService } from '../../services/squad-service.js';
 import { getPlayerRating, getPlayerPrice, getPlayerEnergy } from '../lineup/lineup.js';
 import { getUnifiedLeaderboard, getUserRankInfo } from '../../services/ranking-service.js';
+import { playerService } from '../../services/player-service.js';
 
 function normalizeManagerAvatarOrigin(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return null;
@@ -432,7 +433,7 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
             : null;
 
           return `
-            <div class="player-slot player-slot--${roleClass}" role="listitem" title="${name} (${naturalRole}) - ${role}">
+            <div class="player-slot player-slot--${roleClass}" role="listitem" title="${name} (${naturalRole}) - ${role}" data-player-id="${player.id || ''}" data-player-name="${name}">
               <div class="player-slot__avatar" data-position="${role}" aria-label="${name} - ${role}">
                 ${avatarUrl
               ? `<img src="${avatarUrl}" alt="${name}" onerror="this.outerHTML='<svg class=\'player-slot__icon\' viewBox=\'0 0 24 24\' fill=\'currentColor\' stroke=\'none\' aria-hidden=\'true\'><path d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'">`
@@ -1635,7 +1636,7 @@ export function setupHomeEventListeners(router) {
       const avatarUrl = resolveDashboardPlayerAvatarUrl(p);
 
       return `
-        <div class="player-stat-card">
+        <div class="player-stat-card" style="cursor: pointer;" data-player-id="${p.id || ''}" data-player-name="${pName}">
           <div class="player-stat-card__left">
             <div class="player-stat-card__token ${tokenClass}" data-fallback-role="${role}">
               ${avatarUrl ? `<img src="${avatarUrl}" alt="${pName}" class="player-stat-card__img" loading="lazy" />` : role}
@@ -1677,6 +1678,316 @@ export function setupHomeEventListeners(router) {
   if (mvpClickable) mvpClickable.addEventListener('click', openStatsModal);
   if (btnCloseStats) btnCloseStats.addEventListener('click', closeStatsModal);
   if (statsBackdrop) statsBackdrop.addEventListener('click', closeStatsModal);
+
+  // =============================================================================
+  // 6. Modal Bottom-Sheet de Detalle Táctico / Radar de Jugador
+  // =============================================================================
+  let dashboardRadarChartInstance = null;
+
+  function loadChartJs() {
+    if (typeof window !== 'undefined' && window.Chart) {
+      return Promise.resolve(window.Chart);
+    }
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+      script.onload = () => resolve(window.Chart);
+      document.head.appendChild(script);
+    });
+  }
+
+  async function openPlayerRadarModal(playerIdOrName, fallbackName) {
+    const backdrop = document.getElementById('dashboard-player-modal-backdrop');
+    const sheet = document.getElementById('dashboard-player-modal-sheet');
+    if (!backdrop || !sheet) return;
+
+    let squad = null;
+    try {
+      const raw = localStorage.getItem('fantasy_active_squad');
+      if (raw) squad = JSON.parse(raw);
+    } catch (_) {}
+
+    const squadPlayers = Array.isArray(squad?.players) ? squad.players.filter(Boolean) : [];
+    const targetKey = String(playerIdOrName || fallbackName || '').trim().toLowerCase();
+
+    // 1. Buscar en jugadores de la plantilla
+    let player = squadPlayers.find((p) => {
+      if (p.id && String(p.id) === String(playerIdOrName)) return true;
+      const nm = (p.nombre || p.name || '').toLowerCase();
+      return nm === targetKey || (targetKey && (nm.includes(targetKey) || targetKey.includes(nm)));
+    });
+
+    // 2. Si no tiene atributos tácticos o no se encontró, consultar el catálogo global de leyendas
+    if (!player || player.rating_ataque === undefined) {
+      try {
+        const catalog = await playerService.getAllPlayers();
+        const catalogMatch = catalog.find((p) => {
+          if (p.id && String(p.id) === String(playerIdOrName)) return true;
+          const nm = (p.nombre || p.name || '').toLowerCase();
+          return nm === targetKey || (targetKey && (nm.includes(targetKey) || targetKey.includes(nm)));
+        });
+        if (catalogMatch) {
+          player = { ...catalogMatch, ...(player || {}) };
+        }
+      } catch (_) {}
+    }
+
+    if (!player) return;
+
+    if (!window.Chart) {
+      await loadChartJs();
+    }
+
+    const pName = player.nombre || player.name || 'Jugador';
+    const positionLabel = (player.posicion_base || player.role || 'MC').toUpperCase();
+    const posClass = `player-slot--${positionLabel.toLowerCase()}`;
+    const detailLabel = player.posicion_detalle || positionLabel;
+    const rating = player.media_juego || player.rating_general || getPlayerRating(player) || 75;
+    const price = Number(player.precio || player.price || getPlayerPrice(player) || 10).toFixed(1).replace('.0', '');
+    const rawImg = player.image_filename || player.avatarUrl || player.photo_url || player.image_url;
+    const playerImage = rawImg
+      ? (rawImg.startsWith('http://') || rawImg.startsWith('https://') ? rawImg : `${STORAGE_URL}${rawImg}`)
+      : null;
+
+    // Poblar Header del Modal
+    const modalAvatarContainer = document.getElementById('dashboard-modal-avatar-container');
+    const modalPlayerName = document.getElementById('dashboard-modal-player-name');
+    const modalRating = document.getElementById('dashboard-modal-rating');
+    const modalRoleBadge = document.getElementById('dashboard-modal-role-badge');
+    const modalRoleDesc = document.getElementById('dashboard-modal-role-desc');
+    const modalPrice = document.getElementById('dashboard-modal-price');
+
+    if (modalAvatarContainer) {
+      modalAvatarContainer.className = `market-player-sheet__avatar player-slot__avatar ${posClass}`;
+      modalAvatarContainer.dataset.position = positionLabel;
+      modalAvatarContainer.innerHTML = playerImage
+        ? `<img src="${playerImage}" alt="${pName}" onerror="this.outerHTML='<svg class=\\'player-slot__icon\\' viewBox=\\'0 0 24 24\\' fill=\\'currentColor\\' stroke=\\'none\\' aria-hidden=\\'true\\'><path d=\\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\\'/></svg>'"/>`
+        : `<svg class="player-slot__icon" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>`;
+    }
+
+    if (modalPlayerName) modalPlayerName.textContent = pName;
+    if (modalRating) modalRating.textContent = rating;
+    if (modalRoleBadge) {
+      modalRoleBadge.textContent = positionLabel;
+      modalRoleBadge.className = `player-role-badge badge--${positionLabel.toLowerCase()}`;
+    }
+    if (modalRoleDesc) modalRoleDesc.textContent = detailLabel;
+    if (modalPrice) modalPrice.textContent = `${price}M $`;
+
+    // Renderizar gráfico radar
+    renderDashboardPlayerRadar(player);
+
+    // Renderizar métricas de benchmark
+    renderDashboardPlayerBenchmarks(player);
+
+    // Abrir con animación slide-up
+    backdrop.classList.remove('is-closing');
+    sheet.classList.remove('is-closing');
+    backdrop.hidden = false;
+    sheet.hidden = false;
+  }
+
+  function closePlayerRadarModal() {
+    const backdrop = document.getElementById('dashboard-player-modal-backdrop');
+    const sheet = document.getElementById('dashboard-player-modal-sheet');
+    if (!backdrop || !sheet || sheet.hidden) return;
+
+    backdrop.classList.add('is-closing');
+    sheet.classList.add('is-closing');
+    setTimeout(() => {
+      backdrop.hidden = true;
+      sheet.hidden = true;
+      backdrop.classList.remove('is-closing');
+      sheet.classList.remove('is-closing');
+      if (dashboardRadarChartInstance) {
+        dashboardRadarChartInstance.destroy();
+        dashboardRadarChartInstance = null;
+      }
+    }, 220);
+  }
+
+  function renderDashboardPlayerRadar(player) {
+    const canvas = document.getElementById('dashboardPlayerRadarChart');
+    if (!canvas || !window.Chart) return;
+
+    if (dashboardRadarChartInstance) {
+      dashboardRadarChartInstance.destroy();
+      dashboardRadarChartInstance = null;
+    }
+
+    const pName = player.nombre || player.name || 'Jugador';
+
+    dashboardRadarChartInstance = new window.Chart(canvas, {
+      type: 'radar',
+      data: {
+        labels: ['ATAQUE', 'CREACIÓN', 'TÉCNICA', 'DEFENSA', 'FÍSICO', 'PALMARÉS'],
+        datasets: [{
+          label: pName,
+          data: [
+            player.rating_ataque ?? 50,
+            player.rating_creacion ?? 50,
+            player.rating_tecnica ?? 50,
+            player.rating_defensa ?? 50,
+            player.rating_fisico ?? 50,
+            player.rating_palmares ?? 50,
+          ],
+          backgroundColor: 'rgba(45, 106, 79, 0.22)',
+          borderColor: '#2D6A4F',
+          borderWidth: 2.2,
+          pointRadius: 3.5,
+          pointBackgroundColor: '#2D6A4F',
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          r: {
+            min: 0,
+            max: 100,
+            ticks: { display: false, stepSize: 20 },
+            grid: { color: '#e2e8f0' },
+            angleLines: { color: '#cbd5e1' },
+          },
+        },
+      },
+    });
+  }
+
+  function renderDashboardPlayerBenchmarks(player) {
+    const benchmarkList = document.getElementById('dashboard-modal-benchmark-list');
+    const benchmarkTitle = document.getElementById('dashboard-modal-benchmark-title');
+    if (!benchmarkList) return;
+
+    const primaryPos = (player.posicion_base || player.role || 'DEL').toUpperCase();
+    let metrics = [];
+    let posName = 'DELANTEROS';
+
+    if (primaryPos.includes('POR')) {
+      posName = 'ARQUEROS';
+      metrics = [
+        { title: 'VALLAS INVICTAS', key: 'vallas_invictas', maxScale: 300, unit: '' },
+        { title: 'RECUPERACIONES / 90 MIN', key: 'recuperaciones_p90', maxScale: 5, unit: '' },
+        { title: 'VALORACIÓN GENERAL', key: 'media_juego', maxScale: 100, unit: '/100' },
+        { title: 'RATING DEFENSA', key: 'rating_defensa', maxScale: 100, unit: '/100' },
+        { title: 'RATING FÍSICO', key: 'rating_fisico', maxScale: 100, unit: '/100' },
+      ];
+    } else if (primaryPos.includes('DEF')) {
+      posName = 'DEFENSORES';
+      metrics = [
+        { title: 'ENTRADAS / 90 MIN', key: 'entradas_exitosas_p90', maxScale: 6, unit: '' },
+        { title: 'INTERCEPCIONES / 90 MIN', key: 'intercepciones_p90', maxScale: 6, unit: '' },
+        { title: '% DUELOS DEFENSIVOS GANADOS', key: 'porcentaje_duelos_defensivos', maxScale: 100, unit: '%' },
+        { title: 'RECUPERACIONES / 90 MIN', key: 'recuperaciones_p90', maxScale: 12, unit: '' },
+        { title: 'VALORACIÓN GENERAL', key: 'media_juego', maxScale: 100, unit: '/100' },
+      ];
+    } else if (primaryPos.includes('MC') || primaryPos.includes('MED')) {
+      posName = 'MEDIOCENTROS';
+      metrics = [
+        { title: 'PASES CLAVE / 90 MIN', key: 'pases_clave_p90', maxScale: 4, unit: '' },
+        { title: 'PRECISIÓN DE PASE', key: 'precision_pases', maxScale: 100, unit: '%' },
+        { title: 'ASISTENCIAS / 90 MIN', key: 'asistencias_p90', maxScale: 1.5, unit: '' },
+        { title: 'GOLES / PARTIDO', key: 'goles_p90', maxScale: 0.8, unit: '' },
+        { title: 'VALORACIÓN GENERAL', key: 'media_juego', maxScale: 100, unit: '/100' },
+      ];
+    } else {
+      posName = 'DELANTEROS';
+      metrics = [
+        { title: 'GOLES / PARTIDO', key: 'goles_p90', maxScale: 1.2, unit: '' },
+        { title: 'OCASIONES CREADAS / 90 MIN', key: 'ocasiones_creadas_p90', maxScale: 3.5, unit: '' },
+        { title: 'REGATES COMPLETADOS / 90 MIN', key: 'regates_completados_p90', maxScale: 5, unit: '' },
+        { title: 'EFECTIVIDAD DE TIRO', key: 'porcentaje_tiros_arco', maxScale: 100, unit: '%' },
+        { title: 'VALORACIÓN GENERAL', key: 'media_juego', maxScale: 100, unit: '/100' },
+      ];
+    }
+
+    if (benchmarkTitle) {
+      benchmarkTitle.textContent = `[BENCHMARK ESTADÍSTICO (${posName})]`;
+    }
+
+    const pName = player.nombre || player.name || 'Jugador';
+
+    benchmarkList.innerHTML = metrics.map((metric) => {
+      let rawVal = player[metric.key];
+      if (rawVal === undefined || rawVal === null) {
+        if (metric.key === 'media_juego') rawVal = player.rating_general || 75;
+        else if (metric.key === 'rating_defensa') rawVal = player.rating_defensa || 70;
+        else if (metric.key === 'rating_fisico') rawVal = player.rating_fisico || 75;
+        else rawVal = 0;
+      }
+
+      const numVal = Number(rawVal);
+      const displayVal = Number.isInteger(numVal) ? numVal : numVal.toFixed(1);
+      const pct = Math.min(100, Math.max(8, Math.round((numVal / metric.maxScale) * 100)));
+
+      return `
+        <div class="comp-bench-card">
+          <div class="comp-bench-header">
+            <span class="comp-bench-title">${metric.title}</span>
+            <span class="comp-bench-badge">${displayVal}${metric.unit}</span>
+          </div>
+          <div class="comp-bench-row">
+            <span class="comp-bench-name">${pName}</span>
+            <div class="comp-bench-bar-track">
+              <div class="comp-bench-bar-fill" style="width: ${pct}%;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Delegación de clic en los 6 slots de "Mi Equipo"
+  const teamSlotsContainer = document.getElementById('team-slots-container');
+  if (teamSlotsContainer) {
+    teamSlotsContainer.addEventListener('click', (e) => {
+      const slotEl = e.target.closest('.player-slot:not(.player-slot--empty)');
+      if (!slotEl) return;
+      const pId = slotEl.getAttribute('data-player-id');
+      const pName = slotEl.getAttribute('data-player-name');
+      if (pId || pName) {
+        openPlayerRadarModal(pId, pName);
+      }
+    });
+  }
+
+  // Clic en la tarjeta del MVP (avatar o nombre) para abrir su radar
+  const mvpCard = document.getElementById('mvp-player-card');
+  if (mvpCard) {
+    const mvpLeft = mvpCard.querySelector('.mvp-card__left');
+    if (mvpLeft) {
+      mvpLeft.style.cursor = 'pointer';
+      mvpLeft.addEventListener('click', () => {
+        const mvpName = document.getElementById('mvp-name')?.textContent;
+        if (mvpName && mvpName !== 'Sin MVP asignado' && !mvpName.includes('Ficha en')) {
+          openPlayerRadarModal(null, mvpName);
+        }
+      });
+    }
+  }
+
+  // Clic en cualquier jugador del modal de estadísticas completas para saltar a su radar táctico
+  if (statsListContainer) {
+    statsListContainer.addEventListener('click', (e) => {
+      const cardEl = e.target.closest('.player-stat-card:not(.player-stat-card--empty)');
+      if (!cardEl) return;
+      const pId = cardEl.getAttribute('data-player-id');
+      const pName = cardEl.getAttribute('data-player-name');
+      if (pId || pName) {
+        closeStatsModal();
+        setTimeout(() => {
+          openPlayerRadarModal(pId, pName);
+        }, 150);
+      }
+    });
+  }
+
+  // Controles de cierre del modal radar
+  const btnCloseRadar = document.getElementById('btn-close-dashboard-player-modal');
+  const radarBackdrop = document.getElementById('dashboard-player-modal-backdrop');
+  if (btnCloseRadar) btnCloseRadar.addEventListener('click', closePlayerRadarModal);
+  if (radarBackdrop) radarBackdrop.addEventListener('click', closePlayerRadarModal);
 }
 
 /**
