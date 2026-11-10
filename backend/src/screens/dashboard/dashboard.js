@@ -247,25 +247,9 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
       `;
 
       if (data.manager?.avatarUrl) {
-        managerAvatarEl.innerHTML = `<img src="${data.manager.avatarUrl}" alt="Avatar de ${data.manager.name || 'Mánager'}" class="avatar-img" decoding="async" />`;
-        const avatarImgEl = managerAvatarEl.querySelector('img');
-        if (avatarImgEl) {
-          avatarImgEl.addEventListener(
-            'error',
-            () => {
-              let fallbackLocal = null;
-              try {
-                fallbackLocal = localStorage.getItem('user_avatar');
-              } catch (_) { }
-              if (fallbackLocal && avatarImgEl.src !== fallbackLocal) {
-                avatarImgEl.src = fallbackLocal;
-                return;
-              }
-              managerAvatarEl.innerHTML = defaultAvatarSvg;
-            },
-            { once: true }
-          );
-        }
+        const safeName = (data.manager.name || 'Mánager').replace(/"/g, '&quot;');
+        const safeSvgHtml = defaultAvatarSvg.replace(/\n/g, '').replace(/\s+/g, ' ').replace(/'/g, "\\'");
+        managerAvatarEl.innerHTML = `<img src="${data.manager.avatarUrl}" alt="Avatar de ${safeName}" class="avatar-img" referrerpolicy="no-referrer" decoding="async" onerror="this.onerror=null; var fb=null; try{fb=localStorage.getItem('user_avatar');}catch(e){} if(fb && fb.indexOf('data:image/')===0 && this.src!==fb){ this.onerror=function(){ this.outerHTML='${safeSvgHtml}'; }; this.src=fb; } else { this.outerHTML='${safeSvgHtml}'; }" />`;
       } else {
         managerAvatarEl.innerHTML = defaultAvatarSvg;
       }
