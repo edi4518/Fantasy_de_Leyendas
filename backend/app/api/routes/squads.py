@@ -246,14 +246,9 @@ def save_squad(
         seen_player_ids.add(pid)
         price = float(player_db.precio or 0.0)
         total_cost += price
-        energia_val = slot.get("energia")
-        energia_clean = None
-        if energia_val is not None:
-            try:
-                energia_clean = max(0, min(100, int(round(float(energia_val)))))
-            except (ValueError, TypeError):
-                energia_clean = None
-        valid_entries.append((idx, player_db, energia_clean))
+        # SEGURIDAD ANTI-CHEAT: /api/squads/save NO acepta 'energia' desde el cliente.
+        # La energía solo se inicializa al fichar por primera vez o se desgasta/recupera en partidos.
+        valid_entries.append((idx, player_db))
 
     total_cost = round(total_cost, 2)
     if total_cost > MAX_SALARY_CAP:
@@ -311,7 +306,7 @@ def save_squad(
     db.flush()
 
     # 3. Insertar o actualizar cada jugador fichado en 'user_players' y vincularlo en 'plantilla_jugadores'
-    for slot_idx, player_db, energia_clean in valid_entries:
+    for slot_idx, player_db in valid_entries:
         up = existing_by_pid.get(player_db.id)
         if not up:
             up = UserPlayer(

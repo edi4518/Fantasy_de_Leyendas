@@ -291,6 +291,9 @@ def record_finished_match(
             rival_user.goles_contra = (rival_user.goles_contra or 0) + home_score
 
     # 6. Actualizar energía (stamina) y estadísticas en el club dentro de 'user_players'
+    # SEGURIDAD ANTI-CHEAT ABSOLUTA:
+    # La energía es calculada 100% por el servidor a partir del valor previo en la BD.
+    # Se ignora cualquier valor de energía que el cliente intente enviar por request.
     user_players = db.query(UserPlayer).filter(UserPlayer.user_id == user.id).all()
     up_by_pid = {up.player_id: up for up in user_players}
 
@@ -301,24 +304,14 @@ def record_finished_match(
             pid = sp.get("id")
             if pid and int(pid) in up_by_pid:
                 up = up_by_pid[int(pid)]
-                raw_eng = sp.get("energia")
-                if raw_eng is not None:
-                    try:
-                        proposed_eng = max(0, min(100, int(round(float(raw_eng)))))
-                        current_db_energy = int(up.energia if up.energia is not None else 100)
+                current_db_energy = int(up.energia if up.energia is not None else 100)
 
-                        # SEGURIDAD ANTI-CHEAT EN SERVIDOR:
-                        # 1. Los titulares (slots 0..5) que disputaron el partido DEBEN desgastarse:
-                        #    su energía nunca puede superar la que ya tenían en la base de datos.
-                        if slot_idx < 6:
-                            up.energia = min(current_db_energy, proposed_eng)
-                        else:
-                            # 2. Los suplentes (slots 6..9) en el banquillo recuperan descanso gradualmente:
-                            #    máximo +40% de incremento por partido respecto a su valor actual en BD.
-                            max_allowed_recovery = min(100, current_db_energy + 40)
-                            up.energia = min(max_allowed_recovery, max(current_db_energy, proposed_eng))
-                    except (ValueError, TypeError):
-                        pass
+                # 1. Los 6 titulares (slots 0..5) se desgastan 15% por disputar el partido:
+                if slot_idx < 6:
+                    up.energia = max(0, current_db_energy - 15)
+                # 2. Los 4 suplentes (slots 6..9) en el banquillo recuperan 25% de energía:
+                else:
+                    up.energia = min(100, current_db_energy + 25)
 
     if payload.player_stats and isinstance(payload.player_stats, dict):
         for p_key, st in payload.player_stats.items():
