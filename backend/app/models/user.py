@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Date, DateTime, Boolean, func
+from sqlalchemy import Column, Integer, String, Float, Date, DateTime, Boolean, Text, func
 from app.core.database import Base
 
 
@@ -16,7 +16,7 @@ class User(Base):
     team_name = Column(String(100), nullable=False)
     rol = Column(String(50), nullable=False, default="manager")
     fecha_nacimiento = Column(Date, nullable=True)
-    photo_url = Column(String(255), nullable=True)
+    photo_url = Column(Text, nullable=True)
 
     # Economía y Competitivo
     presupuesto = Column(Float, nullable=False, default=150.00)

@@ -202,7 +202,19 @@ def get_current_manager_profile(request: Request, db: Session = Depends(get_db))
             "notifications": bool(user.notif_activas if user.notif_activas is not None else True),
             "sounds": bool(user.sonido_activo if user.sonido_activo is not None else False),
         },
-        "avatarUrl": f"{str(request.base_url).rstrip('/')}{user.photo_url}" if user.photo_url and user.photo_url.startswith("/") else user.photo_url,
+        "avatarUrl": (
+            user.photo_url
+            if user.photo_url and (
+                user.photo_url.startswith("data:image/")
+                or user.photo_url.startswith("http://")
+                or user.photo_url.startswith("https://")
+            )
+            else (
+                f"{str(request.base_url).rstrip('/')}{user.photo_url}"
+                if user.photo_url and user.photo_url.startswith("/")
+                else user.photo_url
+            )
+        ),
     }
 
 
@@ -249,6 +261,9 @@ def update_current_manager_profile(
     if payload.avatar_url is not None and payload.avatar_url.strip():
         raw_avatar = payload.avatar_url.strip()
         if raw_avatar.startswith("data:image/") and "," in raw_avatar:
+            # Persistir directamente en la base de datos para que sea resiliente
+            # ante reinicios del disco efímero de Render o Vercel
+            user.photo_url = raw_avatar
             try:
                 header, encoded_b64 = raw_avatar.split(",", 1)
                 ext = ".webp"
@@ -260,10 +275,9 @@ def update_current_manager_profile(
                 disk_path = os.path.join(UPLOAD_DIR, safe_filename)
                 with open(disk_path, "wb") as avatar_file:
                     avatar_file.write(base64.b64decode(encoded_b64))
-                user.photo_url = f"/uploads/avatars/{safe_filename}?t={int(time.time())}"
             except Exception:
                 pass
-        elif len(raw_avatar) <= 255:
+        else:
             user.photo_url = raw_avatar
     if payload.preferences and isinstance(payload.preferences, dict):
         if "notifications" in payload.preferences:
@@ -287,7 +301,19 @@ def update_current_manager_profile(
         "email": user.email,
         "ranking": user.elo_rating if user.elo_rating is not None else 1000,
         "presupuesto": float(user.presupuesto if user.presupuesto is not None else 150.0),
-        "avatarUrl": f"{base_origin}{user.photo_url}" if user.photo_url and user.photo_url.startswith("/") else user.photo_url,
+        "avatarUrl": (
+            user.photo_url
+            if user.photo_url and (
+                user.photo_url.startswith("data:image/")
+                or user.photo_url.startswith("http://")
+                or user.photo_url.startswith("https://")
+            )
+            else (
+                f"{base_origin}{user.photo_url}"
+                if user.photo_url and user.photo_url.startswith("/")
+                else user.photo_url
+            )
+        ),
     }
 
 

@@ -8,7 +8,26 @@
  */
 
 import { authService } from '../../services/auth-service.js';
-import { apiClient } from '../../services/api-client.js';
+import { apiClient, API_BASE_URL } from '../../services/api-client.js';
+
+function normalizeManagerAvatarOrigin(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+  if (
+    trimmed.startsWith('data:image/') ||
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://')
+  ) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/uploads/')) {
+    const apiOrigin = (API_BASE_URL || '').replace(/\/api\/?$/, '');
+    return `${apiOrigin}${trimmed}`;
+  }
+  return trimmed;
+}
 
 /**
  * Datos de perfil por defecto alineados con la interfaz visual de Stitch.
@@ -94,13 +113,14 @@ function normalizeProfileData(raw = {}) {
     lastName: raw.last_name || raw.lastName || defaultLast,
     teamName: raw.team_name || raw.teamName || raw.club_name || DEFAULT_PROFILE_DATA.teamName,
     email: raw.email || DEFAULT_PROFILE_DATA.email,
-    avatarUrl:
+    avatarUrl: normalizeManagerAvatarOrigin(
       raw.avatar_url ||
       raw.avatarUrl ||
       raw.photo_url ||
       raw.profile_picture ||
       localCachedAvatar ||
-      null,
+      null
+    ),
     preferences: {
       notifications: raw.preferences?.notifications ?? raw.notifications_enabled ?? DEFAULT_PROFILE_DATA.preferences.notifications,
       sounds: raw.preferences?.sounds ?? raw.sound_effects_enabled ?? DEFAULT_PROFILE_DATA.preferences.sounds
@@ -146,12 +166,17 @@ export function renderProfile(data = DEFAULT_PROFILE_DATA) {
 
   // Avatar circular mediante backgroundImage optimizado
   const avatarContainer = document.getElementById('profile-avatar-display');
-  if (avatarContainer && data.avatarUrl) {
-    applyAvatarBackground(
-      avatarContainer,
-      data.avatarUrl,
-      `Avatar de ${data.firstName || 'Mánager'}`
-    );
+  if (avatarContainer) {
+    if (data.avatarUrl) {
+      applyAvatarBackground(
+        avatarContainer,
+        data.avatarUrl,
+        `Avatar de ${data.firstName || 'Mánager'}`
+      );
+    } else {
+      avatarContainer.style.backgroundImage = '';
+      avatarContainer.classList.remove('has-avatar');
+    }
   }
 }
 
@@ -168,12 +193,46 @@ let currentAvatarUrl = null;
  */
 function applyAvatarBackground(avatarContainer, imageUrl, ariaLabel = 'Avatar actual') {
   if (!avatarContainer || !imageUrl) return;
-  avatarContainer.style.backgroundImage = `url("${imageUrl}")`;
-  avatarContainer.style.backgroundSize = 'cover';
-  avatarContainer.style.backgroundPosition = 'center';
-  avatarContainer.style.backgroundRepeat = 'no-repeat';
-  avatarContainer.classList.add('has-avatar');
-  avatarContainer.setAttribute('aria-label', ariaLabel);
+
+  const setBackground = (url) => {
+    avatarContainer.style.backgroundImage = `url("${url}")`;
+    avatarContainer.style.backgroundSize = 'cover';
+    avatarContainer.style.backgroundPosition = 'center';
+    avatarContainer.style.backgroundRepeat = 'no-repeat';
+    avatarContainer.classList.add('has-avatar');
+    avatarContainer.setAttribute('aria-label', ariaLabel);
+  };
+
+  const removeBackground = () => {
+    avatarContainer.style.backgroundImage = '';
+    avatarContainer.classList.remove('has-avatar');
+  };
+
+  // Si es Data URL o blob local, aplicar directamente sin pre-carga de red
+  if (imageUrl.startsWith('data:image/') || imageUrl.startsWith('blob:')) {
+    setBackground(imageUrl);
+    return;
+  }
+
+  // Si es URL remota (Google OAuth, CDN o servidor), pre-cargar con Image() y no-referrer
+  const testImg = new Image();
+  testImg.referrerPolicy = 'no-referrer';
+  testImg.onload = () => {
+    setBackground(imageUrl);
+  };
+  testImg.onerror = () => {
+    // Si la URL remota falló (ej: 404 de Render o 403 de Google), probar fallback a localStorage
+    let cached = null;
+    try {
+      cached = localStorage.getItem('user_avatar');
+    } catch (_) {}
+    if (cached && cached.startsWith('data:image/')) {
+      setBackground(cached);
+    } else {
+      removeBackground();
+    }
+  };
+  testImg.src = imageUrl;
 }
 
 /**

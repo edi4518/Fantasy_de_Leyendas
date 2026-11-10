@@ -353,8 +353,13 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
             user.team_name = payload.team_name.strip()
             user.fecha_nacimiento = parse_birthdate(payload.birthdate)
             user.auth_provider = "google"
-            if photo_url and not user.photo_url:
-                user.photo_url = photo_url
+            if photo_url:
+                if (
+                    not user.photo_url
+                    or user.photo_url.startswith("/uploads/")
+                    or "googleusercontent.com" in user.photo_url
+                ):
+                    user.photo_url = photo_url
             db.commit()
             db.refresh(user)
 
@@ -372,8 +377,13 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
     if user:
         if getattr(user, "auth_provider", None) != "google":
             user.auth_provider = "google"
-        if photo_url and not user.photo_url:
-            user.photo_url = photo_url
+        if photo_url:
+            if (
+                not user.photo_url
+                or user.photo_url.startswith("/uploads/")
+                or "googleusercontent.com" in user.photo_url
+            ):
+                user.photo_url = photo_url
         db.commit()
         db.refresh(user)
 

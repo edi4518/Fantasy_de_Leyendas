@@ -271,6 +271,14 @@ def _ensure_optimized_schema():
                     if col_name not in user_cols:
                         conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}"))
 
+                # Asegurar que photo_url soporte Base64 (MEDIUMTEXT en MySQL/TiDB o TEXT en SQLite)
+                if "photo_url" in user_cols:
+                    try:
+                        if "sqlite" not in str(engine.url):
+                            conn.execute(text("ALTER TABLE users MODIFY COLUMN photo_url MEDIUMTEXT NULL"))
+                    except Exception as mod_err:
+                        logger.warning(f"No se pudo modificar photo_url a MEDIUMTEXT: {mod_err}")
+
         # 1.1 Asegurar columnas requeridas en 'plantillas' (es_activa, created_at, updated_at)
         if "plantillas" in existing_tables:
             plantilla_cols = {c["name"] for c in insp.get_columns("plantillas")}

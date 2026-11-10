@@ -247,9 +247,30 @@ export function renderHome(data = DEFAULT_HOME_DATA) {
       `;
 
       if (data.manager?.avatarUrl) {
-        const safeName = (data.manager.name || 'Mánager').replace(/"/g, '&quot;');
-        const safeSvgHtml = defaultAvatarSvg.replace(/\n/g, '').replace(/\s+/g, ' ').replace(/'/g, "\\'");
-        managerAvatarEl.innerHTML = `<img src="${data.manager.avatarUrl}" alt="Avatar de ${safeName}" class="avatar-img" referrerpolicy="no-referrer" decoding="async" onerror="this.onerror=null; var fb=null; try{fb=localStorage.getItem('user_avatar');}catch(e){} if(fb && fb.indexOf('data:image/')===0 && this.src!==fb){ this.onerror=function(){ this.outerHTML='${safeSvgHtml}'; }; this.src=fb; } else { this.outerHTML='${safeSvgHtml}'; }" />`;
+        const img = document.createElement('img');
+        img.className = 'avatar-img';
+        img.alt = `Avatar de ${data.manager.name || 'Mánager'}`;
+        img.setAttribute('referrerpolicy', 'no-referrer');
+        img.decoding = 'async';
+
+        img.onerror = () => {
+          let fb = null;
+          try {
+            fb = localStorage.getItem('user_avatar');
+          } catch (_) {}
+          if (fb && fb.startsWith('data:image/') && img.src !== fb) {
+            img.onerror = () => {
+              managerAvatarEl.innerHTML = defaultAvatarSvg;
+            };
+            img.src = fb;
+            return;
+          }
+          managerAvatarEl.innerHTML = defaultAvatarSvg;
+        };
+
+        img.src = data.manager.avatarUrl;
+        managerAvatarEl.innerHTML = '';
+        managerAvatarEl.appendChild(img);
       } else {
         managerAvatarEl.innerHTML = defaultAvatarSvg;
       }
