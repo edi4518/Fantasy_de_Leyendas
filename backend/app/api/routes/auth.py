@@ -12,6 +12,7 @@ import bcrypt
 import httpx
 
 from app.core.database import get_db
+from app.core.security import create_access_token
 from app.models.user import User
 from app.models.squad import Plantilla
 
@@ -225,10 +226,10 @@ async def register(
     db.commit()
     db.refresh(new_user)
 
-    # 6. Respuesta esperada por auth.js en el frontend
+    # 6. Respuesta esperada por auth.js en el frontend (Token JWT criptográfico)
     return {
         "message": "Usuario registrado exitosamente en la base de datos",
-        "access_token": f"token_user_{new_user.id}",
+        "access_token": create_access_token(new_user.id),
         "token_type": "bearer",
         "user": serialize_user(new_user),
     }
@@ -267,7 +268,7 @@ async def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 
     return {
         "message": "Inicio de sesión exitoso",
-        "access_token": f"token_user_{user.id}",
+        "access_token": create_access_token(user.id),
         "token_type": "bearer",
         "user": serialize_user(user),
     }
@@ -367,7 +368,7 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
 
             return {
                 "message": "Registro completado exitosamente",
-                "access_token": f"token_user_{user.id}",
+                "access_token": create_access_token(user.id),
                 "token_type": "bearer",
                 "is_new_user": False,
                 "user": serialize_user(user),
@@ -391,7 +392,7 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
 
         return {
             "message": "Inicio de sesión con Google exitoso",
-            "access_token": f"token_user_{user.id}",
+            "access_token": create_access_token(user.id),
             "token_type": "bearer",
             "is_new_user": False,
             "user": serialize_user(user),
@@ -436,7 +437,7 @@ async def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db))
 
     return {
         "message": "Registro con Google exitoso",
-        "access_token": f"token_user_{new_user.id}",
+        "access_token": create_access_token(new_user.id),
         "token_type": "bearer",
         "is_new_user": False,
         "user": serialize_user(new_user),

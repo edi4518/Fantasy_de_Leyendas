@@ -35,6 +35,7 @@ from sqlalchemy.orm import Session
 # Configuración central y base de datos
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.security import resolve_authenticated_user
 from app.models.player import Player
 from app.models.user import User
 from app.models.squad import UserPlayer, Plantilla, PlantillaJugador
@@ -165,15 +166,7 @@ def slugify(text: str) -> str:
 @app.get("/api/me", tags=["Manager Profile"])
 def get_current_manager_profile(request: Request, db: Session = Depends(get_db)):
     """Retorna los datos de perfil y club del mánager autenticado desde la base de datos."""
-    user = None
-    auth_header = request.headers.get("Authorization", "")
-    if "token_user_" in auth_header:
-        try:
-            uid = int(auth_header.split("token_user_")[-1].strip())
-            user = db.query(User).filter(User.id == uid).first()
-        except ValueError:
-            pass
-
+    user = resolve_authenticated_user(request, db, allow_explicit=False)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -235,15 +228,7 @@ def update_current_manager_profile(
     db: Session = Depends(get_db),
 ):
     """Actualiza el nombre, apellido, nombre del equipo y avatar del mánager en la tabla 'users' de MySQL."""
-    user = None
-    auth_header = request.headers.get("Authorization", "")
-    if "token_user_" in auth_header:
-        try:
-            uid = int(auth_header.split("token_user_")[-1].strip())
-            user = db.query(User).filter(User.id == uid).first()
-        except ValueError:
-            pass
-
+    user = resolve_authenticated_user(request, db, allow_explicit=False)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

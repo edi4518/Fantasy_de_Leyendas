@@ -52,7 +52,11 @@ function resolveManagerAvatarUrl(managerData) {
     return localAvatar;
   }
 
-  if (authToken.includes('token_user_')) {
+  const isAuthenticated = Boolean(
+    authToken && (authToken.includes('token_user_') || authToken.includes('.') || authToken.length > 10)
+  );
+
+  if (isAuthenticated) {
     return (
       normalizeManagerAvatarOrigin(remoteAvatar) ||
       normalizeManagerAvatarOrigin(localAvatar) ||

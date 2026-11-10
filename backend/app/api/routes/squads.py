@@ -10,6 +10,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import resolve_authenticated_user
 from app.models.player import Player
 from app.models.squad import UserPlayer, Plantilla, PlantillaJugador
 from app.models.user import User
@@ -34,24 +35,16 @@ class SaveSquadRequest(BaseModel):
     allow_empty: bool = False
 
 
-def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int] = None) -> Optional[User]:
-    """Obtiene el mánager autenticado a partir del header Authorization."""
-    auth_header = request.headers.get("Authorization", "")
-    if "token_user_" in auth_header:
-        try:
-            uid = int(auth_header.split("token_user_")[-1].strip())
-            user = db.query(User).filter(User.id == uid).first()
-            if user:
-                return user
-        except ValueError:
-            pass
-
-    if explicit_user_id:
-        user = db.query(User).filter(User.id == explicit_user_id).first()
-        if user:
-            return user
-
-    return None
+def _resolve_user(
+    request: Request,
+    db: Session,
+    explicit_user_id: Optional[int] = None,
+    allow_explicit: bool = False,
+) -> Optional[User]:
+    """Obtiene el mánager autenticado a partir del header Authorization (JWT o legacy)."""
+    return resolve_authenticated_user(
+        request, db, explicit_user_id=explicit_user_id, allow_explicit=allow_explicit
+    )
 
 
 def calculate_realistic_rating(partidos: int, goles: int, mvps: int, base_rating: int) -> float:
@@ -178,7 +171,7 @@ def get_my_squad(
 ):
     """Recupera la plantilla activa del mánager desde 'plantillas', 'plantilla_jugadores' y 'user_players'."""
     _ensure_squad_columns(db)
-    user = _resolve_user(request, db, user_id)
+    user = _resolve_user(request, db, explicit_user_id=user_id, allow_explicit=True)
     if not user:
         return {"squad": None, "players": []}
 
@@ -214,7 +207,7 @@ def save_squad(
     """Sincroniza el inventario del club ('user_players'), guarda la alineación táctica ('plantillas' + 'plantilla_jugadores')
     y actualiza el presupuesto del mánager en 'users'."""
     _ensure_squad_columns(db)
-    user = _resolve_user(request, db, payload.user_id)
+    user = _resolve_user(request, db, allow_explicit=False)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -355,7 +348,7 @@ def get_club_inventory(
     db: Session = Depends(get_db),
 ):
     """Devuelve el inventario de jugadores comprados por el usuario en la tabla 'user_players' con su energía y stats."""
-    user = _resolve_user(request, db, user_id)
+    user = _resolve_user(request, db, explicit_user_id=user_id, allow_explicit=True)
     if not user:
         return {"count": 0, "inventory": []}
 

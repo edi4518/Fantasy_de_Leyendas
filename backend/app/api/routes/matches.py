@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import resolve_authenticated_user
 from app.api.routes.ranking import get_user_rank, invalidate_leaderboard_cache
 from app.models.match import EventoPartido, Partido
 from app.models.player import Player
@@ -112,20 +113,9 @@ def _resolve_user(
     explicit_user_id: Optional[int] = None,
     allow_explicit: bool = False,
 ) -> Optional[User]:
-    auth_header = request.headers.get("Authorization", "")
-    if "token_user_" in auth_header:
-        try:
-            uid = int(auth_header.split("token_user_")[-1].strip())
-            user = db.query(User).filter(User.id == uid).first()
-            if user:
-                return user
-        except ValueError:
-            pass
-    if allow_explicit and explicit_user_id:
-        user = db.query(User).filter(User.id == explicit_user_id).first()
-        if user:
-            return user
-    return None
+    return resolve_authenticated_user(
+        request, db, explicit_user_id=explicit_user_id, allow_explicit=allow_explicit
+    )
 
 
 def _normalize_event_type(raw_type: str) -> str:
