@@ -7,8 +7,10 @@ timeline de eventos con equipo ('local'/'visitante'), récords competitivos en '
 import json
 import os
 import random
-from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, Query, Request
+import threading
+import time
+from typing import Any, Dict, List, Optional, Tuple
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -60,7 +62,56 @@ class RecordMatchRequest(BaseModel):
     rival_user_id: Optional[int] = None
 
 
-def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int] = None) -> Optional[User]:
+class SimpleRateLimiter:
+    """Rate limiter en memoria thread-safe con ventana de enfriamiento y limpieza periódica."""
+
+    def __init__(self, cooldown_seconds: float = 6.0, max_entries: int = 5000):
+        self.cooldown_seconds = cooldown_seconds
+        self.max_entries = max_entries
+        self.records: Dict[str, float] = {}
+        self.lock = threading.Lock()
+
+    def check_and_update(self, key: str) -> Tuple[bool, float]:
+        now = time.time()
+        with self.lock:
+            if len(self.records) > self.max_entries:
+                cutoff = now - 3600.0
+                self.records = {k: v for k, v in self.records.items() if v > cutoff}
+
+            last_time = self.records.get(key, 0.0)
+            elapsed = now - last_time
+            if elapsed < self.cooldown_seconds:
+                remaining = self.cooldown_seconds - elapsed
+                return False, remaining
+
+            self.records[key] = now
+            return True, 0.0
+
+
+# Instancias globales de protección anti-spam / anti-farming
+_MATCH_RECORD_LIMITER = SimpleRateLimiter(cooldown_seconds=6.0)
+_MATCH_SIMULATE_LIMITER = SimpleRateLimiter(cooldown_seconds=3.0)
+
+
+def _get_client_identifier(request: Request, user: Optional[User] = None) -> str:
+    """Genera un identificador único por usuario autenticado o IP de cliente."""
+    if user and user.id:
+        return f"user_{user.id}"
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+        return f"ip_{client_ip}"
+    if request.client and request.client.host:
+        return f"ip_{request.client.host}"
+    return "ip_unknown"
+
+
+def _resolve_user(
+    request: Request,
+    db: Session,
+    explicit_user_id: Optional[int] = None,
+    allow_explicit: bool = False,
+) -> Optional[User]:
     auth_header = request.headers.get("Authorization", "")
     if "token_user_" in auth_header:
         try:
@@ -70,7 +121,7 @@ def _resolve_user(request: Request, db: Session, explicit_user_id: Optional[int]
                 return user
         except ValueError:
             pass
-    if explicit_user_id:
+    if allow_explicit and explicit_user_id:
         user = db.query(User).filter(User.id == explicit_user_id).first()
         if user:
             return user
@@ -137,8 +188,30 @@ def record_finished_match(
     db: Session = Depends(get_db),
 ):
     """Guarda en MySQL ('partidos', 'eventos_partido', 'users' y 'user_players') toda la información de un partido finalizado."""
+    # 1. Seguridad: Verificar autenticación del usuario mediante Bearer token
+    user = _resolve_user(request, db, allow_explicit=False)
+
+    # 2. Protección Anti-Spam / Rate Limiting (mínimo 6s entre registros de partidos)
+    rate_key = _get_client_identifier(request, user)
+    allowed, remaining = _MATCH_RECORD_LIMITER.check_and_update(rate_key)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Anti-spam activo: espera {round(remaining, 1)}s antes de registrar otro partido.",
+        )
+
+    if not user:
+        return {"status": "skipped", "reason": "No autenticado"}
+
     home_score = int(payload.home_score or 0)
     away_score = int(payload.away_score or 0)
+
+    # 3. Validación de integridad de marcadores (rango permitido 0 a 30 goles)
+    if home_score < 0 or away_score < 0 or home_score > 30 or away_score > 30:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Marcador fuera de los límites permitidos (0-30 goles).",
+        )
 
     if home_score > away_score:
         res_enum = "local"
@@ -155,10 +228,6 @@ def record_finished_match(
         res_label = "DERROTA"
         elo_var_local = -15
         elo_var_visitante = 25
-
-    user = _resolve_user(request, db, payload.user_id)
-    if not user:
-        return {"status": "skipped", "reason": "No user in database"}
 
     # 1. Resolver o crear plantilla activa del usuario
     plantilla = (
@@ -370,7 +439,17 @@ def simulate_match(
     req: Optional[SimulateRequest] = None,
     db: Session = Depends(get_db),
 ):
-    """Ejecuta el motor de simulación 6v6 en servidor y registra el encuentro en MySQL."""
+    """Ejecuta el motor de simulación 6v6 en servidor."""
+    # 1. Seguridad: Anti-Spam / Rate Limiting (mínimo 3s entre simulaciones)
+    user = _resolve_user(request, db, allow_explicit=False)
+    rate_key = _get_client_identifier(request, user)
+    allowed, remaining = _MATCH_SIMULATE_LIMITER.check_and_update(rate_key)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Anti-spam activo: espera {round(remaining, 1)}s antes de simular otro partido.",
+        )
+
     payload = req.model_dump() if req else {}
     home_squad = payload.get("home_squad")
     away_squad = payload.get("away_squad")
@@ -429,7 +508,7 @@ def get_real_opponents(
 ):
     """Retorna las plantillas activas de otros usuarios reales registrados en MySQL para Matchmaking P2P."""
     from app.models.squad import PlantillaJugador
-    user = _resolve_user(request, db, user_id)
+    user = _resolve_user(request, db, explicit_user_id=user_id, allow_explicit=True)
     query = (
         db.query(Plantilla)
         .join(User, User.id == Plantilla.user_id)
@@ -517,7 +596,7 @@ def get_match_history(
 ):
     """Retorna el historial completo de partidos desde MySQL ('partidos' + 'eventos_partido') listo para el Popup de Historial."""
     try:
-        user = _resolve_user(request, db, user_id)
+        user = _resolve_user(request, db, explicit_user_id=user_id, allow_explicit=True)
         if not user:
             return []
         query = db.query(Partido).filter(Partido.local_user_id == user.id)
