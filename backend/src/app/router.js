@@ -8,6 +8,7 @@
 
 import { authService } from "../services/auth-service.js";
 import { renderNavigation, updateActiveNavItem } from "./navigation.js";
+import { APP_VERSION } from "./version.js";
 
 const routes = {
   "/": {
@@ -253,7 +254,7 @@ async function handleLocation() {
   }
 
   const viewFile = route.subview || route.screen;
-  const viewUrl = `/src/screens/${route.screen}/${viewFile}.html`;
+  const viewUrl = `/src/screens/${route.screen}/${viewFile}.html?v=${APP_VERSION}`;
 
   try {
     const [response] = await Promise.all([
@@ -324,7 +325,7 @@ async function loadScreenController(route) {
   switch (route.screen) {
     case "onboarding": {
       try {
-        const module = await import("../screens/onboarding/onboarding.js");
+        const module = await import(`../screens/onboarding/onboarding.js?v=${APP_VERSION}`);
         if (typeof module.initOnboarding === "function") {
           module.initOnboarding(routerInstance);
         }
@@ -336,7 +337,7 @@ async function loadScreenController(route) {
 
     case "ranking": {
       try {
-        const module = await import("../screens/ranking/ranking.js");
+        const module = await import(`../screens/ranking/ranking.js?v=${APP_VERSION}`);
         if (typeof module.initRanking === "function") {
           module.initRanking(routerInstance);
         }
@@ -348,7 +349,7 @@ async function loadScreenController(route) {
 
     case "auth": {
       try {
-        const module = await import("../screens/auth/auth.js");
+        const module = await import(`../screens/auth/auth.js?v=${APP_VERSION}`);
         if (typeof module.initAuth === "function") {
           module.initAuth(route.subview, routerInstance);
         }
@@ -363,7 +364,7 @@ async function loadScreenController(route) {
 
     case "dashboard": {
       try {
-        const module = await import("../screens/dashboard/dashboard.js");
+        const module = await import(`../screens/dashboard/dashboard.js?v=${APP_VERSION}`);
         if (typeof module.initDashboard === "function") {
           module.initDashboard(routerInstance);
         } else if (typeof module.initHomeView === "function") {
@@ -377,7 +378,7 @@ async function loadScreenController(route) {
 
     case "history": {
       try {
-        const module = await import("../screens/history/history.js");
+        const module = await import(`../screens/history/history.js?v=${APP_VERSION}`);
         if (typeof module.initHistory === "function") {
           module.initHistory(routerInstance);
         } else if (typeof module.initHistoryView === "function") {
@@ -391,7 +392,7 @@ async function loadScreenController(route) {
 
     case "market": {
       try {
-        const module = await import("/src/screens/market/market.js");
+        const module = await import(`/src/screens/market/market.js?v=${APP_VERSION}`);
         if (typeof module.renderMarketScreen === "function") {
           module.renderMarketScreen(appContent, routerInstance);
         } else {
@@ -405,7 +406,7 @@ async function loadScreenController(route) {
 
     case "comparison": {
       try {
-        const module = await import("../screens/comparison/comparison.js");
+        const module = await import(`../screens/comparison/comparison.js?v=${APP_VERSION}`);
         // Extraemos parámetros de la URL si los hay (ej: ?ids=1,2,3) tanto de search como de hash
         const hashQuery = window.location.hash.includes("?")
           ? window.location.hash.split("?")[1]
@@ -429,7 +430,7 @@ async function loadScreenController(route) {
 
     case "admin": {
       try {
-        const module = await import("../screens/admin/players-admin.js");
+        const module = await import(`../screens/admin/players-admin.js?v=${APP_VERSION}`);
         if (typeof module.renderPlayersAdminScreen === "function") {
           module.renderPlayersAdminScreen(appContent, routerInstance);
         }
@@ -441,7 +442,7 @@ async function loadScreenController(route) {
 
     case "profile": {
       try {
-        const module = await import("../screens/profile/profile.js");
+        const module = await import(`../screens/profile/profile.js?v=${APP_VERSION}`);
         if (typeof module.initProfile === "function") {
           module.initProfile(routerInstance);
         } else if (typeof module.initProfileView === "function") {
@@ -455,7 +456,7 @@ async function loadScreenController(route) {
 
     case "matchmaking": {
       try {
-        const module = await import("../screens/matchmaking/matchmaking.js");
+        const module = await import(`../screens/matchmaking/matchmaking.js?v=${APP_VERSION}`);
         if (typeof module.initMatchmaking === "function") {
           module.initMatchmaking(routerInstance);
         }
@@ -467,7 +468,7 @@ async function loadScreenController(route) {
 
     case "lineup": {
       try {
-        const module = await import("../screens/lineup/lineup.js");
+        const module = await import(`../screens/lineup/lineup.js?v=${APP_VERSION}`);
         if (typeof module.initLineup === "function") {
           module.initLineup(routerInstance);
         }
@@ -479,7 +480,7 @@ async function loadScreenController(route) {
 
     case "match": {
       try {
-        const module = await import("../screens/match/match.js");
+        const module = await import(`../screens/match/match.js?v=${APP_VERSION}`);
         if (typeof module.initMatch === "function") {
           module.initMatch(routerInstance);
         } else if (typeof module.initMatchDetailView === "function") {
@@ -499,7 +500,7 @@ async function loadScreenController(route) {
   }
 }
 
-function loadStylesheetOnce(basePath, versionQuery = "v=30") {
+function loadStylesheetOnce(basePath, versionQuery = `v=${APP_VERSION}`) {
   const existing = document.querySelector(`link[href*="${basePath}"]`);
   if (existing) return Promise.resolve();
 
@@ -535,12 +536,12 @@ function ensureScreenStylesheet(screenName) {
     if (document.querySelector('link[href*="main.min.css"], link[href*="main.css"]')) {
       return Promise.resolve();
     }
-    return loadStylesheetOnce("/src/styles/screens/onboarding.css", "v=31");
+    return loadStylesheetOnce("/src/styles/screens/onboarding.css", `v=${APP_VERSION}`);
   }
   return Promise.all([
-    loadStylesheetOnce("/src/styles/components.css", "v=29"),
-    loadStylesheetOnce("/src/components/modal/modal.css", "v=19"),
-    loadStylesheetOnce(`/src/styles/screens/${screenName}.css`, "v=36"),
+    loadStylesheetOnce("/src/styles/components.css", `v=${APP_VERSION}`),
+    loadStylesheetOnce("/src/components/modal/modal.css", `v=${APP_VERSION}`),
+    loadStylesheetOnce(`/src/styles/screens/${screenName}.css`, `v=${APP_VERSION}`),
   ]);
 }
 

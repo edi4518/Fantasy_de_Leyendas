@@ -39,5 +39,9 @@ build/
 *.sqlite
 *.sqlite3
 
+# Archivos subidos por usuarios
+uploads/
+backend/uploads/
+
 settings.json
 .vscode/

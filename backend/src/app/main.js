@@ -11,9 +11,60 @@ import { initRouter } from './router.js';
 import { renderNavigation } from './navigation.js';
 import { authService } from '../services/auth-service.js';
 import { initPwaInstall } from '../services/pwa-install.js';
+import { APP_VERSION, SCHEMA_VERSION } from './version.js';
+
+/**
+ * Sincroniza la versión de la app y limpia cachés transitorias desactualizadas en localStorage
+ * sin alterar la sesión ni credenciales activas del usuario.
+ */
+function syncAppVersionAndStorage() {
+  try {
+    window.__APP_VERSION__ = APP_VERSION;
+    const storedVersion = localStorage.getItem('app_version');
+    if (storedVersion !== APP_VERSION) {
+      console.info(`[Version] Migrando versión de aplicación: ${storedVersion || 'inicial'} -> ${APP_VERSION}`);
+      const preserveKeys = new Set([
+        'auth_token',
+        'access_token',
+        'user_id',
+        'user',
+        'user_email',
+        'email',
+        'team_name',
+        'user_avatar',
+        'pwa_installed',
+        'pwa_dismissed_until'
+      ]);
+
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && !preserveKeys.has(key)) {
+          // Limpiar caches volátiles de mercado, simulaciones previas o rachas que puedan causar desfase
+          if (
+            key.startsWith('market_') ||
+            key.startsWith('cache_') ||
+            key.startsWith('temp_') ||
+            key.includes('cached_')
+          ) {
+            keysToRemove.push(key);
+          }
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem('app_version', APP_VERSION);
+      localStorage.setItem('schema_version', SCHEMA_VERSION);
+    }
+  } catch (err) {
+    console.debug('[Version] Nota al sincronizar versión:', err);
+  }
+}
 
 export function bootstrapApp() {
-  // 1. Inicializar sistema de instalación PWA (tarjeta flotante no invasiva)
+  // 0. Sincronizar versión y almacenamiento local
+  syncAppVersionAndStorage();
+
+  // 1. Inicializar sistema de instalación PWA (tarjeta flotante no invasiva y Service Worker)
   try {
     initPwaInstall();
   } catch (pwaErr) {

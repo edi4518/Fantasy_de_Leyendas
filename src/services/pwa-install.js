@@ -59,18 +59,63 @@ function isMobileDevice() {
 }
 
 /**
+ * Registra el Service Worker y gestiona la auto-actualización sin intervención del usuario.
+ */
+function registerServiceWorkerWithAutoUpdate() {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+
+  const swUrl = '/sw.js';
+  navigator.serviceWorker
+    .register(swUrl)
+    .catch(() => navigator.serviceWorker.register('/public/sw.js'))
+    .then((registration) => {
+      if (!registration) return;
+
+      // 1. Escuchar cuando se descarga una nueva versión del Service Worker
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            console.info('[PWA] Nueva versión lista. Forzando activación...');
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+
+      // 2. Comprobar actualizaciones automáticamente al volver a la pestaña/app
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          registration.update().catch(() => {});
+        }
+      });
+
+      // 3. Chequeo periódico en segundo plano cada 15 minutos
+      setInterval(() => {
+        registration.update().catch(() => {});
+      }, 15 * 60 * 1000);
+    })
+    .catch((err) => console.debug('[PWA] Service Worker registration note:', err));
+
+  // 4. Si el Service Worker activo cambia (controllerchange), recargar la app de forma transparente
+  let isRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (isRefreshing) return;
+    isRefreshing = true;
+    console.info('[PWA] Service Worker actualizado. Recargando para sincronizar versión...');
+    window.location.reload();
+  });
+}
+
+/**
  * Inicializa el sistema de instalación PWA
  */
 export function initPwaInstall() {
   if (isInitialized || typeof window === 'undefined') return;
   isInitialized = true;
 
-  // Registrar Service Worker para cumplir con requisitos PWA
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker
-      .register('/public/sw.js')
-      .catch((err) => console.debug('[PWA] Service Worker registration note:', err));
-  }
+  // Registrar Service Worker con auto-actualización
+  registerServiceWorkerWithAutoUpdate();
 
   // 1. Exclusivo para dispositivos móviles (NUNCA en PC o navegador desktop)
   if (!isMobileDevice()) {

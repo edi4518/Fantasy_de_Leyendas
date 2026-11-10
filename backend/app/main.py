@@ -81,7 +81,7 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 
 @app.middleware("http")
 async def configure_html_route_cache(request: Request, call_next):
-    """Permite BFCache (Back/Forward Cache) en las vistas HTML de la SPA evitando 'no-store' y revalidando con ETag."""
+    """Permite BFCache en vistas SPA y asegura que Service Worker y HTML nunca queden atrapados en caché."""
     response = await call_next(request)
     path = request.url.path
     if (
@@ -104,7 +104,12 @@ async def configure_html_route_cache(request: Request, call_next):
         )
         or path.startswith("/match/")
     ):
-        response.headers["Cache-Control"] = "public, max-age=0, must-revalidate"
+        response.headers["Cache-Control"] = "no-cache, must-revalidate, max-age=0"
+    elif path in ("/sw.js", "/public/sw.js"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        response.headers["Service-Worker-Allowed"] = "/"
     return response
 
 
@@ -379,19 +384,27 @@ else:
 
 FRONTEND_INDEX_HTML = os.path.join(FRONTEND_PUBLIC_DIR, "index.html")
 
+SRC_CACHE_HEADERS = {"Cache-Control": "public, max-age=0, must-revalidate"}
+PUBLIC_CACHE_HEADERS = {"Cache-Control": "public, max-age=3600, must-revalidate"}
 IMMUTABLE_CACHE_HEADERS = {"Cache-Control": "public, max-age=31536000, immutable"}
+SW_CACHE_HEADERS = {
+    "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+    "Service-Worker-Allowed": "/",
+}
 
 if os.path.isdir(FRONTEND_SRC_DIR):
     app.mount(
         "/src",
-        StaticFiles(directory=FRONTEND_SRC_DIR, html=True, headers=IMMUTABLE_CACHE_HEADERS),
+        StaticFiles(directory=FRONTEND_SRC_DIR, html=True, headers=SRC_CACHE_HEADERS),
         name="src",
     )
 
 if os.path.isdir(FRONTEND_PUBLIC_DIR):
     app.mount(
         "/public",
-        StaticFiles(directory=FRONTEND_PUBLIC_DIR, html=True, headers=IMMUTABLE_CACHE_HEADERS),
+        StaticFiles(directory=FRONTEND_PUBLIC_DIR, html=True, headers=PUBLIC_CACHE_HEADERS),
         name="public",
     )
     icons_dir = os.path.join(FRONTEND_PUBLIC_DIR, "icons")
@@ -410,6 +423,20 @@ if os.path.isdir(FRONTEND_PUBLIC_DIR):
         )
 
 
+@app.get("/sw.js", include_in_schema=False)
+@app.get("/public/sw.js", include_in_schema=False)
+def serve_service_worker():
+    """Sirve el Service Worker con cabeceras estrictas de no-cache para forzar actualización inmediata."""
+    for candidate in (
+        os.path.join(FRONTEND_PUBLIC_DIR, "sw.js"),
+        os.path.join(PROJECT_ROOT, "public", "sw.js"),
+        os.path.join(PROJECT_ROOT, "sw.js"),
+    ):
+        if os.path.isfile(candidate):
+            return FileResponse(candidate, media_type="application/javascript", headers=SW_CACHE_HEADERS)
+    return JSONResponse(status_code=404, content={"detail": "Service Worker not found"})
+
+
 @app.get("/manifest.webmanifest", include_in_schema=False)
 def serve_manifest():
     manifest_path = os.path.join(FRONTEND_PUBLIC_DIR, "manifest.webmanifest")
@@ -418,7 +445,7 @@ def serve_manifest():
     return JSONResponse(status_code=404, content={"detail": "Not found"})
 
 
-SPA_HTML_CACHE_HEADERS = {"Cache-Control": "public, max-age=0, must-revalidate"}
+SPA_HTML_CACHE_HEADERS = {"Cache-Control": "no-cache, must-revalidate, max-age=0"}
 
 
 @app.get("/", include_in_schema=False)
