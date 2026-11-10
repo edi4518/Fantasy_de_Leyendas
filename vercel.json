@@ -60,6 +60,22 @@
   ],
   "rewrites": [
     {
+      "source": "/apple-touch-icon.png",
+      "destination": "/public/icons/apple-touch-icon.png"
+    },
+    {
+      "source": "/apple-touch-icon-precomposed.png",
+      "destination": "/public/icons/apple-touch-icon.png"
+    },
+    {
+      "source": "/apple-touch-icon-180x180.png",
+      "destination": "/public/icons/apple-touch-icon.png"
+    },
+    {
+      "source": "/apple-touch-icon-180x180-precomposed.png",
+      "destination": "/public/icons/apple-touch-icon.png"
+    },
+    {
       "source": "/sw.js",
       "destination": "/public/sw.js"
     },

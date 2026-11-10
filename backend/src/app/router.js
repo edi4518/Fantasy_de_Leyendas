@@ -269,11 +269,29 @@ async function handleLocation() {
     appContent.innerHTML = html;
     appContent.scrollTop = 0;
     appContent.style.opacity = "1";
+    dismissInitialSplash();
     await loadScreenController(route);
   } catch (error) {
     console.error("[Router] Error cargando vista:", error);
     appContent.innerHTML = `<p class="error-message">Error al cargar la pantalla.</p>`;
     appContent.style.opacity = "1";
+    dismissInitialSplash();
+  }
+}
+
+/**
+ * Retira con desvanecimiento la pantalla de inicio inicial de la PWA
+ */
+function dismissInitialSplash() {
+  const splash = document.getElementById("pwa-app-splash");
+  if (splash) {
+    splash.style.opacity = "0";
+    splash.style.visibility = "hidden";
+    setTimeout(() => {
+      if (splash && splash.parentNode) {
+        splash.parentNode.removeChild(splash);
+      }
+    }, 350);
   }
 }
 

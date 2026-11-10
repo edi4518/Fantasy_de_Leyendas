@@ -464,11 +464,47 @@ def serve_service_worker():
 
 
 @app.get("/manifest.webmanifest", include_in_schema=False)
+@app.get("/manifest.json", include_in_schema=False)
 def serve_manifest():
-    manifest_path = os.path.join(FRONTEND_PUBLIC_DIR, "manifest.webmanifest")
-    if os.path.isfile(manifest_path):
-        return FileResponse(manifest_path, media_type="application/manifest+json")
-    return JSONResponse(status_code=404, content={"detail": "Not found"})
+    for candidate in (
+        os.path.join(FRONTEND_PUBLIC_DIR, "manifest.webmanifest"),
+        os.path.join(PROJECT_ROOT, "public", "manifest.webmanifest"),
+        os.path.join(BACKEND_ROOT, "public", "manifest.webmanifest"),
+    ):
+        if os.path.isfile(candidate):
+            return FileResponse(candidate, media_type="application/manifest+json", headers=PUBLIC_CACHE_HEADERS)
+    return JSONResponse(status_code=404, content={"detail": "Manifest not found"})
+
+
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
+@app.get("/apple-touch-icon-180x180.png", include_in_schema=False)
+@app.get("/apple-touch-icon-180x180-precomposed.png", include_in_schema=False)
+def serve_apple_touch_icon():
+    """Sirve el icono oficial de iOS con fondo sólido para pantalla de inicio."""
+    for candidate in (
+        os.path.join(PROJECT_ROOT, "apple-touch-icon.png"),
+        os.path.join(BACKEND_ROOT, "apple-touch-icon.png"),
+        os.path.join(FRONTEND_PUBLIC_DIR, "icons", "apple-touch-icon.png"),
+        os.path.join(BACKEND_ROOT, "public", "icons", "apple-touch-icon.png"),
+    ):
+        if os.path.isfile(candidate):
+            return FileResponse(candidate, media_type="image/png", headers=IMMUTABLE_CACHE_HEADERS)
+    return JSONResponse(status_code=404, content={"detail": "Apple touch icon not found"})
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def serve_favicon():
+    """Sirve el favicon.ico oficial para el navegador."""
+    for candidate in (
+        os.path.join(PROJECT_ROOT, "favicon.ico"),
+        os.path.join(BACKEND_ROOT, "favicon.ico"),
+        os.path.join(FRONTEND_PUBLIC_DIR, "favicon.ico"),
+        os.path.join(BACKEND_ROOT, "public", "favicon.ico"),
+    ):
+        if os.path.isfile(candidate):
+            return FileResponse(candidate, media_type="image/x-icon", headers=IMMUTABLE_CACHE_HEADERS)
+    return JSONResponse(status_code=404, content={"detail": "Favicon not found"})
 
 
 SPA_HTML_CACHE_HEADERS = {"Cache-Control": "no-cache, must-revalidate, max-age=0"}
@@ -491,10 +527,15 @@ SPA_HTML_CACHE_HEADERS = {"Cache-Control": "no-cache, must-revalidate, max-age=0
 @app.get("/match/{subpath:path}", include_in_schema=False)
 def serve_spa_index():
     """Sirve el index.html de la PWA en la raíz y en todas las rutas del router SPA habilitando BFCache (sin no-store)."""
-    if os.path.isfile(FRONTEND_INDEX_HTML):
-        return FileResponse(FRONTEND_INDEX_HTML, media_type="text/html", headers=SPA_HTML_CACHE_HEADERS)
-    root_index = os.path.join(PROJECT_ROOT, "index.html")
-    if os.path.isfile(root_index):
-        return FileResponse(root_index, media_type="text/html", headers=SPA_HTML_CACHE_HEADERS)
+    candidates = [
+        os.path.join(BACKEND_ROOT, "index.html"),
+        os.path.join(PROJECT_ROOT, "index.html"),
+        FRONTEND_INDEX_HTML,
+        os.path.join(BACKEND_ROOT, "public", "index.html"),
+        os.path.join(BACKEND_ROOT, "static_public", "index.html"),
+    ]
+    for c in candidates:
+        if c and os.path.isfile(c):
+            return FileResponse(c, media_type="text/html", headers=SPA_HTML_CACHE_HEADERS)
     return JSONResponse(status_code=200, content={"status": "Fantasy de Leyendas API Online"})
 

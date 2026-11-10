@@ -65,7 +65,7 @@
   }
 }
 
-/* --- 2.2 Encabezado de Login (Badge e Isotipo) --- */
+/* --- 2.2 Encabezado de Login (Logo Oficial e Isotipo) --- */
 .login-header {
   display: flex;
   flex-direction: column;
@@ -73,6 +73,40 @@
   text-align: center;
   margin-top: 4px;
   flex-shrink: 0;
+}
+
+.login-brand-wrapper {
+  width: 76px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.login-brand-logo {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.08));
+}
+
+.register-brand-badge {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.register-brand-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  display: block;
 }
 
 .trophy-badge {
