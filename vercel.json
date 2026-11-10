@@ -1,11 +1,32 @@
 {
   "headers": [
     {
+      "source": "/(sw\\.js|public/sw\\.js)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate, max-age=0"
+        },
+        {
+          "key": "Pragma",
+          "value": "no-cache"
+        },
+        {
+          "key": "Expires",
+          "value": "0"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    },
+    {
       "source": "/(index\\.html|onboarding|login|register|dashboard|matchmaking|market|comparison|lineup|history|ranking|profile|admin)",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
+          "value": "no-cache, must-revalidate, max-age=0"
         }
       ]
     },
@@ -23,7 +44,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
+          "value": "public, max-age=3600, must-revalidate"
         }
       ]
     },
@@ -38,6 +59,10 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/sw.js",
+      "destination": "/public/sw.js"
+    },
     {
       "source": "/api/:path*",
       "destination": "https://fantasy-de-leyendas-api.onrender.com/api/:path*"
