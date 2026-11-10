@@ -318,13 +318,13 @@ def save_squad(
                 user_id=user.id,
                 player_id=player_db.id,
                 precio_compra=float(player_db.precio or 0.0),
-                energia=energia_clean if energia_clean is not None else 100,
+                energia=100,  # Jugador recién fichado en el mercado arranca con energía al 100%
             )
             db.add(up)
             db.flush()
             existing_by_pid[player_db.id] = up
-        elif energia_clean is not None:
-            up.energia = energia_clean
+        # SEGURIDAD ANTI-CHEAT: Si el jugador ya existe en el club, /squads/save NUNCA modifica su energía.
+        # Se preserva la energía oficial calculada por el servidor y registrada en la base de datos.
 
         pj = PlantillaJugador(
             plantilla_id=plantilla.id,

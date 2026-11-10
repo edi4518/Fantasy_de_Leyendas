@@ -295,7 +295,7 @@ def record_finished_match(
     up_by_pid = {up.player_id: up for up in user_players}
 
     if payload.squad_players:
-        for sp in payload.squad_players:
+        for slot_idx, sp in enumerate(payload.squad_players):
             if not sp or not isinstance(sp, dict):
                 continue
             pid = sp.get("id")
@@ -304,7 +304,19 @@ def record_finished_match(
                 raw_eng = sp.get("energia")
                 if raw_eng is not None:
                     try:
-                        up.energia = max(0, min(100, int(round(float(raw_eng)))))
+                        proposed_eng = max(0, min(100, int(round(float(raw_eng)))))
+                        current_db_energy = int(up.energia if up.energia is not None else 100)
+
+                        # SEGURIDAD ANTI-CHEAT EN SERVIDOR:
+                        # 1. Los titulares (slots 0..5) que disputaron el partido DEBEN desgastarse:
+                        #    su energía nunca puede superar la que ya tenían en la base de datos.
+                        if slot_idx < 6:
+                            up.energia = min(current_db_energy, proposed_eng)
+                        else:
+                            # 2. Los suplentes (slots 6..9) en el banquillo recuperan descanso gradualmente:
+                            #    máximo +40% de incremento por partido respecto a su valor actual en BD.
+                            max_allowed_recovery = min(100, current_db_energy + 40)
+                            up.energia = min(max_allowed_recovery, max(current_db_energy, proposed_eng))
                     except (ValueError, TypeError):
                         pass
 
