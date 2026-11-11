@@ -157,6 +157,15 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  overflow: hidden;
+}
+
+.podium-avatar img.podium-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .podium-avatar--first {
@@ -338,12 +347,19 @@
 }
 
 .avatar-icon-sm,
-.item-avatar svg,
-.item-avatar img {
+.item-avatar svg {
   width: 18px;
   height: 18px;
   color: #94a3b8;
   stroke: #94a3b8;
+}
+
+.item-avatar img.item-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .item-name {
@@ -496,6 +512,15 @@
   justify-content: center;
   margin: 0 10px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.user-avatar-badge img.user-avatar-badge-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .user-avatar-badge .avatar-icon-sm {
