@@ -3,6 +3,9 @@
  * @description Servicio centralizado para la clasificación de la liga en Fantasy de Leyendas.
  * Consulta directamente a los mánagers reales desde la base de datos MySQL / TiDB Cloud,
  * asegurando consistencia matemática exacta entre Dashboard y la vista de Ranking sin datos hardcodeados.
+ * Todo usuario nuevo comienza con 1000 pts base y es rankeado con los demás sin importar que haya disputado o no un partido.
+ * Un jugador no puede tener menos de 0 pts.
+ * Al finalizar un partido: si sube en el ranking aparece ↑ verde, si baja ↓ roja, si se mantiene =. Si no ha jugado aparece -.
  */
 
 import { apiClient } from './api-client.js';
@@ -31,16 +34,8 @@ export async function getUnifiedLeaderboard() {
 
   const combined = dbLeaderboard.map(u => {
     const matches = Number(u.partidos_jugados || 0);
-    const points = Number(u.elo_rating ?? 1000);
+    const points = Math.max(0, Number(u.elo_rating ?? 1000));
     const hasPlayed = Boolean(u.has_played || matches > 0);
-
-    let trend = 'neutral';
-    if (hasPlayed) {
-      if (points > 1000) trend = 'up';
-      else if (points < 1000) trend = 'down';
-      else if ((u.victorias || 0) > (u.derrotas || 0)) trend = 'up';
-      else if ((u.derrotas || 0) > (u.victorias || 0)) trend = 'down';
-    }
 
     return {
       name: u.manager_name || 'Mánager',
@@ -48,7 +43,8 @@ export async function getUnifiedLeaderboard() {
       team_name: u.team_name || 'Sin club',
       points: points,
       elo_rating: points,
-      trend: trend,
+      trend: hasPlayed ? 'same' : 'neutral',
+      trend_symbol: hasPlayed ? '=' : '-',
       isDbUser: true,
       userId: u.user_id,
       email: u.email,
@@ -79,13 +75,8 @@ export async function getUnifiedLeaderboard() {
         if (raw) rawStats = JSON.parse(raw);
       } catch (_) {}
       const matches = Number(rawStats?.matchesPlayed || savedUser.partidos_jugados || 0);
-      const points = Number(savedUser.elo_rating ?? 1000);
+      const points = Math.max(0, Number(savedUser.elo_rating ?? 1000));
       const hasPlayed = matches > 0;
-      let trend = 'neutral';
-      if (hasPlayed) {
-        if (points > 1000) trend = 'up';
-        else if (points < 1000) trend = 'down';
-      }
       let squadName = null;
       try {
         const sq = localStorage.getItem('fantasy_active_squad');
@@ -99,7 +90,8 @@ export async function getUnifiedLeaderboard() {
         team_name: effectiveTeamName,
         points: points,
         elo_rating: points,
-        trend: trend,
+        trend: hasPlayed ? 'same' : 'neutral',
+        trend_symbol: hasPlayed ? '=' : '-',
         isDbUser: true,
         userId: savedUser.id,
         email: savedUser.email,
@@ -118,52 +110,116 @@ export async function getUnifiedLeaderboard() {
     }
   }
 
-  // Ordenar:
-  // 1. Mánagers con partidos disputados (has_played === true) ordenados por puntos ELO desc
-  // 2. Desempate por diferencia de gol y victorias
-  // 3. Mánagers sin partidos disputados (has_played === false) al final
+  // Ordenar a TODOS los usuarios por puntos ELO de mayor a menor (sin importar si jugaron o no)
+  // Desempate por diferencia de gol y victorias
   combined.sort((a, b) => {
-    if (a.has_played && !b.has_played) return -1;
-    if (!a.has_played && b.has_played) return 1;
     if (b.points !== a.points) return b.points - a.points;
     if ((b.diferencia_gol || 0) !== (a.diferencia_gol || 0)) return (b.diferencia_gol || 0) - (a.diferencia_gol || 0);
     return (b.victorias || 0) - (a.victorias || 0);
   });
 
-  // Asignar posición de clasificación a competidores que han jugado
+  // Asignar posición en el ranking a TODOS los participantes
   let rankCounter = 1;
   combined.forEach((entry) => {
-    if (entry.has_played) {
-      entry.rank = rankCounter++;
+    entry.rank = rankCounter++;
+  });
+
+  // Mapa histórico de posiciones guardadas para detectar subidas, bajadas o permanencias
+  let previousRanksMap = {};
+  try {
+    const rawPrevMap = localStorage.getItem('fantasy_previous_ranks_map');
+    if (rawPrevMap) previousRanksMap = JSON.parse(rawPrevMap);
+  } catch (_) {
+    previousRanksMap = {};
+  }
+
+  const currentUserId = savedUser?.id ? Number(savedUser.id) : null;
+  const userRankMovement = localStorage.getItem('fantasy_rank_movement');
+  const userPreviousRank = localStorage.getItem('fantasy_previous_rank');
+
+  // Calcular flechas según movimiento de posición en el ranking
+  combined.forEach((entry) => {
+    if (!entry.has_played) {
+      entry.trend = 'neutral';
+      entry.trend_symbol = '-';
+      return;
+    }
+
+    const isUser = Boolean(currentUserId && entry.userId && Number(entry.userId) === currentUserId);
+
+    if (isUser && userRankMovement) {
+      if (userRankMovement === 'up') {
+        entry.trend = 'up';
+        entry.trend_symbol = '↑';
+        return;
+      } else if (userRankMovement === 'down') {
+        entry.trend = 'down';
+        entry.trend_symbol = '↓';
+        return;
+      } else if (userRankMovement === 'same') {
+        entry.trend = 'same';
+        entry.trend_symbol = '=';
+        return;
+      }
+    }
+
+    const userKey = entry.userId ? `uid_${entry.userId}` : (entry.email || entry.manager_name);
+    const prevRank = isUser && userPreviousRank ? Number(userPreviousRank) : previousRanksMap[userKey];
+
+    if (prevRank !== undefined && prevRank !== null && Number.isInteger(Number(prevRank))) {
+      const prevNum = Number(prevRank);
+      if (entry.rank < prevNum) {
+        // Mejor posición (ej. de 5 a 3) -> Subió en el ranking
+        entry.trend = 'up';
+        entry.trend_symbol = '↑';
+      } else if (entry.rank > prevNum) {
+        // Peor posición (ej. de 2 a 4) -> Bajó en el ranking
+        entry.trend = 'down';
+        entry.trend_symbol = '↓';
+      } else {
+        // Mismo puesto -> Se mantiene en el ranking
+        entry.trend = 'same';
+        entry.trend_symbol = '=';
+      }
     } else {
-      entry.rank = null;
+      // Si finalizó un partido y no hay histórico previo, se mantiene
+      entry.trend = 'same';
+      entry.trend_symbol = '=';
     }
   });
+
+  // Guardar snapshot de las posiciones actuales para futuras comparaciones
+  try {
+    const nextRanksMap = { ...previousRanksMap };
+    combined.forEach((entry) => {
+      if (entry.rank) {
+        const userKey = entry.userId ? `uid_${entry.userId}` : (entry.email || entry.manager_name);
+        if (nextRanksMap[userKey] === undefined) {
+          nextRanksMap[userKey] = entry.rank;
+        }
+      }
+    });
+    localStorage.setItem('fantasy_previous_ranks_map', JSON.stringify(nextRanksMap));
+  } catch (_) {}
 
   return combined;
 }
 
 /**
  * Resuelve la posición de clasificación del mánager conectado.
- * Si el mánager NO ha jugado partidos (hasPlayed === false),
- * retorna '-' para evitar asignarle una posición numérica ilógica antes de debutar.
+ * Todos los usuarios registrados tienen su posición numérica (#1, #2, etc.).
  */
 export function getUserRankInfo(leaderboard, savedUser, teamName, hasPlayed) {
-  if (!hasPlayed) {
-    return {
-      rank: null,
-      displayRank: '-',
-      points: Number(savedUser?.elo_rating ?? 1000),
-      hasPlayed: false
-    };
-  }
+  const safePoints = Math.max(0, Number(savedUser?.elo_rating ?? 1000));
 
   if (!Array.isArray(leaderboard) || leaderboard.length === 0) {
     return {
-      rank: null,
-      displayRank: '-',
-      points: Number(savedUser?.elo_rating ?? 1000),
-      hasPlayed: false
+      rank: 1,
+      displayRank: '#1',
+      points: safePoints,
+      hasPlayed: Boolean(hasPlayed),
+      trend: hasPlayed ? 'same' : 'neutral',
+      trend_symbol: hasPlayed ? '=' : '-'
     };
   }
 
@@ -177,17 +233,20 @@ export function getUserRankInfo(leaderboard, savedUser, teamName, hasPlayed) {
     return {
       rank: found.rank,
       displayRank: `#${found.rank}`,
-      points: found.points,
-      hasPlayed: Boolean(found.has_played)
+      points: Math.max(0, Number(found.points ?? safePoints)),
+      hasPlayed: Boolean(found.has_played),
+      trend: found.has_played ? (found.trend || 'same') : 'neutral',
+      trend_symbol: found.has_played ? (found.trend_symbol || '=') : '-'
     };
   }
 
-  const playedCount = leaderboard.filter(e => e.has_played).length;
-  const computedRank = playedCount > 0 ? playedCount : 1;
+  const nextPos = leaderboard.length + 1;
   return {
-    rank: computedRank,
-    displayRank: `#${computedRank}`,
-    points: Number(savedUser?.elo_rating ?? 1000),
-    hasPlayed: true
+    rank: nextPos,
+    displayRank: `#${nextPos}`,
+    points: safePoints,
+    hasPlayed: Boolean(hasPlayed),
+    trend: hasPlayed ? 'same' : 'neutral',
+    trend_symbol: hasPlayed ? '=' : '-'
   };
 }

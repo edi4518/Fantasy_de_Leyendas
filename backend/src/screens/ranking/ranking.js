@@ -3,7 +3,9 @@
  * @description Controlador de la pantalla de Ranking Global.
  * Mapea 100% los competidores y posiciones desde la base de datos real en TiDB Cloud,
  * renderizando podio dinámico, nombres de mánager con subtítulo de club en gris claro,
- * avatar del mánager y competidores sincronizados, y tendencias de flechas precisas.
+ * avatar del mánager y competidores sincronizados, y tendencias de flechas precisas:
+ * ↑ (verde) si sube de ranking, ↓ (roja) si baja, = si se mantiene, - si no ha jugado.
+ * Los usuarios nuevos inician con 1000 pts y nunca pueden tener menos de 0 pts.
  */
 
 import { API_BASE_URL } from '../../services/api-client.js';
@@ -114,36 +116,29 @@ function setPodiumAvatar(stepNum, entry, savedUser) {
 }
 
 /**
- * Calcula el símbolo y clase CSS de la tendencia (↑ verde, ↓ roja, - neutra)
- * según el historial de partidos y los puntos ELO.
+ * Calcula el símbolo y clase CSS de la tendencia según la posición en el ranking:
+ * - Si no ha jugado: '-' neutro
+ * - Si subió en el ranking: '↑' verde
+ * - Si bajó en el ranking: '↓' roja
+ * - Si se mantiene en el mismo puesto (gana, empata o pierde): '='
  */
-function getTrendDetails(entry, lastMatchResult = null) {
-  const points = Number(entry?.points ?? entry?.elo_rating ?? 1000);
+function getTrendDetails(entry) {
   const matches = Number(entry?.partidos_jugados ?? entry?.matches ?? 0);
   const hasPlayed = Boolean(entry?.has_played || matches > 0);
 
-  if (!hasPlayed) {
+  if (!hasPlayed || entry?.rank === null || entry?.rank === undefined) {
     return { symbol: '-', class: 'trend-neutral' };
   }
 
-  if (lastMatchResult === 'V' || lastMatchResult === 'VICTORIA') {
-    return { symbol: '↑', class: 'trend-up' };
-  }
-  if (lastMatchResult === 'D' || lastMatchResult === 'DERROTA') {
-    return { symbol: '↓', class: 'trend-down' };
-  }
+  const trend = entry?.trend || 'same';
 
-  if (points > 1000) {
+  if (trend === 'up') {
     return { symbol: '↑', class: 'trend-up' };
-  } else if (points < 1000) {
-    return { symbol: '↓', class: 'trend-down' };
-  } else {
-    const wins = Number(entry?.victorias || 0);
-    const losses = Number(entry?.derrotas || 0);
-    if (wins > losses) return { symbol: '↑', class: 'trend-up' };
-    if (losses > wins) return { symbol: '↓', class: 'trend-down' };
-    return { symbol: '-', class: 'trend-neutral' };
   }
+  if (trend === 'down') {
+    return { symbol: '↓', class: 'trend-down' };
+  }
+  return { symbol: '=', class: 'trend-same' };
 }
 
 /**
@@ -162,16 +157,16 @@ export async function initRanking() {
     savedUser = {};
   }
 
-  // 1. Obtener la tabla real desde la base de datos
+  // 1. Obtener la tabla real desde la base de datos con posiciones y tendencias exactas
   const combinedEntries = await getUnifiedLeaderboard();
 
   // 2. Renderizar Podio Top 3 dinámico (1ro, 2do y 3ro) con avatares
   renderPodium(combinedEntries.slice(0, 3), savedUser);
 
-  // 3. Renderizar listado de clasificados (puestos 4 en adelante) con avatares
+  // 3. Renderizar listado de clasificados (puestos 4 en adelante) con avatares y tendencias
   renderRankingList(container, combinedEntries.slice(3), savedUser);
 
-  // 4. Renderizar tarjeta fija del mánager conectado con su avatar
+  // 4. Renderizar tarjeta fija del mánager conectado con su avatar y posición real
   renderCurrentUserCard(container, combinedEntries);
 }
 
@@ -186,7 +181,10 @@ function renderPodium(top3, savedUser = {}) {
   const points1 = document.getElementById('podium-points-1');
   if (name1) name1.textContent = first ? first.manager_name : '-';
   if (team1) team1.textContent = first ? first.team_name : 'Sin club';
-  if (points1) points1.textContent = first ? `${first.points.toLocaleString('es-AR')} pts` : '- pts';
+  if (points1) {
+    const pts = Math.max(0, Number(first?.points ?? 0));
+    points1.textContent = first ? `${pts.toLocaleString('es-AR')} pts` : '- pts';
+  }
   setPodiumAvatar(1, first, savedUser);
 
   // Puesto 2 (Plata - Izquierda)
@@ -196,7 +194,10 @@ function renderPodium(top3, savedUser = {}) {
   const points2 = document.getElementById('podium-points-2');
   if (name2) name2.textContent = second ? second.manager_name : '-';
   if (team2) team2.textContent = second ? second.team_name : 'Sin club';
-  if (points2) points2.textContent = second ? `${second.points.toLocaleString('es-AR')} pts` : '- pts';
+  if (points2) {
+    const pts = Math.max(0, Number(second?.points ?? 0));
+    points2.textContent = second ? `${pts.toLocaleString('es-AR')} pts` : '- pts';
+  }
   setPodiumAvatar(2, second, savedUser);
 
   // Puesto 3 (Bronce - Derecha)
@@ -206,12 +207,15 @@ function renderPodium(top3, savedUser = {}) {
   const points3 = document.getElementById('podium-points-3');
   if (name3) name3.textContent = third ? third.manager_name : '-';
   if (team3) team3.textContent = third ? third.team_name : 'Sin club';
-  if (points3) points3.textContent = third ? `${third.points.toLocaleString('es-AR')} pts` : '- pts';
+  if (points3) {
+    const pts = Math.max(0, Number(third?.points ?? 0));
+    points3.textContent = third ? `${pts.toLocaleString('es-AR')} pts` : '- pts';
+  }
   setPodiumAvatar(3, third, savedUser);
 }
 
 /**
- * Renderiza los puestos del 4 en adelante en tarjetas compactas con sus avatares
+ * Renderiza los puestos del 4 en adelante en tarjetas compactas con sus avatares y tendencias
  */
 function renderRankingList(container, listEntries, savedUser = {}) {
   let listEl = document.getElementById('ranking-list');
@@ -234,7 +238,8 @@ function renderRankingList(container, listEntries, savedUser = {}) {
 
   listEl.innerHTML = listEntries.map(item => {
     const trend = getTrendDetails(item);
-    const rankDisplay = item.has_played && item.rank ? item.rank : '-';
+    const rankDisplay = item.rank ? item.rank : '-';
+    const safePoints = Math.max(0, Number(item.points ?? 0));
     const itemAvatarUrl = resolveEntryAvatarUrl(item, savedUser);
     const itemAvatarHtml = itemAvatarUrl
       ? `<img src="${itemAvatarUrl}" alt="${item.manager_name || 'Mánager'}" class="item-avatar-img" referrerpolicy="no-referrer" onerror="this.outerHTML=\`${SM_AVATAR_FALLBACK_SVG.replace(/"/g, '&quot;')}\`">`
@@ -251,7 +256,7 @@ function renderRankingList(container, listEntries, savedUser = {}) {
           <span class="item-team-name">${item.team_name || 'Sin club'}</span>
         </div>
         <div class="item-stats">
-          <span class="item-points">${item.points.toLocaleString('es-AR')} pts</span>
+          <span class="item-points">${safePoints.toLocaleString('es-AR')} pts</span>
           <span class="item-trend ${trend.class}">${trend.symbol}</span>
         </div>
       </li>
@@ -260,7 +265,7 @@ function renderRankingList(container, listEntries, savedUser = {}) {
 }
 
 /**
- * Renderiza la tarjeta fija del mánager conectado con su posición real sincronizada y avatar
+ * Renderiza la tarjeta fija del mánager conectado con su posición real sincronizada, avatar y tendencia
  */
 function renderCurrentUserCard(container, combinedEntries) {
   const rawUser = localStorage.getItem('user') || localStorage.getItem('fantasy_logged_user') || localStorage.getItem('fantasy_user') || '{}';
@@ -280,18 +285,9 @@ function renderCurrentUserCard(container, combinedEntries) {
   const managerDisplayName = savedUser.name || (savedUser.first_name ? `${savedUser.first_name} ${savedUser.last_name || ''}`.trim() : null) || savedUser.username || 'Mi Equipo';
 
   let rawStats = null;
-  let lastMatchLetter = null;
   try {
     const raw = localStorage.getItem('fantasy_user_stats');
     if (raw) rawStats = JSON.parse(raw);
-    const rawH = localStorage.getItem('fantasy_match_history');
-    if (rawH) {
-      const historyArr = JSON.parse(rawH);
-      if (Array.isArray(historyArr) && historyArr.length > 0) {
-        const res = historyArr[0].resultado;
-        lastMatchLetter = res === 'VICTORIA' ? 'V' : (res === 'DERROTA' ? 'D' : 'E');
-      }
-    }
   } catch (_) {}
 
   const myEntry = combinedEntries.find(e =>
@@ -308,9 +304,9 @@ function renderCurrentUserCard(container, combinedEntries) {
 
   const rankInfo = getUserRankInfo(combinedEntries, savedUser, teamName, hasPlayed);
   const userRankText = rankInfo.displayRank;
-  const userPoints = Number(rankInfo.points ?? savedUser.elo_rating ?? 1000);
+  const userPoints = Math.max(0, Number(rankInfo.points ?? savedUser.elo_rating ?? 1000));
 
-  const userTrend = getTrendDetails(myEntry || { points: userPoints, has_played: hasPlayed }, lastMatchLetter);
+  const userTrend = getTrendDetails(myEntry || { has_played: hasPlayed, rank: rankInfo.rank, trend: rankInfo.trend });
 
   const userAvatarUrl = resolveUserAvatarUrl();
   const userAvatarHtml = userAvatarUrl
@@ -349,15 +345,25 @@ function renderCurrentUserCard(container, combinedEntries) {
   `;
 }
 
-// Escuchar cambios de perfil / avatar en tiempo real
+// Escuchar cambios de perfil / avatar y partidos jugados en tiempo real
 if (typeof window !== 'undefined' && !window._fantasyRankingListenersAttached) {
   window._fantasyRankingListenersAttached = true;
   window.addEventListener('storage', (e) => {
-    if (e.key === 'user_avatar' || e.key === 'user' || e.key === 'team_name') {
+    if (
+      e.key === 'user_avatar' ||
+      e.key === 'user' ||
+      e.key === 'team_name' ||
+      e.key === 'fantasy_user_stats' ||
+      e.key === 'fantasy_rank_movement' ||
+      e.key === 'fantasy_current_rank'
+    ) {
       initRanking();
     }
   });
   window.addEventListener('fantasy:profile-updated', () => {
+    initRanking();
+  });
+  window.addEventListener('fantasy:match-finished', () => {
     initRanking();
   });
 }

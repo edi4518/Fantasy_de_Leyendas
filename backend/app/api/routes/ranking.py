@@ -18,8 +18,7 @@ _LEADERBOARD_TTL = 30.0
 
 def _user_rank_sort_key(user: User):
     return (
-        1 if (user.partidos_jugados or 0) > 0 else 0,
-        user.elo_rating if user.elo_rating is not None else 1000,
+        max(0, user.elo_rating if user.elo_rating is not None else 1000),
         (user.goles_favor or 0) - (user.goles_contra or 0),
         user.victorias or 0,
         -(user.id or 0),
@@ -33,11 +32,10 @@ def invalidate_leaderboard_cache():
 
 def get_user_rank(db: Session, user_id: int):
     users = db.query(User).all()
-    ranked_users = [user for user in users if (user.partidos_jugados or 0) > 0]
-    ranked_users.sort(key=_user_rank_sort_key, reverse=True)
+    users.sort(key=_user_rank_sort_key, reverse=True)
 
     return next(
-        (position for position, user in enumerate(ranked_users, start=1) if user.id == user_id),
+        (position for position, user in enumerate(users, start=1) if user.id == user_id),
         None,
     )
 
@@ -59,7 +57,7 @@ def get_leaderboard(db: Session = Depends(get_db)):
             "email": u.email,
             "manager_name": f"{u.nombre} {u.apellido}".strip(),
             "team_name": u.team_name,
-            "elo_rating": u.elo_rating if u.elo_rating is not None else 1000,
+            "elo_rating": max(0, u.elo_rating if u.elo_rating is not None else 1000),
             "partidos_jugados": u.partidos_jugados or 0,
             "has_played": bool((u.partidos_jugados or 0) > 0),
             "victorias": u.victorias or 0,

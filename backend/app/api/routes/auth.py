@@ -135,7 +135,7 @@ def serialize_user(user: User) -> dict:
         "avatar_url": user.photo_url,
         "avatarUrl": user.photo_url,
         "presupuesto": float(user.presupuesto if user.presupuesto is not None else 150.0),
-        "elo_rating": user.elo_rating if user.elo_rating is not None else 1000,
+        "elo_rating": max(0, user.elo_rating if user.elo_rating is not None else 1000),
         "partidos_jugados": user.partidos_jugados or 0,
         "victorias": user.victorias or 0,
         "empates": user.empates or 0,
