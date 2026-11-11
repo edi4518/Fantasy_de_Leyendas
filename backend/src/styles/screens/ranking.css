@@ -433,8 +433,10 @@
   color: #ef4444;
 }
 
-.trend-neutral {
+.trend-neutral,
+.trend-same {
   color: #94a3b8;
+  font-weight: 700;
 }
 
 /* --------------------------------------------------------------------------
@@ -590,8 +592,10 @@
   color: #fca5a5 !important;
 }
 
-.user-points-trend.trend-neutral {
+.user-points-trend.trend-neutral,
+.user-points-trend.trend-same {
   color: #cbd5e1 !important;
+  font-weight: 700;
 }
 
 /* --------------------------------------------------------------------------

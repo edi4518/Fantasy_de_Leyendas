@@ -266,10 +266,26 @@ export const matchService = {
           try {
             const rawStats = localStorage.getItem(STORAGE_KEYS.STATS);
             const updatedStats = rawStats ? JSON.parse(rawStats) : {};
+            const prevRank = Number.isInteger(res?.previous_rank)
+              ? res.previous_rank
+              : (updatedStats.ranking || null);
+
+            updatedStats.previous_ranking = prevRank;
             updatedStats.ranking = res.current_rank;
             localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(updatedStats));
+
+            if (prevRank) {
+              localStorage.setItem('fantasy_previous_rank', String(prevRank));
+            }
+            localStorage.setItem('fantasy_current_rank', String(res.current_rank));
+
+            const movement = res.rank_movement || (prevRank ? (res.current_rank < prevRank ? 'up' : (res.current_rank > prevRank ? 'down' : 'same')) : 'same');
+            localStorage.setItem('fantasy_rank_movement', movement);
+
             if (matchData.saveOutcome?.currentStats) {
               matchData.saveOutcome.currentStats.ranking = res.current_rank;
+              matchData.saveOutcome.currentStats.previous_ranking = prevRank;
+              matchData.saveOutcome.currentStats.rank_movement = movement;
             }
           } catch (err) {
             console.warn('[MatchService] Error guardando la posición actual:', err);

@@ -183,7 +183,8 @@ def get_current_manager_profile(request: Request, db: Session = Depends(get_db))
         "team_name": user.team_name,
         "email": user.email,
         "season": "Temporada 24 / 25",
-        "ranking": user.elo_rating if user.elo_rating is not None else 1000,
+        "ranking": max(0, user.elo_rating if user.elo_rating is not None else 1000),
+        "elo_rating": max(0, user.elo_rating if user.elo_rating is not None else 1000),
         "presupuesto": float(user.presupuesto if user.presupuesto is not None else 150.0),
         "partidos_jugados": user.partidos_jugados or 0,
         "victorias": user.victorias or 0,
@@ -284,7 +285,8 @@ def update_current_manager_profile(
         "last_name": user.apellido,
         "team_name": user.team_name,
         "email": user.email,
-        "ranking": user.elo_rating if user.elo_rating is not None else 1000,
+        "ranking": max(0, user.elo_rating if user.elo_rating is not None else 1000),
+        "elo_rating": max(0, user.elo_rating if user.elo_rating is not None else 1000),
         "presupuesto": float(user.presupuesto if user.presupuesto is not None else 150.0),
         "avatarUrl": (
             user.photo_url

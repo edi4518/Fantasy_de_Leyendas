@@ -319,7 +319,8 @@ def record_finished_match(
             )
         )
 
-    # 5. Actualizar récord competitivo y ELO del mánager en 'users' (respetando 0 sin resetear a 1000)
+    # 5. Actualizar récord competitivo y ELO del mánager en 'users' (respetando 0 sin permitir valores negativos)
+    previous_rank = get_user_rank(db, user.id)
     current_elo = user.elo_rating if user.elo_rating is not None else 1000
     user.elo_rating = max(0, current_elo + elo_var_local)
     user.partidos_jugados = (user.partidos_jugados or 0) + 1
@@ -406,6 +407,17 @@ def record_finished_match(
     invalidate_leaderboard_cache()
     current_rank = get_user_rank(db, user.id)
 
+    rank_movement = "same"
+    if previous_rank is not None and current_rank is not None:
+        if current_rank < previous_rank:
+            rank_movement = "up"
+        elif current_rank > previous_rank:
+            rank_movement = "down"
+        else:
+            rank_movement = "same"
+    elif current_rank is not None:
+        rank_movement = "same"
+
     return {
         "status": "recorded",
         "partido_id": partido.id,
@@ -413,7 +425,9 @@ def record_finished_match(
         "resultado": res_label,
         "variacion_elo": elo_var_local,
         "nuevo_elo": user.elo_rating,
+        "previous_rank": previous_rank,
         "current_rank": current_rank,
+        "rank_movement": rank_movement,
         "record": {
             "partidos_jugados": user.partidos_jugados,
             "victorias": user.victorias,
