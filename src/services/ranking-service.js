@@ -60,7 +60,9 @@ export async function getUnifiedLeaderboard() {
       victorias: u.victorias || 0,
       derrotas: u.derrotas || 0,
       empates: u.empates || 0,
-      photo_url: u.photo_url || null
+      photo_url: u.photo_url || null,
+      avatar_url: u.photo_url || u.avatar_url || null,
+      avatarUrl: u.photo_url || u.avatarUrl || null
     };
   });
 
@@ -109,7 +111,9 @@ export async function getUnifiedLeaderboard() {
         victorias: 0,
         derrotas: 0,
         empates: 0,
-        photo_url: savedUser.photo_url || null
+        photo_url: savedUser.photo_url || savedUser.avatar_url || savedUser.avatarUrl || null,
+        avatar_url: savedUser.avatar_url || savedUser.avatarUrl || savedUser.photo_url || null,
+        avatarUrl: savedUser.avatarUrl || savedUser.avatar_url || savedUser.photo_url || null
       });
     }
   }

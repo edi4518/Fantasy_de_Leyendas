@@ -3,10 +3,115 @@
  * @description Controlador de la pantalla de Ranking Global.
  * Mapea 100% los competidores y posiciones desde la base de datos real en TiDB Cloud,
  * renderizando podio dinámico, nombres de mánager con subtítulo de club en gris claro,
- * y tendencias de flechas precisas (↑ verde / ↓ roja) según resultados y ELO.
+ * avatar del mánager y competidores sincronizados, y tendencias de flechas precisas.
  */
 
+import { API_BASE_URL } from '../../services/api-client.js';
 import { getUnifiedLeaderboard, getUserRankInfo } from '../../services/ranking-service.js';
+
+const PODIUM_AVATAR_FALLBACK_SVG = `
+  <svg class="avatar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round"
+      stroke-linejoin="round" stroke-width="2"></path>
+  </svg>
+`;
+
+const SM_AVATAR_FALLBACK_SVG = `
+  <svg class="avatar-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round"
+      stroke-linejoin="round" stroke-width="2"></path>
+  </svg>
+`;
+
+/**
+ * Normaliza URLs relativas de avatares para que apunten al host del backend o se sirvan directamente
+ */
+function normalizeManagerAvatarOrigin(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+  if (
+    trimmed.startsWith('data:image/') ||
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://')
+  ) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/uploads/')) {
+    const apiOrigin = (API_BASE_URL || '').replace(/\/api\/?$/, '');
+    return `${apiOrigin}${trimmed}`;
+  }
+  return trimmed;
+}
+
+/**
+ * Resuelve la URL del avatar del mánager conectado desde localStorage / perfil
+ */
+function resolveUserAvatarUrl() {
+  let localAvatar = null;
+  let localUser = null;
+  try {
+    localAvatar = localStorage.getItem('user_avatar') || null;
+    const rawUser = localStorage.getItem('user') || localStorage.getItem('fantasy_logged_user') || localStorage.getItem('fantasy_user');
+    if (rawUser) localUser = JSON.parse(rawUser);
+  } catch (_) {}
+
+  const localUserAvatar =
+    localUser?.photo_url ||
+    localUser?.avatar_url ||
+    localUser?.avatarUrl ||
+    localUser?.avatar ||
+    localUser?.profile_picture ||
+    null;
+
+  if (localAvatar && localAvatar.startsWith('data:image/')) {
+    return localAvatar;
+  }
+
+  return (
+    normalizeManagerAvatarOrigin(localAvatar) ||
+    normalizeManagerAvatarOrigin(localUserAvatar) ||
+    null
+  );
+}
+
+/**
+ * Resuelve la URL de avatar para una entrada del ranking (podio o lista).
+ * Si la entrada corresponde al usuario conectado, sincroniza con su avatar local en tiempo real.
+ */
+function resolveEntryAvatarUrl(entry, savedUser) {
+  if (!entry) return null;
+
+  const isCurrentUser = Boolean(
+    (savedUser?.id && entry.userId && Number(entry.userId) === Number(savedUser.id)) ||
+    (savedUser?.email && entry.email && entry.email.toLowerCase() === savedUser.email.toLowerCase()) ||
+    (entry.is_current_user)
+  );
+
+  if (isCurrentUser) {
+    const myAvatar = resolveUserAvatarUrl();
+    if (myAvatar) return myAvatar;
+  }
+
+  const rawUrl = entry.photo_url || entry.avatar_url || entry.avatarUrl || entry.avatar || null;
+  return normalizeManagerAvatarOrigin(rawUrl);
+}
+
+/**
+ * Asigna la imagen o el SVG fallback a un contenedor de avatar en el podio
+ */
+function setPodiumAvatar(stepNum, entry, savedUser) {
+  const avatarEl = document.getElementById(`podium-avatar-${stepNum}`);
+  if (!avatarEl) return;
+
+  const avatarUrl = resolveEntryAvatarUrl(entry, savedUser);
+  if (avatarUrl) {
+    avatarEl.innerHTML = `<img src="${avatarUrl}" alt="${entry?.manager_name || 'Mánager'}" class="podium-avatar-img" referrerpolicy="no-referrer" onerror="this.outerHTML=\`${PODIUM_AVATAR_FALLBACK_SVG.replace(/"/g, '&quot;')}\`">`;
+  } else {
+    avatarEl.innerHTML = PODIUM_AVATAR_FALLBACK_SVG;
+  }
+}
 
 /**
  * Calcula el símbolo y clase CSS de la tendencia (↑ verde, ↓ roja, - neutra)
@@ -48,23 +153,32 @@ export async function initRanking() {
   const container = document.querySelector('.ranking-screen');
   if (!container) return;
 
+  // Obtener usuario guardado en localStorage
+  let savedUser = null;
+  try {
+    const rawUser = localStorage.getItem('user') || localStorage.getItem('fantasy_logged_user') || localStorage.getItem('fantasy_user') || '{}';
+    savedUser = JSON.parse(rawUser || '{}');
+  } catch (_) {
+    savedUser = {};
+  }
+
   // 1. Obtener la tabla real desde la base de datos
   const combinedEntries = await getUnifiedLeaderboard();
 
-  // 2. Renderizar Podio Top 3 dinámico (1ro, 2do y 3ro)
-  renderPodium(combinedEntries.slice(0, 3));
+  // 2. Renderizar Podio Top 3 dinámico (1ro, 2do y 3ro) con avatares
+  renderPodium(combinedEntries.slice(0, 3), savedUser);
 
-  // 3. Renderizar listado de clasificados (puestos 4 en adelante)
-  renderRankingList(container, combinedEntries.slice(3));
+  // 3. Renderizar listado de clasificados (puestos 4 en adelante) con avatares
+  renderRankingList(container, combinedEntries.slice(3), savedUser);
 
-  // 4. Renderizar tarjeta fija del mánager conectado
+  // 4. Renderizar tarjeta fija del mánager conectado con su avatar
   renderCurrentUserCard(container, combinedEntries);
 }
 
 /**
- * Renderiza dinámicamente los 3 escalones del podio con los mánagers reales
+ * Renderiza dinámicamente los 3 escalones del podio con los mánagers reales y sus avatares
  */
-function renderPodium(top3) {
+function renderPodium(top3, savedUser = {}) {
   // Puesto 1 (Oro - Centro)
   const first = top3[0] || null;
   const name1 = document.getElementById('podium-name-1');
@@ -73,6 +187,7 @@ function renderPodium(top3) {
   if (name1) name1.textContent = first ? first.manager_name : '-';
   if (team1) team1.textContent = first ? first.team_name : 'Sin club';
   if (points1) points1.textContent = first ? `${first.points.toLocaleString('es-AR')} pts` : '- pts';
+  setPodiumAvatar(1, first, savedUser);
 
   // Puesto 2 (Plata - Izquierda)
   const second = top3[1] || null;
@@ -82,6 +197,7 @@ function renderPodium(top3) {
   if (name2) name2.textContent = second ? second.manager_name : '-';
   if (team2) team2.textContent = second ? second.team_name : 'Sin club';
   if (points2) points2.textContent = second ? `${second.points.toLocaleString('es-AR')} pts` : '- pts';
+  setPodiumAvatar(2, second, savedUser);
 
   // Puesto 3 (Bronce - Derecha)
   const third = top3[2] || null;
@@ -91,12 +207,13 @@ function renderPodium(top3) {
   if (name3) name3.textContent = third ? third.manager_name : '-';
   if (team3) team3.textContent = third ? third.team_name : 'Sin club';
   if (points3) points3.textContent = third ? `${third.points.toLocaleString('es-AR')} pts` : '- pts';
+  setPodiumAvatar(3, third, savedUser);
 }
 
 /**
- * Renderiza los puestos del 4 en adelante en tarjetas compactas
+ * Renderiza los puestos del 4 en adelante en tarjetas compactas con sus avatares
  */
-function renderRankingList(container, listEntries) {
+function renderRankingList(container, listEntries, savedUser = {}) {
   let listEl = document.getElementById('ranking-list');
   if (!listEl) {
     listEl = document.createElement('ul');
@@ -118,15 +235,16 @@ function renderRankingList(container, listEntries) {
   listEl.innerHTML = listEntries.map(item => {
     const trend = getTrendDetails(item);
     const rankDisplay = item.has_played && item.rank ? item.rank : '-';
+    const itemAvatarUrl = resolveEntryAvatarUrl(item, savedUser);
+    const itemAvatarHtml = itemAvatarUrl
+      ? `<img src="${itemAvatarUrl}" alt="${item.manager_name || 'Mánager'}" class="item-avatar-img" referrerpolicy="no-referrer" onerror="this.outerHTML=\`${SM_AVATAR_FALLBACK_SVG.replace(/"/g, '&quot;')}\`">`
+      : SM_AVATAR_FALLBACK_SVG;
 
     return `
       <li class="ranking-item">
         <span class="item-rank">${rankDisplay}</span>
         <div class="item-avatar">
-          <svg class="avatar-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round"
-              stroke-linejoin="round" stroke-width="2"></path>
-          </svg>
+          ${itemAvatarHtml}
         </div>
         <div class="item-info">
           <span class="item-manager-name">${item.manager_name}</span>
@@ -142,11 +260,17 @@ function renderRankingList(container, listEntries) {
 }
 
 /**
- * Renderiza la tarjeta fija del mánager conectado con su posición real sincronizada y flecha dinámica
+ * Renderiza la tarjeta fija del mánager conectado con su posición real sincronizada y avatar
  */
 function renderCurrentUserCard(container, combinedEntries) {
   const rawUser = localStorage.getItem('user') || localStorage.getItem('fantasy_logged_user') || localStorage.getItem('fantasy_user') || '{}';
-  const savedUser = JSON.parse(rawUser || '{}');
+  let savedUser = {};
+  try {
+    savedUser = JSON.parse(rawUser || '{}');
+  } catch (_) {
+    savedUser = {};
+  }
+
   let squadName = null;
   try {
     const rawSq = localStorage.getItem('fantasy_active_squad');
@@ -188,6 +312,11 @@ function renderCurrentUserCard(container, combinedEntries) {
 
   const userTrend = getTrendDetails(myEntry || { points: userPoints, has_played: hasPlayed }, lastMatchLetter);
 
+  const userAvatarUrl = resolveUserAvatarUrl();
+  const userAvatarHtml = userAvatarUrl
+    ? `<img src="${userAvatarUrl}" alt="${managerDisplayName}" class="user-avatar-badge-img" referrerpolicy="no-referrer" onerror="this.outerHTML=\`${SM_AVATAR_FALLBACK_SVG.replace(/"/g, '&quot;')}\`">`
+    : SM_AVATAR_FALLBACK_SVG;
+
   let userDock = container.querySelector('.ranking-current-user-dock');
   let userCard = container.querySelector('.ranking-current-user');
   if (!userCard) {
@@ -206,11 +335,8 @@ function renderCurrentUserCard(container, combinedEntries) {
       <span class="user-position-label">POSICIÓN</span>
       <span class="user-rank" id="user-rank-val">${userRankText}</span>
     </div>
-    <div class="user-avatar-badge">
-      <svg class="avatar-icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round"
-          stroke-linejoin="round" stroke-width="2"></path>
-      </svg>
+    <div class="user-avatar-badge" id="user-avatar-badge">
+      ${userAvatarHtml}
     </div>
     <div class="user-team-info">
       <span class="user-team-title" id="user-display-name">${managerDisplayName}</span>
@@ -221,4 +347,17 @@ function renderCurrentUserCard(container, combinedEntries) {
       <span class="user-points-trend ${userTrend.class}">${userTrend.symbol}</span>
     </div>
   `;
+}
+
+// Escuchar cambios de perfil / avatar en tiempo real
+if (typeof window !== 'undefined' && !window._fantasyRankingListenersAttached) {
+  window._fantasyRankingListenersAttached = true;
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'user_avatar' || e.key === 'user' || e.key === 'team_name') {
+      initRanking();
+    }
+  });
+  window.addEventListener('fantasy:profile-updated', () => {
+    initRanking();
+  });
 }
