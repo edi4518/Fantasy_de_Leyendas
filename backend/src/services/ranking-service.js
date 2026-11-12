@@ -223,11 +223,21 @@ export function getUserRankInfo(leaderboard, savedUser, teamName, hasPlayed) {
     };
   }
 
-  const found = leaderboard.find(e =>
-    (savedUser?.id && e.userId && Number(e.userId) === Number(savedUser.id)) ||
-    (savedUser?.email && e.email && e.email.toLowerCase() === savedUser.email.toLowerCase()) ||
-    (teamName && e.team_name && e.team_name.toLowerCase() === teamName.toLowerCase())
-  );
+  let found = null;
+  if (savedUser?.id) {
+    found = leaderboard.find(e => e.userId && Number(e.userId) === Number(savedUser.id));
+  }
+  if (!found && savedUser?.email) {
+    const targetEmail = savedUser.email.toLowerCase();
+    found = leaderboard.find(e => e.email && e.email.toLowerCase() === targetEmail);
+  }
+  if (!found && teamName) {
+    const targetTeam = teamName.toLowerCase();
+    found = leaderboard.find(e =>
+      (!savedUser?.id || !e.userId || Number(e.userId) === Number(savedUser.id)) &&
+      e.team_name && e.team_name.toLowerCase() === targetTeam
+    );
+  }
 
   if (found && found.rank) {
     return {

@@ -353,12 +353,22 @@ async function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
     // Obtenemos la tabla global unificada desde TiDB Cloud mediante el servicio
     const combinedEntries = await getUnifiedLeaderboard();
 
-    // Verificamos si el usuario ya disputó partidos buscando su entrada unificada (por ID, email o club)
-    const myEntry = combinedEntries.find(e =>
-      (savedUser?.id && e.userId && Number(e.userId) === Number(savedUser.id)) ||
-      (savedUser?.email && e.email && e.email.toLowerCase() === savedUser.email.toLowerCase()) ||
-      (teamName && e.team_name && e.team_name.toLowerCase() === teamName.toLowerCase())
-    );
+    // Verificamos si el usuario ya disputó partidos buscando su entrada unificada (prioridad: ID > email > club)
+    let myEntry = null;
+    if (savedUser?.id) {
+      myEntry = combinedEntries.find(e => e.userId && Number(e.userId) === Number(savedUser.id));
+    }
+    if (!myEntry && savedUser?.email) {
+      const targetEmail = savedUser.email.toLowerCase();
+      myEntry = combinedEntries.find(e => e.email && e.email.toLowerCase() === targetEmail);
+    }
+    if (!myEntry && teamName) {
+      const targetTeam = teamName.toLowerCase();
+      myEntry = combinedEntries.find(e =>
+        (!savedUser?.id || !e.userId || Number(e.userId) === Number(savedUser.id)) &&
+        e.team_name && e.team_name.toLowerCase() === targetTeam
+      );
+    }
 
     let rawStats = null;
     try {
@@ -378,14 +388,19 @@ async function renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats) {
       localRank = rankInfo.displayRank; // Ej: "#1", "#3", o "-" si no ha jugado
     }
 
-    // Buscamos la posición real y mánager del rival en el ranking unificado
-    const rivalEntry = combinedEntries.find(e =>
-      (awaySquad?.userId && e.userId && Number(e.userId) === Number(awaySquad.userId)) ||
-      (awaySquad?.user_id && e.userId && Number(e.userId) === Number(awaySquad.user_id)) ||
-      (awaySquad?.name && e.team_name && e.team_name.toLowerCase().trim() === awaySquad.name.toLowerCase().trim()) ||
-      (awaySquad?.owner && e.manager_name && e.manager_name.toLowerCase().trim() === awaySquad.owner.toLowerCase().trim()) ||
-      (awaySquad?.manager_name && e.manager_name && e.manager_name.toLowerCase().trim() === awaySquad.manager_name.toLowerCase().trim())
-    );
+    // Buscamos la posición real y mánager del rival en el ranking unificado (sin confundir homónimos por nombre de usuario)
+    const rivalUid = awaySquad?.userId ?? awaySquad?.user_id;
+    let rivalEntry = null;
+    if (rivalUid != null) {
+      rivalEntry = combinedEntries.find(e => e.userId && Number(e.userId) === Number(rivalUid));
+    }
+    if (!rivalEntry && awaySquad?.name) {
+      const targetTeam = awaySquad.name.toLowerCase().trim();
+      rivalEntry = combinedEntries.find(e =>
+        (rivalUid == null || !e.userId || Number(e.userId) === Number(rivalUid)) &&
+        e.team_name && e.team_name.toLowerCase().trim() === targetTeam
+      );
+    }
 
     if (rivalEntry) {
       if (rivalEntry.manager_name) {
