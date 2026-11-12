@@ -60,11 +60,30 @@ def _build_user_cooldowns(user_id: int, db: Session) -> Dict[int, Dict[str, Any]
     return result
 
 
+_user_players_checked = False
+
+
 def _ensure_squad_columns(db: Session):
-    """Las columnas de base de datos ya se garantizan en database.py init_db() al arrancar el backend.
-    Se mantiene como no-op para evitar 40 sentencias DDL ALTER TABLE por request en TiDB Cloud.
-    """
-    pass
+    """Garantiza una única vez que las columnas de control de inventario y cooldown existan en TiDB."""
+    global _user_players_checked
+    if _user_players_checked:
+        return
+    try:
+        from sqlalchemy import inspect
+        insp = inspect(db.get_bind())
+        cols = {c["name"] for c in insp.get_columns("user_players")}
+        with db.get_bind().begin() as conn:
+            if "en_club" not in cols:
+                conn.execute(text("ALTER TABLE user_players ADD COLUMN en_club BOOLEAN NOT NULL DEFAULT 1"))
+            if "vendido_en" not in cols:
+                conn.execute(text("ALTER TABLE user_players ADD COLUMN vendido_en DATETIME NULL"))
+            if "partidos_cooldown" not in cols:
+                conn.execute(text("ALTER TABLE user_players ADD COLUMN partidos_cooldown INT NOT NULL DEFAULT 0"))
+            conn.execute(text("UPDATE user_players SET en_club = 1 WHERE en_club IS NULL"))
+        _user_players_checked = True
+    except Exception:
+        # Si falló la verificación DDL o ya existen las columnas, marcar como verificado para no reintentar en cada request
+        _user_players_checked = True
 
 
 class SaveSquadRequest(BaseModel):

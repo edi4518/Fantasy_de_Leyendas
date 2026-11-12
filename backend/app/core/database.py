@@ -336,7 +336,7 @@ def _ensure_optimized_schema():
 
         # 1.4 Columnas de control de propiedad y cooldown de recompra en 'user_players'
         if "user_players" in existing_tables:
-            up_cols = {c["name"] for c in inspector.get_columns("user_players")}
+            up_cols = {c["name"] for c in insp.get_columns("user_players")}
             new_up_columns = [
                 ("en_club", "BOOLEAN NOT NULL DEFAULT 1"),
                 ("vendido_en", "DATETIME NULL"),
