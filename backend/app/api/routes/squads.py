@@ -6,7 +6,7 @@ Rutas de gestión de plantillas y club: persistencia en 'user_players' (Inventar
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
-from sqlalchemy import text
+from sqlalchemy import text, func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -106,7 +106,7 @@ def _build_squad_response(plantilla: Plantilla, user: Optional[User], db: Sessio
         db.query(PlantillaJugador, UserPlayer, Player)
         .join(UserPlayer, PlantillaJugador.user_player_id == UserPlayer.id)
         .join(Player, PlantillaJugador.player_id == Player.id)
-        .filter(PlantillaJugador.plantilla_id == plantilla.id)
+        .filter(PlantillaJugador.plantilla_id == plantilla.id, UserPlayer.en_club == True)
         .order_by(PlantillaJugador.orden.asc())
         .all()
     )
@@ -182,8 +182,29 @@ def get_my_squad(
         .first()
     )
 
+    # Buscar jugadores en cooldown de recompra tras venta
+    cooldown_rows = (
+        db.query(UserPlayer)
+        .filter(UserPlayer.user_id == user.id, UserPlayer.en_club == False, UserPlayer.partidos_cooldown > 0)
+        .all()
+    )
+    cooldown_map = {
+        up.player_id: {
+            "player_id": up.player_id,
+            "partidos_cooldown": int(up.partidos_cooldown or 0),
+            "energia": int(up.energia if up.energia is not None else 100),
+        }
+        for up in cooldown_rows
+    }
+
     if not plantilla:
-        return {"squad": None, "players": [], "user_id": user.id, "team_name": user.team_name}
+        return {
+            "squad": None,
+            "players": [],
+            "user_id": user.id,
+            "team_name": user.team_name,
+            "cooldowns": cooldown_map,
+        }
 
     squad_data = _build_squad_response(plantilla, user, db)
     return {
@@ -193,6 +214,7 @@ def get_my_squad(
         "name": squad_data.get("name", user.team_name),
         "costo_total": squad_data.get("costo_total", 0.0),
         "presupuesto_disponible": squad_data.get("presupuesto_disponible", 150.0),
+        "cooldowns": cooldown_map,
         "user_id": user.id,
         "team_name": user.team_name,
     }
@@ -281,37 +303,62 @@ def save_squad(
     # Salvaguarda: Si el cliente envía una plantilla vacía (0 jugadores válidos) pero el usuario ya tiene
     # futbolistas comprados en la base de datos, NO destruir el inventario del usuario.
     # Esto previene que un cliente nuevo desincronizado borre accidentalmente el club.
-    if not valid_entries and existing_user_players and not payload.allow_empty:
+    active_in_club = [up for up in existing_user_players if getattr(up, "en_club", True)]
+    if not valid_entries and active_in_club and not payload.allow_empty:
         return {
             "status": "ignored",
             "message": "Se preservó la plantilla existente en la base de datos (se ignoró payload vacío accidental).",
             "max_budget": MAX_SALARY_CAP,
             "squad": _build_squad_response(plantilla, user, db),
+            "cooldowns": {},
         }
 
-    # Eliminar jugadores vendidos que ya no pertenecen a la plantilla del usuario
+    # Mapa de futbolistas históricos del usuario (en club o previamente vendidos)
     existing_by_pid = {up.player_id: up for up in existing_user_players}
 
+    # 2.1 Procesar ventas: jugadores que estaban en la plantilla activa y ya no fueron incluidos
     for pid, up in list(existing_by_pid.items()):
         if pid not in seen_player_ids:
-            db.delete(up)
-            del existing_by_pid[pid]
+            if getattr(up, "en_club", True):
+                up.en_club = False
+                up.vendido_en = func.now()
+                # Cooldown de 2 partidos tras la venta para evitar truco de venta y recompra inmediata
+                up.partidos_cooldown = 2
     db.flush()
 
-    # 3. Insertar o actualizar cada jugador fichado en 'user_players' y vincularlo en 'plantilla_jugadores'
+    # 3. Insertar o reactivar cada jugador fichado en 'user_players' y vincularlo en 'plantilla_jugadores'
     for slot_idx, player_db in valid_entries:
         up = existing_by_pid.get(player_db.id)
         if not up:
+            # Jugador fichado por primera vez en el club:
             up = UserPlayer(
                 user_id=user.id,
                 player_id=player_db.id,
                 precio_compra=float(player_db.precio or 0.0),
-                energia=100,  # Jugador recién fichado en el mercado arranca con energía al 100%
+                energia=100,  # Jugador recién fichado por primera vez arranca con energía al 100%
+                en_club=True,
+                vendido_en=None,
+                partidos_cooldown=0,
             )
             db.add(up)
             db.flush()
             existing_by_pid[player_db.id] = up
-        # SEGURIDAD ANTI-CHEAT: Si el jugador ya existe en el club, /squads/save NUNCA modifica su energía.
+        else:
+            # Si el jugador ya existía pero estaba marcado como vendido (recompra):
+            if not getattr(up, "en_club", True):
+                cd_rem = int(up.partidos_cooldown or 0)
+                if cd_rem > 0:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"No puedes fichar a {player_db.nombre} todavía. Te faltan {cd_rem} partido(s) de cooldown tras haberlo vendido.",
+                    )
+                # Cooldown cumplido: reactivar en el club manteniendo su energía real preservada y estadísticas
+                up.en_club = True
+                up.vendido_en = None
+                up.partidos_cooldown = 0
+                up.precio_compra = float(player_db.precio or 0.0)
+
+        # SEGURIDAD ANTI-CHEAT: Si el jugador ya existía, /squads/save NUNCA resetea su energía a 100.
         # Se preserva la energía oficial calculada por el servidor y registrada en la base de datos.
 
         pj = PlantillaJugador(
@@ -333,11 +380,27 @@ def save_squad(
     db.refresh(plantilla)
     db.refresh(user)
 
+    # Devolver mapa actualizado de cooldowns
+    cooldown_rows = (
+        db.query(UserPlayer)
+        .filter(UserPlayer.user_id == user.id, UserPlayer.en_club == False, UserPlayer.partidos_cooldown > 0)
+        .all()
+    )
+    cooldown_map = {
+        up.player_id: {
+            "player_id": up.player_id,
+            "partidos_cooldown": int(up.partidos_cooldown or 0),
+            "energia": int(up.energia if up.energia is not None else 100),
+        }
+        for up in cooldown_rows
+    }
+
     return {
         "status": "saved",
         "message": "Club (user_players), alineación (plantillas) y presupuesto guardados en MySQL",
         "max_budget": MAX_SALARY_CAP,
         "squad": _build_squad_response(plantilla, user, db),
+        "cooldowns": cooldown_map,
     }
 
 
@@ -355,7 +418,7 @@ def get_club_inventory(
     rows = (
         db.query(UserPlayer, Player)
         .join(Player, UserPlayer.player_id == Player.id)
-        .filter(UserPlayer.user_id == user.id)
+        .filter(UserPlayer.user_id == user.id, UserPlayer.en_club == True)
         .all()
     )
     items = [_serialize_player(player, up) for up, player in rows]

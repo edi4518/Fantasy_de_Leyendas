@@ -334,7 +334,20 @@ def _ensure_optimized_schema():
                     if col_name not in p_cols:
                         conn.execute(text(f"ALTER TABLE partidos ADD COLUMN {col_name} {col_def}"))
 
-        # 1.4 En MySQL / TiDB asegurar AUTO_ID_CACHE = 1 en todas las tablas con AUTO_INCREMENT
+        # 1.4 Columnas de control de propiedad y cooldown de recompra en 'user_players'
+        if "user_players" in existing_tables:
+            up_cols = {c["name"] for c in inspector.get_columns("user_players")}
+            new_up_columns = [
+                ("en_club", "BOOLEAN NOT NULL DEFAULT 1"),
+                ("vendido_en", "DATETIME NULL"),
+                ("partidos_cooldown", "INT NOT NULL DEFAULT 0"),
+            ]
+            with engine.begin() as conn:
+                for col_name, col_def in new_up_columns:
+                    if col_name not in up_cols:
+                        conn.execute(text(f"ALTER TABLE user_players ADD COLUMN {col_name} {col_def}"))
+
+        # 1.5 En MySQL / TiDB asegurar AUTO_ID_CACHE = 1 en todas las tablas con AUTO_INCREMENT
         # para forzar IDs estrictamente secuenciales (1, 2, 3...) y evitar los saltos en bloques de 30.000 de TiDB
         if engine.dialect.name == "mysql":
             tidb_tables = [

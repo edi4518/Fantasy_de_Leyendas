@@ -89,6 +89,7 @@ async function initMarketController(container, router) {
   let searchQuery = '';
   let sortMode = 'default'; // 'default' | 'price-desc' | 'price-asc'
   let selectedForAction = new Set(); // IDs de jugadores seleccionados con (+)
+  let cooldownPlayers = {}; // { [playerId]: { partidos_cooldown, energia } }
 
   listAvailable.innerHTML = '<p class="market-feedback-msg p-6 text-center text-sm text-[#6B7280]">Conectando con la base de datos de leyendas...</p>';
 
@@ -104,6 +105,9 @@ async function initMarketController(container, router) {
         };
         ensureTenSlots(activeSquad);
         localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
+      }
+      if (remoteRes && remoteRes.cooldowns) {
+        cooldownPlayers = remoteRes.cooldowns;
       }
     } catch (_) {
       // Si no hay plantilla previa en BD, se mantiene la local
@@ -627,8 +631,12 @@ async function initMarketController(container, router) {
       const rating = player.media_juego || 75;
       const price = Number(player.precio || 10).toFixed(1).replace('.0', '');
 
+      const cdInfo = cooldownPlayers[player.id] || cooldownPlayers[Number(player.id)] || null;
+      const isCooldown = cdInfo && Number(cdInfo.partidos_cooldown) > 0;
+      const cdMatches = isCooldown ? Number(cdInfo.partidos_cooldown) : 0;
+
       return `
-        <article class="player-row-item" data-purpose="player-item" data-id="${player.id}">
+        <article class="player-row-item ${isCooldown ? 'is-in-cooldown' : ''}" data-purpose="player-item" data-id="${player.id}">
           <div class="player-row-left">
             <div class="player-row-avatar player-slot__avatar ${posClass}" data-position="${positionLabel}">
               ${playerImage
@@ -644,21 +652,36 @@ async function initMarketController(container, router) {
               <div class="player-sub-row">
                 <span class="player-role-badge player-role-badge--${positionLabel.toLowerCase()}" data-role="${positionLabel}">${positionLabel}</span>
                 <span class="player-desc-text">${positionReadable}</span>
+                ${isCooldown ? `<span class="player-cooldown-badge" title="Cooldown de recompra tras venta">⏳ Cooldown: ${cdMatches} PJ</span>` : ''}
               </div>
             </div>
           </div>
           <div class="player-row-right">
             <span class="player-row-price">${price}M</span>
-            <button aria-label="Fichar o seleccionar a ${player.nombre}" class="btn-player-action btn-toggle-select ${isSelected ? 'is-selected' : ''}" type="button" data-id="${player.id}">
-              ${isSelected
-                ? `<svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`
-                : `<svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`
-              }
-            </button>
+            ${isCooldown
+              ? `<button aria-label="${player.nombre} en cooldown" class="btn-player-action btn-cooldown" type="button" data-id="${player.id}" data-cooldown="${cdMatches}" title="No disponible: faltan ${cdMatches} partido(s) de cooldown">
+                  <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                 </button>`
+              : `<button aria-label="Fichar o seleccionar a ${player.nombre}" class="btn-player-action btn-toggle-select ${isSelected ? 'is-selected' : ''}" type="button" data-id="${player.id}">
+                  ${isSelected
+                    ? `<svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+                    : `<svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`
+                  }
+                 </button>`
+            }
           </div>
         </article>
       `;
     }).join('');
+
+    listAvailable.querySelectorAll('.btn-cooldown').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const id = parseInt(e.currentTarget.dataset.id, 10);
+        const cd = e.currentTarget.dataset.cooldown || 2;
+        const p = catalog.find(x => Number(x.id) === id);
+        showMarketToast(`No puedes fichar a ${p?.nombre || 'este futbolista'} todavía. Te faltan ${cd} partido(s) de espera tras haberlo vendido.`, 'warning');
+      });
+    });
 
     listAvailable.querySelectorAll('.btn-toggle-select').forEach((btn) => {
       btn.addEventListener('click', (e) => {
@@ -800,6 +823,14 @@ async function initMarketController(container, router) {
   function toggleSelectPlayer(rawId) {
     const playerId = Number(rawId);
 
+    // Verificar si el futbolista está en cooldown de recompra tras venta
+    const cdInfo = cooldownPlayers[playerId] || cooldownPlayers[Number(rawId)];
+    if (cdInfo && Number(cdInfo.partidos_cooldown) > 0) {
+      const p = catalog.find(x => Number(x.id) === playerId);
+      showMarketToast(`No puedes fichar a ${p?.nombre || 'este futbolista'} todavía. Te faltan ${cdInfo.partidos_cooldown} partido(s) de cooldown.`, 'warning');
+      return;
+    }
+
     // Comprobar si ya esta en la seleccion
     let existingId = null;
     for (const id of selectedForAction) {
@@ -830,11 +861,17 @@ async function initMarketController(container, router) {
     const player = activeSquad.players[playerIndex];
     showSellConfirmModal(player, () => {
       activeSquad.players[playerIndex] = null;
+      // Registrar cooldown localmente para reflejarlo de inmediato en el mercado
+      cooldownPlayers[playerId] = {
+        player_id: playerId,
+        partidos_cooldown: 2,
+        energia: player.energia ?? 100
+      };
       persistActiveSquad(activeSquad, { allowEmpty: true });
 
       selectedForAction.delete(playerId);
       renderAllViews();
-      showMarketToast(`Has vendido a ${player.nombre || player.name} por +${player.precio || 10}M`, 'success');
+      showMarketToast(`Has vendido a ${player.nombre || player.name} por +${player.precio || 10}M. Cooldown activo por 2 partidos.`, 'success');
     });
   }
 
@@ -1169,6 +1206,11 @@ function persistActiveSquad(squad, { allowEmpty = false } = {}) {
       name: squad.name || undefined,
       user_id: currentUserId,
       allow_empty: allowEmpty
+    }).then((res) => {
+      if (res && res.cooldowns) {
+        cooldownPlayers = res.cooldowns;
+        renderAvailableList();
+      }
     }).catch((err) => {
       console.debug('[Market] Sincronización de plantilla con backend omitida:', err.message);
     });

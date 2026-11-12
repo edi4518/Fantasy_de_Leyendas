@@ -402,6 +402,20 @@ def record_finished_match(
                     except (ValueError, TypeError):
                         pass
 
+    # 7. Reducción de cooldown y recuperación física de jugadores vendidos que descansan fuera del club
+    sold_players = (
+        db.query(UserPlayer)
+        .filter(UserPlayer.user_id == user.id, UserPlayer.en_club == False)
+        .all()
+    )
+    for sp in sold_players:
+        if (sp.partidos_cooldown or 0) > 0:
+            sp.partidos_cooldown = max(0, int(sp.partidos_cooldown) - 1)
+        # Recupera +25% de energía por cada partido de descanso fuera
+        cur_e = int(sp.energia if sp.energia is not None else 100)
+        if cur_e < 100:
+            sp.energia = min(100, cur_e + 25)
+
     db.commit()
     db.refresh(user)
     invalidate_leaderboard_cache()

@@ -23,6 +23,11 @@ class UserPlayer(Base):
     mvps_club = Column(Integer, nullable=False, default=0)
     rating_promedio = Column(Float, nullable=False, default=0.00)
 
+    # Control de propiedad en club y cooldown de recompra anti-exploit
+    en_club = Column(Boolean, nullable=False, default=True)
+    vendido_en = Column(DateTime, nullable=True)
+    partidos_cooldown = Column(Integer, nullable=False, default=0)
+
     adquirido_en = Column(DateTime, server_default=func.now())
 
 

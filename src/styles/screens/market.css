@@ -906,6 +906,34 @@
   color: #C92A2A;
 }
 
+/* Badge y Botón de Cooldown tras venta */
+.player-cooldown-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0.15rem 0.45rem;
+  border-radius: 5px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FCD34D;
+  line-height: 1;
+}
+
+.btn-player-action.btn-cooldown {
+  background-color: #F3F4F6;
+  border-color: #E5E7EB;
+  color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.btn-player-action.btn-cooldown:hover {
+  background-color: #FEF2F2;
+  border-color: #FECACA;
+  color: #DC2626;
+}
+
 /* =============================================================================
    6. DOCK INFERIOR FLOTANTE DE ACCIONES
    ============================================================================= */
