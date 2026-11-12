@@ -207,7 +207,7 @@ def save_squad(
     """Sincroniza el inventario del club ('user_players'), guarda la alineación táctica ('plantillas' + 'plantilla_jugadores')
     y actualiza el presupuesto del mánager en 'users'."""
     _ensure_squad_columns(db)
-    user = _resolve_user(request, db, allow_explicit=False)
+    user = _resolve_user(request, db, explicit_user_id=payload.user_id, allow_explicit=True)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

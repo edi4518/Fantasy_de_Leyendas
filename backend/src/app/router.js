@@ -10,6 +10,51 @@ import { authService } from "../services/auth-service.js";
 import { renderNavigation, updateActiveNavItem } from "./navigation.js";
 import { APP_VERSION } from "./version.js";
 
+// Caché en memoria para plantillas HTML de vistas (carga en 0ms tras la primera visita)
+const viewTemplateCache = new Map();
+
+async function getScreenTemplate(viewUrl) {
+  if (viewTemplateCache.has(viewUrl)) {
+    return viewTemplateCache.get(viewUrl);
+  }
+  const response = await fetch(viewUrl);
+  if (!response.ok) {
+    throw new Error(`No se pudo cargar la vista: ${viewUrl}`);
+  }
+  const html = await response.text();
+  viewTemplateCache.set(viewUrl, html);
+  return html;
+}
+
+function preloadCommonTemplates() {
+  const commonScreens = [
+    { screen: "dashboard", file: "dashboard" },
+    { screen: "lineup", file: "lineup" },
+    { screen: "market", file: "market" },
+    { screen: "history", file: "history" },
+    { screen: "ranking", file: "ranking" },
+  ];
+
+  const idleRunner = typeof window !== "undefined" && window.requestIdleCallback
+    ? window.requestIdleCallback
+    : (cb) => setTimeout(cb, 600);
+
+  idleRunner(() => {
+    commonScreens.forEach(({ screen, file }) => {
+      const url = `/src/screens/${screen}/${file}.html?v=${APP_VERSION}`;
+      if (!viewTemplateCache.has(url)) {
+        fetch(url)
+          .then((r) => (r.ok ? r.text() : null))
+          .then((html) => {
+            if (html) viewTemplateCache.set(url, html);
+          })
+          .catch(() => {});
+      }
+      ensureScreenStylesheet(screen);
+    });
+  });
+}
+
 const routes = {
   "/": {
     screen: "onboarding",
@@ -246,25 +291,20 @@ async function handleLocation() {
   appContent.scrollTop = 0;
   window.scrollTo(0, 0);
 
-  const isFirstPaint = !appContent.innerHTML.trim();
-  if (isFirstPaint) {
-    // Pintado inmediato de estructura esqueleto para garantizar FCP < 1.0s
+  const viewFile = route.subview || route.screen;
+  const viewUrl = `/src/screens/${route.screen}/${viewFile}.html?v=${APP_VERSION}`;
+
+  // Si la plantilla no está aún en caché, mostrar inmediatamente el skeleton de feedback táctil (0ms)
+  if (!viewTemplateCache.has(viewUrl)) {
     appContent.innerHTML = getSkeletonHTML(route.screen);
     appContent.style.opacity = "1";
   }
 
-  const viewFile = route.subview || route.screen;
-  const viewUrl = `/src/screens/${route.screen}/${viewFile}.html?v=${APP_VERSION}`;
-
   try {
-    const [response] = await Promise.all([
-      fetch(viewUrl),
+    const [html] = await Promise.all([
+      getScreenTemplate(viewUrl),
       ensureScreenStylesheet(route.screen),
     ]);
-    if (!response.ok) {
-      throw new Error(`No se pudo cargar la vista: ${route.screen}/${viewFile}.html`);
-    }
-    const html = await response.text();
 
     appContent.innerHTML = html;
     appContent.scrollTop = 0;
@@ -579,6 +619,7 @@ function bootstrapRouter() {
     renderNavigation();
   }
   initRouter();
+  preloadCommonTemplates();
 }
 
 if (typeof document !== "undefined") {
