@@ -906,19 +906,36 @@
   color: #C92A2A;
 }
 
-/* Badge y Botón de Cooldown tras venta */
+/* Fila y Badge de Cooldown tras venta (debajo de la posición del futbolista) */
+.player-cooldown-row {
+  margin-top: 0.35rem;
+  display: flex;
+  align-items: center;
+}
+
 .player-cooldown-badge {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 0.15rem 0.45rem;
-  border-radius: 5px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  background-color: #FEF3C7;
+  gap: 4px;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background-color: #FFFBEB;
   color: #B45309;
-  border: 1px solid #FCD34D;
-  line-height: 1;
+  border: 1px solid #FDE68A;
+  line-height: 1.2;
+}
+
+.player-cooldown-badge .cooldown-clock {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #92400E;
+}
+
+.player-row-item.is-in-cooldown {
+  background-color: #FAFAFA;
 }
 
 .btn-player-action.btn-cooldown {

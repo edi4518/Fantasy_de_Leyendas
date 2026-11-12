@@ -27,6 +27,16 @@ const POSITION_DETAILS = {
   DEL: 'Delantero estrella'
 };
 
+let activeMarketTickerInterval = null;
+
+function formatCooldownTimer(totalSeconds) {
+  const secs = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 /**
  * Punto de entrada principal invocado por router.js
  */
@@ -83,13 +93,31 @@ async function initMarketController(container, router) {
 
   if (!listAvailable) return;
 
+  // Limpiar cualquier temporizador previo de cooldown al reinicializar el controlador
+  if (activeMarketTickerInterval) {
+    clearInterval(activeMarketTickerInterval);
+    activeMarketTickerInterval = null;
+  }
+
+  // Cancelar temporizador al navegar fuera de la pantalla de Mercado
+  const handleMarketUnload = () => {
+    if (activeMarketTickerInterval) {
+      clearInterval(activeMarketTickerInterval);
+      activeMarketTickerInterval = null;
+    }
+    window.removeEventListener('hashchange', handleMarketUnload);
+    window.removeEventListener('popstate', handleMarketUnload);
+  };
+  window.addEventListener('hashchange', handleMarketUnload);
+  window.addEventListener('popstate', handleMarketUnload);
+
   let catalog = [];
   let activeSquad = loadActiveSquadFromStorage();
   let selectedPosition = 'ALL';
   let searchQuery = '';
   let sortMode = 'default'; // 'default' | 'price-desc' | 'price-asc'
   let selectedForAction = new Set(); // IDs de jugadores seleccionados con (+)
-  let cooldownPlayers = {}; // { [playerId]: { partidos_cooldown, energia } }
+  let cooldownPlayers = {}; // { [playerId]: { partidos_cooldown, energia, segundos_restantes, horas_restantes } }
 
   listAvailable.innerHTML = '<p class="market-feedback-msg p-6 text-center text-sm text-[#6B7280]">Conectando con la base de datos de leyendas...</p>';
 
@@ -632,19 +660,18 @@ async function initMarketController(container, router) {
       const price = Number(player.precio || 10).toFixed(1).replace('.0', '');
 
       const cdInfo = cooldownPlayers[player.id] || cooldownPlayers[Number(player.id)] || null;
-      const remSec = cdInfo ? Number(cdInfo.segundos_restantes || 0) : 0;
-      const remHours = cdInfo ? Number(cdInfo.horas_restantes || 0) : 0;
-      const isCooldown = remSec > 0 || remHours > 0 || (cdInfo && Number(cdInfo.partidos_cooldown || 0) > 0);
-
-      let cdLabel = '24h';
-      if (remHours > 1) {
-        cdLabel = `${remHours}h`;
-      } else if (remSec > 0) {
-        const m = Math.max(1, Math.ceil(remSec / 60));
-        cdLabel = `${m}m`;
-      } else if (cdInfo && cdInfo.partidos_cooldown) {
-        cdLabel = `${cdInfo.partidos_cooldown} PJ`;
+      let remSec = 0;
+      if (cdInfo) {
+        if (cdInfo.segundos_restantes !== undefined && cdInfo.segundos_restantes !== null) {
+          remSec = Math.max(0, Number(cdInfo.segundos_restantes));
+        } else if (cdInfo.horas_restantes) {
+          remSec = Math.max(0, Number(cdInfo.horas_restantes) * 3600);
+        } else if (cdInfo.partidos_cooldown) {
+          remSec = Number(cdInfo.partidos_cooldown) > 0 ? 86400 : 0;
+        }
       }
+      const isCooldown = remSec > 0;
+      const timerStr = formatCooldownTimer(remSec);
 
       return `
         <article class="player-row-item ${isCooldown ? 'is-in-cooldown' : ''}" data-purpose="player-item" data-id="${player.id}">
@@ -663,14 +690,20 @@ async function initMarketController(container, router) {
               <div class="player-sub-row">
                 <span class="player-role-badge player-role-badge--${positionLabel.toLowerCase()}" data-role="${positionLabel}">${positionLabel}</span>
                 <span class="player-desc-text">${positionReadable}</span>
-                ${isCooldown ? `<span class="player-cooldown-badge" title="Cooldown de recompra tras venta: debes esperar 24 hs">⏳ Cooldown: ${cdLabel}</span>` : ''}
               </div>
+              ${isCooldown ? `
+                <div class="player-cooldown-row">
+                  <span class="player-cooldown-badge" data-cooldown-id="${player.id}" title="Cooldown de recompra tras venta: debes esperar 24 hs">
+                    ⏳ Disponible en: <strong class="cooldown-clock">${timerStr}</strong>
+                  </span>
+                </div>
+              ` : ''}
             </div>
           </div>
           <div class="player-row-right">
             <span class="player-row-price">${price}M</span>
             ${isCooldown
-              ? `<button aria-label="${player.nombre} en cooldown" class="btn-player-action btn-cooldown" type="button" data-id="${player.id}" data-cooldown="${cdLabel}" title="No disponible: faltan aprox. ${cdLabel} de cooldown de 24 hs">
+              ? `<button aria-label="${player.nombre} en cooldown" class="btn-player-action btn-cooldown" type="button" data-id="${player.id}" data-cooldown="${timerStr}" title="No disponible: faltan ${timerStr} de cooldown tras venta">
                   <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                  </button>`
               : `<button aria-label="Fichar o seleccionar a ${player.nombre}" class="btn-player-action btn-toggle-select ${isSelected ? 'is-selected' : ''}" type="button" data-id="${player.id}">
@@ -688,9 +721,9 @@ async function initMarketController(container, router) {
     listAvailable.querySelectorAll('.btn-cooldown').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const id = parseInt(e.currentTarget.dataset.id, 10);
-        const cd = e.currentTarget.dataset.cooldown || '24h';
+        const cd = e.currentTarget.dataset.cooldown || '24:00:00';
         const p = catalog.find(x => Number(x.id) === id);
-        showMarketToast(`No puedes fichar a ${p?.nombre || 'este futbolista'} todavía. Debes esperar 24 hs tras haberlo vendido (restan aprox. ${cd}).`, 'warning');
+        showMarketToast(`No puedes fichar a ${p?.nombre || 'este futbolista'} todavía. Debes esperar 24 hs tras haberlo vendido (restan ${cd}).`, 'warning');
       });
     });
 
@@ -700,6 +733,65 @@ async function initMarketController(container, router) {
         toggleSelectPlayer(id);
       });
     });
+
+    startCooldownTicker();
+  }
+
+  /**
+   * Temporizador en tiempo real que descuenta los segundos del cooldown de 24 hs y actualiza el DOM
+   */
+  function startCooldownTicker() {
+    if (activeMarketTickerInterval) {
+      clearInterval(activeMarketTickerInterval);
+      activeMarketTickerInterval = null;
+    }
+
+    const hasAnyActiveCooldown = Object.values(cooldownPlayers).some(cd => Number(cd?.segundos_restantes || 0) > 0);
+    if (!hasAnyActiveCooldown) return;
+
+    activeMarketTickerInterval = setInterval(() => {
+      let anyRemaining = false;
+      let hasFinished = false;
+
+      Object.keys(cooldownPlayers).forEach((playerId) => {
+        const cd = cooldownPlayers[playerId];
+        if (!cd) return;
+
+        let sec = Number(cd.segundos_restantes || 0);
+        if (sec > 0) {
+          sec -= 1;
+          cd.segundos_restantes = sec;
+          cd.horas_restantes = Math.ceil(sec / 3600);
+
+          if (sec > 0) {
+            anyRemaining = true;
+            const formatted = formatCooldownTimer(sec);
+            const clockEl = container.querySelector(`.player-cooldown-badge[data-cooldown-id="${playerId}"] .cooldown-clock`);
+            if (clockEl) {
+              clockEl.textContent = formatted;
+            }
+            const btnEl = container.querySelector(`.btn-cooldown[data-id="${playerId}"]`);
+            if (btnEl) {
+              btnEl.setAttribute('data-cooldown', formatted);
+              btnEl.setAttribute('title', `No disponible: faltan ${formatted} de cooldown tras venta`);
+            }
+          } else {
+            cd.segundos_restantes = 0;
+            cd.horas_restantes = 0;
+            hasFinished = true;
+          }
+        }
+      });
+
+      if (hasFinished) {
+        renderAvailableList();
+      }
+
+      if (!anyRemaining) {
+        clearInterval(activeMarketTickerInterval);
+        activeMarketTickerInterval = null;
+      }
+    }, 1000);
   }
 
   /**
@@ -836,19 +928,20 @@ async function initMarketController(container, router) {
 
     // Verificar si el futbolista está en cooldown de recompra tras venta
     const cdInfo = cooldownPlayers[playerId] || cooldownPlayers[Number(rawId)];
-    const remSec = cdInfo ? Number(cdInfo.segundos_restantes || 0) : 0;
-    const remHours = cdInfo ? Number(cdInfo.horas_restantes || 0) : 0;
-    const isCooldown = remSec > 0 || remHours > 0 || (cdInfo && Number(cdInfo.partidos_cooldown || 0) > 0);
+    let remSec = 0;
+    if (cdInfo) {
+      if (cdInfo.segundos_restantes !== undefined && cdInfo.segundos_restantes !== null) {
+        remSec = Math.max(0, Number(cdInfo.segundos_restantes));
+      } else if (cdInfo.horas_restantes) {
+        remSec = Math.max(0, Number(cdInfo.horas_restantes) * 3600);
+      }
+    }
+    const isCooldown = remSec > 0;
 
     if (isCooldown) {
-      let cdLabel = '24h';
-      if (remHours > 1) {
-        cdLabel = `${remHours}h`;
-      } else if (remSec > 0) {
-        cdLabel = `${Math.max(1, Math.ceil(remSec / 60))}m`;
-      }
+      const formatted = formatCooldownTimer(remSec);
       const p = catalog.find(x => Number(x.id) === playerId);
-      showMarketToast(`No puedes fichar a ${p?.nombre || 'este futbolista'} todavía. Debes esperar 24 hs tras haberlo vendido (restan aprox. ${cdLabel}).`, 'warning');
+      showMarketToast(`No puedes fichar a ${p?.nombre || 'este futbolista'} todavía. Debes esperar 24 hs tras haberlo vendido (restan ${formatted}).`, 'warning');
       return;
     }
 
