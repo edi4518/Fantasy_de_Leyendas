@@ -3,6 +3,8 @@ Rutas de gestión de plantillas y club: persistencia en 'user_players' (Inventar
 'plantillas' y 'plantilla_jugadores', actualización de 'users.presupuesto' y validación de tope salarial (150M).
 """
 
+import math
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
@@ -18,6 +20,44 @@ from app.models.user import User
 router = APIRouter()
 
 MAX_SALARY_CAP = 150.0
+COOLDOWN_HOURS = 24.0
+COOLDOWN_SECONDS = int(COOLDOWN_HOURS * 3600)  # 86400 segundos (24 horas)
+
+
+def _get_cooldown_remaining_seconds(vendido_en: Optional[datetime]) -> int:
+    """Calcula los segundos restantes para cumplir las 24 horas de cooldown tras venta."""
+    if not vendido_en:
+        return 0
+    now = datetime.utcnow()
+    if getattr(vendido_en, "tzinfo", None) is not None:
+        now = datetime.now(timezone.utc)
+    elapsed = (now - vendido_en).total_seconds()
+    return max(0, int(COOLDOWN_SECONDS - elapsed))
+
+
+def _build_user_cooldowns(user_id: int, db: Session) -> Dict[int, Dict[str, Any]]:
+    """Genera el diccionario de jugadores en cooldown de 24 hs para un mánager."""
+    cooldown_rows = (
+        db.query(UserPlayer)
+        .filter(UserPlayer.user_id == user_id, UserPlayer.en_club == False)
+        .all()
+    )
+    result = {}
+    for up in cooldown_rows:
+        rem_sec = _get_cooldown_remaining_seconds(up.vendido_en)
+        if rem_sec > 0:
+            rem_hours = max(1, math.ceil(rem_sec / 3600))
+            result[up.player_id] = {
+                "player_id": up.player_id,
+                "segundos_restantes": rem_sec,
+                "horas_restantes": rem_hours,
+                "energia": int(up.energia if up.energia is not None else 100),
+            }
+        elif up.vendido_en is not None:
+            # Ya cumplió las 24 horas de descanso fuera del club: recupera al 100% de energía
+            if up.energia is not None and up.energia < 100:
+                up.energia = 100
+    return result
 
 
 def _ensure_squad_columns(db: Session):
@@ -182,20 +222,8 @@ def get_my_squad(
         .first()
     )
 
-    # Buscar jugadores en cooldown de recompra tras venta
-    cooldown_rows = (
-        db.query(UserPlayer)
-        .filter(UserPlayer.user_id == user.id, UserPlayer.en_club == False, UserPlayer.partidos_cooldown > 0)
-        .all()
-    )
-    cooldown_map = {
-        up.player_id: {
-            "player_id": up.player_id,
-            "partidos_cooldown": int(up.partidos_cooldown or 0),
-            "energia": int(up.energia if up.energia is not None else 100),
-        }
-        for up in cooldown_rows
-    }
+    # Mapa de jugadores en cooldown de recompra de 24 hs tras venta
+    cooldown_map = _build_user_cooldowns(user.id, db)
 
     if not plantilla:
         return {
@@ -321,9 +349,8 @@ def save_squad(
         if pid not in seen_player_ids:
             if getattr(up, "en_club", True):
                 up.en_club = False
-                up.vendido_en = func.now()
-                # Cooldown de 2 partidos tras la venta para evitar truco de venta y recompra inmediata
-                up.partidos_cooldown = 2
+                up.vendido_en = datetime.utcnow()
+                up.partidos_cooldown = 0
     db.flush()
 
     # 3. Insertar o reactivar cada jugador fichado en 'user_players' y vincularlo en 'plantilla_jugadores'
@@ -346,19 +373,23 @@ def save_squad(
         else:
             # Si el jugador ya existía pero estaba marcado como vendido (recompra):
             if not getattr(up, "en_club", True):
-                cd_rem = int(up.partidos_cooldown or 0)
-                if cd_rem > 0:
+                rem_sec = _get_cooldown_remaining_seconds(up.vendido_en)
+                if rem_sec > 0:
+                    rem_h = max(1, math.ceil(rem_sec / 3600))
+                    rem_m = max(1, math.ceil(rem_sec / 60))
+                    time_str = f"{rem_h}h" if rem_h > 1 else f"{rem_m}m"
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"No puedes fichar a {player_db.nombre} todavía. Te faltan {cd_rem} partido(s) de cooldown tras haberlo vendido.",
+                        detail=f"No puedes fichar a {player_db.nombre} todavía. Debes esperar 24 hs tras haberlo vendido (restan aprox. {time_str}).",
                     )
-                # Cooldown cumplido: reactivar en el club manteniendo su energía real preservada y estadísticas
+                # Cooldown de 24 hs cumplido: reactivar en el club al 100% de energía por el día completo de descanso
                 up.en_club = True
                 up.vendido_en = None
                 up.partidos_cooldown = 0
+                up.energia = 100
                 up.precio_compra = float(player_db.precio or 0.0)
 
-        # SEGURIDAD ANTI-CHEAT: Si el jugador ya existía, /squads/save NUNCA resetea su energía a 100.
+        # SEGURIDAD ANTI-CHEAT: Si el jugador ya existía y estaba activo en el club, /squads/save NUNCA modifica su energía.
         # Se preserva la energía oficial calculada por el servidor y registrada en la base de datos.
 
         pj = PlantillaJugador(
@@ -380,20 +411,8 @@ def save_squad(
     db.refresh(plantilla)
     db.refresh(user)
 
-    # Devolver mapa actualizado de cooldowns
-    cooldown_rows = (
-        db.query(UserPlayer)
-        .filter(UserPlayer.user_id == user.id, UserPlayer.en_club == False, UserPlayer.partidos_cooldown > 0)
-        .all()
-    )
-    cooldown_map = {
-        up.player_id: {
-            "player_id": up.player_id,
-            "partidos_cooldown": int(up.partidos_cooldown or 0),
-            "energia": int(up.energia if up.energia is not None else 100),
-        }
-        for up in cooldown_rows
-    }
+    # Devolver mapa actualizado de cooldowns de 24 hs
+    cooldown_map = _build_user_cooldowns(user.id, db)
 
     return {
         "status": "saved",

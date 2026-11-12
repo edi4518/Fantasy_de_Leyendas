@@ -632,8 +632,19 @@ async function initMarketController(container, router) {
       const price = Number(player.precio || 10).toFixed(1).replace('.0', '');
 
       const cdInfo = cooldownPlayers[player.id] || cooldownPlayers[Number(player.id)] || null;
-      const isCooldown = cdInfo && Number(cdInfo.partidos_cooldown) > 0;
-      const cdMatches = isCooldown ? Number(cdInfo.partidos_cooldown) : 0;
+      const remSec = cdInfo ? Number(cdInfo.segundos_restantes || 0) : 0;
+      const remHours = cdInfo ? Number(cdInfo.horas_restantes || 0) : 0;
+      const isCooldown = remSec > 0 || remHours > 0 || (cdInfo && Number(cdInfo.partidos_cooldown || 0) > 0);
+
+      let cdLabel = '24h';
+      if (remHours > 1) {
+        cdLabel = `${remHours}h`;
+      } else if (remSec > 0) {
+        const m = Math.max(1, Math.ceil(remSec / 60));
+        cdLabel = `${m}m`;
+      } else if (cdInfo && cdInfo.partidos_cooldown) {
+        cdLabel = `${cdInfo.partidos_cooldown} PJ`;
+      }
 
       return `
         <article class="player-row-item ${isCooldown ? 'is-in-cooldown' : ''}" data-purpose="player-item" data-id="${player.id}">
@@ -652,14 +663,14 @@ async function initMarketController(container, router) {
               <div class="player-sub-row">
                 <span class="player-role-badge player-role-badge--${positionLabel.toLowerCase()}" data-role="${positionLabel}">${positionLabel}</span>
                 <span class="player-desc-text">${positionReadable}</span>
-                ${isCooldown ? `<span class="player-cooldown-badge" title="Cooldown de recompra tras venta">⏳ Cooldown: ${cdMatches} PJ</span>` : ''}
+                ${isCooldown ? `<span class="player-cooldown-badge" title="Cooldown de recompra tras venta: debes esperar 24 hs">⏳ Cooldown: ${cdLabel}</span>` : ''}
               </div>
             </div>
           </div>
           <div class="player-row-right">
             <span class="player-row-price">${price}M</span>
             ${isCooldown
-              ? `<button aria-label="${player.nombre} en cooldown" class="btn-player-action btn-cooldown" type="button" data-id="${player.id}" data-cooldown="${cdMatches}" title="No disponible: faltan ${cdMatches} partido(s) de cooldown">
+              ? `<button aria-label="${player.nombre} en cooldown" class="btn-player-action btn-cooldown" type="button" data-id="${player.id}" data-cooldown="${cdLabel}" title="No disponible: faltan aprox. ${cdLabel} de cooldown de 24 hs">
                   <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                  </button>`
               : `<button aria-label="Fichar o seleccionar a ${player.nombre}" class="btn-player-action btn-toggle-select ${isSelected ? 'is-selected' : ''}" type="button" data-id="${player.id}">
@@ -677,9 +688,9 @@ async function initMarketController(container, router) {
     listAvailable.querySelectorAll('.btn-cooldown').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const id = parseInt(e.currentTarget.dataset.id, 10);
-        const cd = e.currentTarget.dataset.cooldown || 2;
+        const cd = e.currentTarget.dataset.cooldown || '24h';
         const p = catalog.find(x => Number(x.id) === id);
-        showMarketToast(`No puedes fichar a ${p?.nombre || 'este futbolista'} todavía. Te faltan ${cd} partido(s) de espera tras haberlo vendido.`, 'warning');
+        showMarketToast(`No puedes fichar a ${p?.nombre || 'este futbolista'} todavía. Debes esperar 24 hs tras haberlo vendido (restan aprox. ${cd}).`, 'warning');
       });
     });
 
@@ -825,9 +836,19 @@ async function initMarketController(container, router) {
 
     // Verificar si el futbolista está en cooldown de recompra tras venta
     const cdInfo = cooldownPlayers[playerId] || cooldownPlayers[Number(rawId)];
-    if (cdInfo && Number(cdInfo.partidos_cooldown) > 0) {
+    const remSec = cdInfo ? Number(cdInfo.segundos_restantes || 0) : 0;
+    const remHours = cdInfo ? Number(cdInfo.horas_restantes || 0) : 0;
+    const isCooldown = remSec > 0 || remHours > 0 || (cdInfo && Number(cdInfo.partidos_cooldown || 0) > 0);
+
+    if (isCooldown) {
+      let cdLabel = '24h';
+      if (remHours > 1) {
+        cdLabel = `${remHours}h`;
+      } else if (remSec > 0) {
+        cdLabel = `${Math.max(1, Math.ceil(remSec / 60))}m`;
+      }
       const p = catalog.find(x => Number(x.id) === playerId);
-      showMarketToast(`No puedes fichar a ${p?.nombre || 'este futbolista'} todavía. Te faltan ${cdInfo.partidos_cooldown} partido(s) de cooldown.`, 'warning');
+      showMarketToast(`No puedes fichar a ${p?.nombre || 'este futbolista'} todavía. Debes esperar 24 hs tras haberlo vendido (restan aprox. ${cdLabel}).`, 'warning');
       return;
     }
 
@@ -861,17 +882,18 @@ async function initMarketController(container, router) {
     const player = activeSquad.players[playerIndex];
     showSellConfirmModal(player, () => {
       activeSquad.players[playerIndex] = null;
-      // Registrar cooldown localmente para reflejarlo de inmediato en el mercado
+      // Registrar cooldown de 24 hs localmente para reflejarlo de inmediato en el mercado
       cooldownPlayers[playerId] = {
         player_id: playerId,
-        partidos_cooldown: 2,
+        segundos_restantes: 86400,
+        horas_restantes: 24,
         energia: player.energia ?? 100
       };
       persistActiveSquad(activeSquad, { allowEmpty: true });
 
       selectedForAction.delete(playerId);
       renderAllViews();
-      showMarketToast(`Has vendido a ${player.nombre || player.name} por +${player.precio || 10}M. Cooldown activo por 2 partidos.`, 'success');
+      showMarketToast(`Has vendido a ${player.nombre || player.name} por +${player.precio || 10}M. Cooldown activo por 24 horas.`, 'success');
     });
   }
 
