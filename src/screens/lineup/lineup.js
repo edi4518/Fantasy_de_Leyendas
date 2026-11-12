@@ -1432,8 +1432,12 @@ function closeTacticalModal() {
  * Configura el botón de confirmar y guardar alineación con validación estricta de 9 jugadores
  */
 function setupSaveButton(router) {
-  const saveBtn = document.getElementById('btn-save-lineup');
-  if (!saveBtn) return;
+  const oldBtn = document.getElementById('btn-save-lineup');
+  if (!oldBtn) return;
+
+  // Reemplazar nodo para evitar registrar listeners duplicados al reentrar a la pantalla
+  const saveBtn = oldBtn.cloneNode(true);
+  oldBtn.parentNode.replaceChild(saveBtn, oldBtn);
 
   saveBtn.addEventListener('click', async () => {
     const starters = activeSquad.players.slice(0, 6);
@@ -1449,28 +1453,43 @@ function setupSaveButton(router) {
     const filledReserves = reserves.filter(Boolean).length;
     const totalFilled = filledStarters + filledReserves;
 
-    // Notificación informativa si faltan puestos por completar
-    if (totalFilled < 10) {
-      const missingStarters = 6 - filledStarters;
-      const missingReserves = 4 - filledReserves;
-      console.info(`[Lineup] Guardando alineación parcial: ${filledStarters}/6 titulares, ${filledReserves}/4 suplentes.`);
-    }
+    let currentUserId = null;
+    try {
+      const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+      if (userObj && userObj.id) currentUserId = Number(userObj.id);
+    } catch (_) {}
 
     try {
       saveBtn.disabled = true;
       saveBtn.textContent = 'Guardando...';
 
-      // 1. Persistencia local inmediata
+      // 1. Persistencia local garantizada e inmediata
       persistActiveSquad();
 
-      // 2. Sincronización con el backend (si está disponible)
+      // 2. Sincronización oficial con el backend
       try {
-        await squadService.saveSquad({
-          formation: activeSquad.formation,
-          players: activeSquad.players
+        const res = await squadService.saveSquad({
+          formation: activeSquad.formation || '1-2-2-1',
+          players: activeSquad.players || [],
+          name: activeSquad.name || undefined,
+          user_id: currentUserId
         });
+        if (res && res.squad && Array.isArray(res.squad.players)) {
+          // Si el servidor confirma la plantilla guardada, sincronizar energías preservando el orden local
+          const remoteList = res.squad.players;
+          activeSquad.players = activeSquad.players.map((lp) => {
+            if (!lp) return lp;
+            const rp = remoteList.find(r => r && (r.id === lp.id || (r.name && lp.name && r.name.toLowerCase() === lp.name.toLowerCase())));
+            if (rp && rp.energia !== undefined && rp.energia !== null) {
+              const safeE = Math.max(0, Math.min(100, Math.round(Number(rp.energia))));
+              return { ...lp, energia: safeE, stamina: safeE };
+            }
+            return lp;
+          });
+          localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
+        }
       } catch (e) {
-        console.debug('[Lineup] Guardado local offline completado.');
+        console.warn('[Lineup] Guardado remoto diferido (se preservó localmente):', e.message);
       }
 
       if (totalFilled === 10) {
@@ -1483,6 +1502,7 @@ function setupSaveButton(router) {
       showToast('Error al guardar la alineación.');
     } finally {
       saveBtn.disabled = false;
+      saveBtn.textContent = 'Confirmar Alineación';
       renderMetrics();
     }
   });

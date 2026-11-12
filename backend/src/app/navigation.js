@@ -81,7 +81,11 @@ export function renderNavigation() {
   navContainer.querySelectorAll('.bottom-nav__item').forEach((button) => {
     button.addEventListener('click', () => {
       const targetPath = button.getAttribute('data-path');
-      if (targetPath) navigateTo(targetPath);
+      if (targetPath) {
+        // Feedback visual táctil instantáneo (0ms)
+        updateActiveNavItem(targetPath);
+        navigateTo(targetPath);
+      }
     });
   });
 

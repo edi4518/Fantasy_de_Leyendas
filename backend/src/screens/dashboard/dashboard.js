@@ -1033,13 +1033,31 @@ export async function fetchHomeData({ force = false } = {}) {
     const remoteHasPlayers = remotePlayers.some(Boolean);
     const localHasPlayers = Array.isArray(activeSquad?.players) && activeSquad.players.some(Boolean);
 
-    if (remoteHasPlayers || !localHasPlayers) {
-      if (remoteHasPlayers) {
-        activeSquad = {
-          name: remoteRes?.name || managerData?.team_name || 'Tu Equipo',
-          formation: remoteRes?.formation || '1-2-2-1',
-          players: remotePlayers
-        };
+    // Preservar la alineación local elegida por el usuario:
+    // Solo cargamos la remota completa si el usuario NO tiene plantilla local configurada.
+    // Si ya tiene plantilla local, preservamos su orden de titulares/suplentes y sincronizamos energía.
+    if (!localHasPlayers && remoteHasPlayers) {
+      activeSquad = {
+        name: remoteRes?.name || managerData?.team_name || 'Tu Equipo',
+        formation: remoteRes?.formation || '1-2-2-1',
+        players: remotePlayers
+      };
+      localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
+    } else if (localHasPlayers && remoteHasPlayers) {
+      let energyUpdated = false;
+      activeSquad.players = activeSquad.players.map((lp) => {
+        if (!lp) return lp;
+        const rp = remotePlayers.find(r => r && (r.id === lp.id || (r.name && lp.name && r.name.toLowerCase() === lp.name.toLowerCase())));
+        if (rp && rp.energia !== undefined && rp.energia !== null && !isNaN(Number(rp.energia))) {
+          const remoteEnergy = Math.max(0, Math.min(100, Math.round(Number(rp.energia))));
+          if (lp.energia !== remoteEnergy) {
+            energyUpdated = true;
+            return { ...lp, energia: remoteEnergy, stamina: remoteEnergy };
+          }
+        }
+        return lp;
+      });
+      if (energyUpdated) {
         localStorage.setItem('fantasy_active_squad', JSON.stringify(activeSquad));
       }
     }
