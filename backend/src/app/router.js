@@ -101,6 +101,9 @@ const routes = {
 };
 
 let isRouterInitialized = false;
+let currentNavigationSeq = 0;
+let lastPopHashUrl = "";
+let lastPopTimestamp = 0;
 
 export function initRouter() {
   if (isRouterInitialized) return;
@@ -109,8 +112,20 @@ export function initRouter() {
   window.router = { navigate: navigateTo, current: getCurrentRoute };
 
   // Manejo de eventos de retroceso/avance del navegador, BFCache y cambio de hash
-  window.addEventListener("popstate", handleLocation);
-  window.addEventListener("hashchange", handleLocation);
+  window.addEventListener("popstate", () => {
+    const currentUrl = window.location.pathname + window.location.search + window.location.hash;
+    lastPopHashUrl = currentUrl;
+    lastPopTimestamp = Date.now();
+    handleLocation();
+  });
+  window.addEventListener("hashchange", () => {
+    const currentUrl = window.location.pathname + window.location.search + window.location.hash;
+    // Evitar doble ejecución cuando el navegador dispara popstate y hashchange juntos
+    if (currentUrl === lastPopHashUrl && (Date.now() - lastPopTimestamp) < 120) {
+      return;
+    }
+    handleLocation();
+  });
   window.addEventListener("pageshow", (event) => {
     if (event.persisted) {
       handleLocation();
@@ -196,6 +211,7 @@ function updateBrowserUrl(newPath) {
 }
 
 async function handleLocation() {
+  const navSeq = ++currentNavigationSeq;
   // 1. Herramienta de testeo aislada: parámetro ?reset=true en la URL
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get("reset") === "true") {
@@ -305,6 +321,7 @@ async function handleLocation() {
       getScreenTemplate(viewUrl),
       ensureScreenStylesheet(route.screen),
     ]);
+    if (navSeq !== currentNavigationSeq) return;
 
     appContent.innerHTML = html;
     appContent.scrollTop = 0;

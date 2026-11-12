@@ -15,6 +15,7 @@ import { API_BASE_URL } from '../../services/api-client.js';
 
 let matchmakingTimer = null;
 let navigationExecuted = false;
+let activeSearchId = 0;
 
 function normalizeManagerAvatarOrigin(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return null;
@@ -90,6 +91,15 @@ function renderUserAvatarElement(containerEl, avatarUrl, fallbackName = 'Usuario
  * @param {Object} router - Instancia del router
  */
 export async function initMatchmaking(router) {
+  const btnStartCheck = document.getElementById('btn-start-match');
+  if (btnStartCheck && btnStartCheck.dataset.mmInit === '1') {
+    return;
+  }
+  if (btnStartCheck) {
+    btnStartCheck.dataset.mmInit = '1';
+  }
+
+  const searchId = ++activeSearchId;
   navigationExecuted = false;
   clearExistingTimers();
 
@@ -146,6 +156,8 @@ export async function initMatchmaking(router) {
   }
 
   // Fallback si aún no hay otros usuarios registrados con alineación completa
+  if (searchId !== activeSearchId) return;
+
   if (!awaySquad) {
     awaySquad = getRandomCpuTeam();
   }
@@ -160,11 +172,12 @@ export async function initMatchmaking(router) {
   if (elapsed < MIN_SEARCH_MS) {
     await new Promise(resolve => { matchmakingTimer = setTimeout(resolve, MIN_SEARCH_MS - elapsed); });
   }
-  if (navigationExecuted || !document.getElementById('btn-start-match')) return;
+  if (searchId !== activeSearchId || navigationExecuted || !document.getElementById('btn-start-match')) return;
 
   // 5. Rival encontrado: recién ahora se revelan sus datos
   const awayStats = calculateTeamMetrics(awaySquad);
   await renderVersusHeader(homeSquad, awaySquad, homeStats, awayStats);
+  if (searchId !== activeSearchId || navigationExecuted || !document.getElementById('btn-start-match')) return;
   renderTacticalComparison(homeStats, awayStats, homeSquad, awaySquad);
   revealRivalFound(awaySquad);
 }
