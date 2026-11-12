@@ -345,7 +345,14 @@ def _ensure_optimized_schema():
             with engine.begin() as conn:
                 for col_name, col_def in new_up_columns:
                     if col_name not in up_cols:
-                        conn.execute(text(f"ALTER TABLE user_players ADD COLUMN {col_name} {col_def}"))
+                        try:
+                            conn.execute(text(f"ALTER TABLE user_players ADD COLUMN {col_name} {col_def}"))
+                        except Exception as e:
+                            logger.warning(f"Aviso al agregar columna {col_name} en user_players: {e}")
+                try:
+                    conn.execute(text("UPDATE user_players SET en_club = 1 WHERE en_club IS NULL"))
+                except Exception as e:
+                    logger.debug(f"Aviso al actualizar en_club en user_players: {e}")
 
         # 1.5 En MySQL / TiDB asegurar AUTO_ID_CACHE = 1 en todas las tablas con AUTO_INCREMENT
         # para forzar IDs estrictamente secuenciales (1, 2, 3...) y evitar los saltos en bloques de 30.000 de TiDB

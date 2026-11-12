@@ -146,10 +146,41 @@ def _build_squad_response(plantilla: Plantilla, user: Optional[User], db: Sessio
         db.query(PlantillaJugador, UserPlayer, Player)
         .join(UserPlayer, PlantillaJugador.user_player_id == UserPlayer.id)
         .join(Player, PlantillaJugador.player_id == Player.id)
-        .filter(PlantillaJugador.plantilla_id == plantilla.id, UserPlayer.en_club == True)
+        .filter(PlantillaJugador.plantilla_id == plantilla.id)
         .order_by(PlantillaJugador.orden.asc())
         .all()
     )
+
+    # AUTO-RECUPERACIÓN: Si plantilla_jugadores quedó desvinculada pero el usuario
+    # tiene sus jugadores intactos en 'user_players', reconstruir automáticamente los 10 slots.
+    if not rows and user:
+        user_players = (
+            db.query(UserPlayer, Player)
+            .join(Player, UserPlayer.player_id == Player.id)
+            .filter(UserPlayer.user_id == user.id, UserPlayer.en_club != False)
+            .order_by(UserPlayer.id.asc())
+            .all()
+        )
+        if user_players:
+            for idx, (up, player) in enumerate(user_players[:10]):
+                pj = PlantillaJugador(
+                    plantilla_id=plantilla.id,
+                    user_player_id=up.id,
+                    player_id=player.id,
+                    es_titular=(idx < 6),
+                    posicion_cancha=f"SLOT_{idx}",
+                    orden=idx + 1,
+                )
+                db.add(pj)
+            db.commit()
+            rows = (
+                db.query(PlantillaJugador, UserPlayer, Player)
+                .join(UserPlayer, PlantillaJugador.user_player_id == UserPlayer.id)
+                .join(Player, PlantillaJugador.player_id == Player.id)
+                .filter(PlantillaJugador.plantilla_id == plantilla.id)
+                .order_by(PlantillaJugador.orden.asc())
+                .all()
+            )
 
     slots: List[Optional[Dict[str, Any]]] = [None] * 10
     fallback_starters: List[Dict[str, Any]] = []
@@ -323,23 +354,24 @@ def save_squad(
         plantilla.costo_total = total_cost
         if payload.name and payload.name.strip():
             plantilla.nombre = payload.name.strip()[:50]
-        db.query(PlantillaJugador).filter(PlantillaJugador.plantilla_id == plantilla.id).delete()
-        db.flush()
 
     # 2. Sincronizar el inventario del club ('user_players'):
     existing_user_players = db.query(UserPlayer).filter(UserPlayer.user_id == user.id).all()
     # Salvaguarda: Si el cliente envía una plantilla vacía (0 jugadores válidos) pero el usuario ya tiene
-    # futbolistas comprados en la base de datos, NO destruir el inventario del usuario.
-    # Esto previene que un cliente nuevo desincronizado borre accidentalmente el club.
-    active_in_club = [up for up in existing_user_players if getattr(up, "en_club", True)]
+    # futbolistas comprados en la base de datos, NO destruir el inventario ni la alineación del usuario.
+    active_in_club = [up for up in existing_user_players if getattr(up, "en_club", True) is not False]
     if not valid_entries and active_in_club and not payload.allow_empty:
         return {
             "status": "ignored",
             "message": "Se preservó la plantilla existente en la base de datos (se ignoró payload vacío accidental).",
             "max_budget": MAX_SALARY_CAP,
             "squad": _build_squad_response(plantilla, user, db),
-            "cooldowns": {},
+            "cooldowns": _build_user_cooldowns(user.id, db),
         }
+
+    # Una vez superada la salvaguarda, vaciar los slots anteriores para escribir los nuevos
+    db.query(PlantillaJugador).filter(PlantillaJugador.plantilla_id == plantilla.id).delete()
+    db.flush()
 
     # Mapa de futbolistas históricos del usuario (en club o previamente vendidos)
     existing_by_pid = {up.player_id: up for up in existing_user_players}
@@ -437,7 +469,7 @@ def get_club_inventory(
     rows = (
         db.query(UserPlayer, Player)
         .join(Player, UserPlayer.player_id == Player.id)
-        .filter(UserPlayer.user_id == user.id, UserPlayer.en_club == True)
+        .filter(UserPlayer.user_id == user.id, UserPlayer.en_club != False)
         .all()
     )
     items = [_serialize_player(player, up) for up, player in rows]
