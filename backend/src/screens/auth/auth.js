@@ -5,7 +5,7 @@
  */
 
 import { navigateTo } from "../../app/router.js";
-import { API_BASE_URL } from "../../services/api-client.js";
+import { API_BASE_URL, fetchWithFailover } from "../../services/api-client.js";
 import { authService } from "../../services/auth-service.js";
 import { squadService } from "../../services/squad-service.js";
 
@@ -389,7 +389,7 @@ function initLogin(router) {
 
         let response = null;
         try {
-          response = await fetch(`${API_BASE_URL}/auth/login`, {
+          response = await fetchWithFailover('/auth/login', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -768,7 +768,7 @@ function initRegister(router) {
         let response = null;
 
         try {
-          response = await fetch(`${API_BASE_URL}/auth/register`, {
+          response = await fetchWithFailover('/auth/register', {
             method: 'POST',
             body: formData,
           });

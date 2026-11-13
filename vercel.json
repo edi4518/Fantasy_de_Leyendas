@@ -81,7 +81,7 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "https://fantasy-de-leyendas-api.onrender.com/api/:path*"
+      "destination": "/api/index.py"
     },
     {
       "source": "/uploads/:path*",
